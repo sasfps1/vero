@@ -1,5 +1,7 @@
 // Vero — funciona sem internet: rede primeiro, cópia guardada se cair.
-const CACHE = "vero-v1";
+// "no-cache" = pergunta sempre ao servidor se há versão nova. Sem isto, o GitHub Pages manda guardar a
+// página 10 minutos e uma correção publicada não chegava a quem já tinha o app aberto (11/09).
+const CACHE = "vero-v2";
 const BASE = ["./", "./index.html", "./manifest.webmanifest", "./icone.svg", "./icone-192.png", "./icone-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -16,7 +18,7 @@ self.addEventListener("fetch", (e) => {
   const u = new URL(e.request.url);
   if (e.request.method !== "GET" || u.origin !== self.location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" })
       .then((r) => { const copia = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copia)); return r; })
       .catch(() => caches.match(e.request).then((r) => r || caches.match("./index.html")))
   );

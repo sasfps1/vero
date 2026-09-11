@@ -1186,7 +1186,13 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.casa) drenar(); });
 
   desenharRede(); pintar(); iniciar();
-  if ("serviceWorker" in navigator) window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  if ("serviceWorker" in navigator){
+    /* versão nova publicada → o app troca sozinho, uma vez; quem já tinha o app aberto não fica preso na antiga */
+    var tinhaVersao = !!navigator.serviceWorker.controller, trocou = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function(){
+      if (!tinhaVersao || trocou || lerFila().length) return; trocou = true; location.reload(); });
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js", { updateViaCache:"none" }).catch(function(){}); });
+  }
 })();
 </script>
 </body>
