@@ -106,6 +106,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--foco);outline-o
 
 .hero{margin-top:12px;padding:20px 18px 18px;position:relative;overflow:hidden}
 .hero-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nav{display:flex;align-items:center;gap:0;margin-right:-8px}
+.nav button{min-height:36px;min-width:32px;font-size:21px;line-height:1;color:var(--tinta-2)}
+.nav button:disabled{opacity:.22}
 .hero-n{margin-top:12px;font-weight:800;font-size:56px;letter-spacing:-.05em;line-height:.95;white-space:nowrap}
 .hero-d{margin-top:10px;font-size:15.5px;line-height:1.45;text-wrap:pretty}
 .hero-d b{font-weight:800}
@@ -148,6 +151,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--foco);outline-o
 .x{min-height:32px;color:var(--tinta-3);font-size:19px;line-height:1}
 
 .cats{display:flex;flex-direction:column;gap:13px}
+button.cat{display:block;width:100%;min-height:0;padding:2px 0;text-align:left;border-radius:6px}
 .cat .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .cat .n{font-size:14px;font-weight:600}
 .cat .p{font-size:12.5px;color:var(--tinta-2)}
@@ -168,6 +172,8 @@ button.li:hover{background:var(--linha)}
 .li .val.e{font-weight:800}
 .li .val.s{font-weight:500;color:var(--tinta-2)}
 .estado{margin-top:10px;font-size:12px;color:var(--tinta-2)}
+.busca{margin:-2px 0 8px}
+.busca input{min-height:42px;padding:9px 12px;font-size:14px}
 
 .barra{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--chao);padding:10px 18px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -1px 0 var(--linha)}
 .barra .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
@@ -285,7 +291,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
 <main class="wrap grade">
   <div class="col-a">
     <section class="painel hero" id="hero">
-      <div class="hero-top"><span class="rot" id="rotN">Livre de verdade</span><span class="rot" id="rotPer"></span></div>
+      <div class="hero-top"><span class="rot" id="rotN">Livre de verdade</span><div class="nav"><button type="button" id="bAnt" aria-label="Período anterior">‹</button><span class="rot" id="rotPer"></span><button type="button" id="bProx" aria-label="Próximo período">›</button></div></div>
       <div class="hero-n din" id="heroN">R$ 0<span class="cent">,00</span></div>
       <p class="hero-d" id="decide" aria-live="polite"></p>
       <p class="folga" id="folga"></p>
@@ -322,6 +328,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     </section>
     <section class="painel bloco">
       <div class="cab"><h2>Lançamentos</h2><span class="rot" id="rotFeed"></span></div>
+      <div class="busca"><input id="iBusca" type="search" placeholder="Buscar: mercado, farmácia, 50…" autocomplete="off" aria-label="Buscar lançamentos"></div>
       <div id="feed"></div>
       <p class="estado" id="estado"></p>
     </section>
@@ -386,7 +393,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   var SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   var FOLGA = 0.10, DEGRAU = 500;
   var CK = "vero-app-cache", EXK = "vero-app-sem-exemplo", TK = "vero-tema", OK_ = "vero-oculto", CHK = "vero-app-chat";
-  var S = { conta:"todos", per:"mes", lanc:[], fixas:[], cats:{ entrada:[], saida:[] }, nomes:{ sas:"Você", ela:"Parceira" },
+  var S = { conta:"todos", per:"mes", desl:0, busca:"", lanc:[], fixas:[], cats:{ entrada:[], saida:[] }, nomes:{ sas:"Você", ela:"Parceira" },
             user:null, casa:null, codigo:"", vaga:"sas", temEla:false, pronto:false, offline:false, exemplo:false, resumo:"" };
   var EX = gerarExemplo();
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -407,12 +414,19 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   function vibrar(){ try { if (navigator.vibrate) navigator.vibrate(12); } catch(e){} }
   function b(txt){ return '<b class="din">' + txt + "</b>"; }
 
-  function ini(){ var n = new Date();
+  /* o ponto de referência do período na tela: hoje, ou S.desl períodos para trás */
+  function refer(){ var n = new Date(), k = S.desl;
+    if (!k) return n;
+    if (S.per === "dia") return new Date(n.getFullYear(), n.getMonth(), n.getDate() + k);
+    if (S.per === "semana") return new Date(n.getFullYear(), n.getMonth(), n.getDate() + 7 * k);
+    if (S.per === "mes") return new Date(n.getFullYear(), n.getMonth() + k, 1);
+    return new Date(n.getFullYear() + k, 0, 1); }
+  function ini(){ var n = refer();
     if (S.per === "dia") return meiaNoite(n);
     if (S.per === "ano") return new Date(n.getFullYear(), 0, 1);
     if (S.per === "mes") return new Date(n.getFullYear(), n.getMonth(), 1);
     var i = meiaNoite(n); i.setDate(i.getDate() - ((i.getDay()+6) % 7)); return i; }
-  function fim(){ var n = new Date();
+  function fim(){ var n = refer();
     if (S.per === "dia") return meiaNoite(n);
     if (S.per === "ano") return new Date(n.getFullYear(), 11, 31);
     if (S.per === "mes") return new Date(n.getFullYear(), n.getMonth()+1, 0);
@@ -512,19 +526,23 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     v.forEach(function(l){
       if (l.tipo === "entrada") entrou += l.valor;
       else { saiu += l.valor; var c = l.fixa ? "Contas fixas" : l.categoria; porCat[c] = (porCat[c] || 0) + l.valor; } });
-    var mes = S.per === "mes", dia = S.per === "dia", sobra = entrou - saiu, M = calcMes(S.conta);
+    var corrente = !S.desl, mes = S.per === "mes" && corrente, dia = S.per === "dia" && corrente, sobra = entrou - saiu, M = calcMes(S.conta);
     var fx = fixasBase().filter(daConta), pend = 0;
     fx.forEach(function(f){ if (!pagaEm(f)) pend += f.valor; });
     var livre = mes ? sobra - pend : sobra;
-    var agora = new Date(), f = fim(), faltam = Math.max(1, dias(agora, f) + 1);
-    var nomePer = ({ dia:"Hoje", semana:"Esta semana", mes:"Este mês", ano:"Este ano" })[S.per];
+    var agora = new Date(), f = fim(), faltam = Math.max(1, dias(agora, f) + 1), r0 = ini();
+    var ddmm = pad(r0.getDate()) + "/" + pad(r0.getMonth() + 1), outroAno = r0.getFullYear() !== agora.getFullYear();
+    var nomePer = corrente ? ({ dia:"Hoje", semana:"Esta semana", mes:"Este mês", ano:"Este ano" })[S.per]
+      : S.per === "mes" ? "Em " + MESES[r0.getMonth()].toLowerCase() + (outroAno ? " de " + r0.getFullYear() : "")
+      : S.per === "ano" ? "Em " + r0.getFullYear() : S.per === "dia" ? "Em " + ddmm : "Na semana de " + ddmm;
     var heroV = dia ? M.tetoHoje - M.hojeS : livre;
 
     $("#nomeConta").textContent = nomeDaConta();
     $("#nomePer").textContent = ({ dia:"Dia", semana:"Semana", mes:"Mês", ano:"Ano" })[S.per];
     $("#rotN").textContent = mes ? "Livre de verdade" : dia ? "Disponível hoje" : "Resultado";
-    $("#rotPer").textContent = mes ? MESES[agora.getMonth()] : dia ? agora.getDate() + " de " + MESES[agora.getMonth()].toLowerCase()
-      : S.per === "ano" ? String(agora.getFullYear()) : "Esta semana";
+    $("#rotPer").textContent = S.per === "mes" ? MESES[r0.getMonth()] + (outroAno ? " " + r0.getFullYear() : "")
+      : S.per === "dia" ? (corrente ? "Hoje" : ddmm) : S.per === "ano" ? String(r0.getFullYear()) : (corrente ? "Esta semana" : ddmm);
+    $("#bProx").disabled = corrente;
     var hn = $("#heroN"); pintarValor(hn, heroV);
     hn.style.fontSize = "";
     var cabe = $("#hero").clientWidth - 36, w = hn.scrollWidth;
@@ -576,7 +594,10 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       mx.style.gridTemplateColumns = "repeat(10,minmax(0,1fr))";
       for (var q = 1; q <= 20; q++){ var ci = document.createElement("i"); if (q <= usado) ci.className = "p"; mx.appendChild(ci); }
     } else {
-      if (S.per === "ano"){ total = 12; atual = agora.getMonth() + 1;
+      if (!corrente){ total = S.per === "ano" ? 12 : dias(r0, f) + 1; atual = total + 1;
+        $("#rotRegua").textContent = S.per === "ano" ? "12 meses" : total + (total > 1 ? " dias" : " dia");
+        $("#rotFalta").textContent = "período fechado"; }
+      else if (S.per === "ano"){ total = 12; atual = agora.getMonth() + 1;
         $("#rotRegua").textContent = "mês " + atual + " de 12"; $("#rotFalta").textContent = (12 - atual) + " pela frente"; }
       else { total = dias(ini(), f) + 1; atual = dias(ini(), agora) + 1;
         $("#rotRegua").textContent = "dia " + (mes ? agora.getDate() : atual) + " de " + total;
@@ -625,27 +646,38 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       sw.disabled = S.exemplo;
       if (!S.exemplo) sw.addEventListener("click", function(){
         if (paga) apagar(paga);
-        else guardar({ id:novoId(), data:hoje(), tipo:"saida", valor:item.valor, categoria:"Fixas", conta:item.conta, nota:item.nome, fixa:item.id }); });
+        else { var pg = { id:novoId(), data:hoje(), tipo:"saida", valor:item.valor, categoria:"Fixas", conta:item.conta, nota:item.nome, fixa:item.id };
+          guardar(pg, { rotulo:"Outro valor", acao:function(){ var ja = S.lanc.filter(function(x){ return x.id === pg.id; })[0]; if (ja) abrirLanc("saida", ja); } }); } });
       FX.appendChild(r);
     });
 
     var cats = $("#cats"), ch = Object.keys(porCat).sort(function(a, b2){ return porCat[b2] - porCat[a]; });
-    $("#rotCats").textContent = saiu ? "cada ponto = 5%" : "";
+    $("#rotCats").textContent = saiu ? "toque para filtrar" : "";
     if (!ch.length) cats.innerHTML = '<div class="vazio">Nenhuma saída neste período.</div>';
     else { cats.innerHTML = "";
       ch.slice(0, 6).forEach(function(k){
         var pc = porCat[k] / saiu, cheios = Math.max(1, Math.round(pc * 20));
-        var el = document.createElement("div"); el.className = "cat";
-        el.innerHTML = '<div class="top"><span class="n"></span><span class="p din"></span></div><div class="pts" aria-hidden="true"></div>';
+        var el = document.createElement("button"); el.type = "button"; el.className = "cat";
+        el.setAttribute("aria-label", "Ver os lançamentos de " + k);
+        el.addEventListener("click", function(){ S.busca = k.toLowerCase(); $("#iBusca").value = k; pintar();
+          $("#iBusca").scrollIntoView({ behavior:"smooth", block:"center" }); });
+        el.innerHTML = '<span class="top"><span class="n"></span><span class="p din"></span></span><span class="pts" aria-hidden="true"></span>';
         $(".n", el).textContent = k;
         $(".p", el).textContent = redondo(porCat[k]) + " · " + Math.round(100 * pc) + "%";
         var pts = $(".pts", el);
         for (var p = 0; p < 20; p++){ var pi = document.createElement("i"); if (p < cheios) pi.className = "c"; pts.appendChild(pi); }
         cats.appendChild(el); }); }
 
-    var F = $("#feed"), ord = v.slice().sort(function(a, b2){ return a.data < b2.data ? 1 : a.data > b2.data ? -1 : 0; });
-    $("#rotFeed").textContent = v.length ? v.length + (v.length > 1 ? " itens" : " item") + (S.exemplo ? "" : " · toque para editar") : "";
-    if (!ord.length) F.innerHTML = '<div class="vazio">' + (S.pronto || S.exemplo ? "Nada neste período." : "Carregando…") + "</div>";
+    var q = S.busca.trim().toLowerCase(), qn = q ? lerValor(q) : 0;
+    var acha = function(l){ if (!q) return true;
+      var t = ((l.fixa ? "contas fixas " + l.nota : l.categoria + " " + (l.nota || "")) + " " + quem(l.conta)).toLowerCase();
+      return t.indexOf(q) >= 0 || (qn > 0 && l.valor === qn); };
+    var F = $("#feed"), ord = v.filter(acha).sort(function(a, b2){ return a.data < b2.data ? 1 : a.data > b2.data ? -1 : 0; });
+    var somaQ = 0; ord.forEach(function(l){ somaQ += l.tipo === "entrada" ? l.valor : -l.valor; });
+    $("#rotFeed").textContent = q ? ord.length + " de " + v.length + " · " + (somaQ > 0 ? "+" : "") + redondo(somaQ)
+      : v.length ? v.length + (v.length > 1 ? " itens" : " item") + (S.exemplo ? "" : " · toque para editar") : "";
+    if (!ord.length){ F.innerHTML = '<div class="vazio"></div>';
+      F.firstChild.textContent = q ? "Nada encontrado para “" + S.busca.trim() + "” neste período." : S.pronto || S.exemplo ? "Nada neste período." : "Carregando…"; }
     else { F.innerHTML = "";
       var ult = "", hj = hoje(), ontem = new Date(); ontem.setDate(ontem.getDate() - 1); ontem = iso(ontem);
       ord.slice(0, 150).forEach(function(l){
@@ -686,7 +718,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
 
   /* ── fila de envio: a tela muda na hora; a escrita fica guardada no aparelho e vai para o banco
         sozinha, na ordem, quando houver internet. Nada se perde se o sinal cair no meio da rua. ── */
-  var FK = "vero-app-fila", enviando = false, tFila = null;
+  var FK = "vero-app-fila", enviando = false, tFila = null, enviados = 0;
   function linhaDB(l){ return { id:l.id, casa_id:S.casa, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "" }; }
   function linhaFixa(f){ return { id:f.id, casa_id:S.casa, nome:f.nome, valor:f.valor, conta:f.conta, dia:f.dia || null }; }
   function lerFila(){ try { var f = JSON.parse(localStorage.getItem(FK) || "null");
@@ -709,7 +741,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     Promise.resolve(mandar(ops[0])).then(function(res){
       var err = res && res.error;
       if (err && !recusa(err)) throw err;
-      var resto = lerFila(); resto.shift(); gravarFila(resto); enviando = false;
+      var resto = lerFila(); resto.shift(); gravarFila(resto); enviando = false; enviados++;
       if (err){ toast("Um registro foi recusado pelo banco e não foi salvo."); carregar(); return; }
       drenar();
     }).catch(function(){ enviando = false; pintarEstado(); clearTimeout(tFila); tFila = setTimeout(drenar, 20000); });
@@ -724,6 +756,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
         if (op.t === "upd") S[k] = S[k].map(function(x){ return x.id === op.onde.id ? Object.assign({}, x, op.set) : x; });
       }
       if (op.tab === "categorias" && op.t === "ins" && S.cats[op.row.tipo].indexOf(op.row.nome) < 0) S.cats[op.row.tipo].push(op.row.nome);
+      if (op.tab === "categorias" && op.t === "del") S.cats[op.onde.tipo] = S.cats[op.onde.tipo].filter(function(x){ return x !== op.onde.nome; });
       if (op.tab === "membros" && op.t === "upd") S.nomes[op.onde.vaga] = op.set.nome;
     });
   }
@@ -736,13 +769,13 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   function acender(l){ var chv = l.tipo + l.categoria + l.valor + (l.nota || "");
     document.querySelectorAll(".tec").forEach(function(bt){ if (bt.dataset.chave === chv){
       bt.classList.add("feito"); setTimeout(function(){ bt.classList.remove("feito"); }, 700); } }); }
-  function guardar(l){
+  function guardar(l, alt){
     if (S.exemplo) sairDoExemplo();
     S.lanc = S.lanc.concat([l]); salvarCache(); pintar(); vibrar(); acender(l);
     var tirar = function(){ S.lanc = S.lanc.filter(function(x){ return x.id !== l.id; }); };
     enfileirar({ t:"ins", tab:"lancamentos", row:linhaDB(l) });
-    toast("Registrado: " + (l.tipo === "entrada" ? "+" : "−") + redondo(l.valor) + " · " + (l.fixa ? l.nota : l.categoria),
-      function(){ tirar(); salvarCache(); pintar(); enfileirar({ t:"del", tab:"lancamentos", onde:{ id:l.id } }); });
+    toast((l.fixa ? "Paga: " + l.nota + " · " : "Registrado: " + (l.tipo === "entrada" ? "+" : "−")) + redondo(l.valor) + (l.fixa ? "" : " · " + l.categoria),
+      alt ? alt.acao : function(){ tirar(); salvarCache(); pintar(); enfileirar({ t:"del", tab:"lancamentos", onde:{ id:l.id } }); }, alt && alt.rotulo);
   }
   function apagar(l){
     S.lanc = S.lanc.filter(function(x){ return x.id !== l.id; }); salvarCache(); pintar();
@@ -765,7 +798,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       if (a !== z){ set[k] = z; volta[k] = a; n++; } });
     return n ? { set:set, volta:volta } : null; }
   function editar(velho, novo){
-    var d = diferenca(velho, novo, ["data", "valor", "categoria", "conta", "nota"]); if (!d) return;
+    var d = diferenca(velho, novo, ["data", "tipo", "valor", "categoria", "conta", "nota"]); if (!d) return;
     var trocar = function(x){ S.lanc = S.lanc.map(function(l){ return l.id === x.id ? x : l; }); salvarCache(); pintar(); };
     trocar(novo); vibrar();
     enfileirar({ t:"upd", tab:"lancamentos", set:d.set, onde:{ id:velho.id } });
@@ -781,10 +814,10 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   }
 
   var tT = null;
-  function toast(msg, desfazer){
+  function toast(msg, desfazer, rotulo){
     var t = $("#toast"); t.innerHTML = "";
     var s = document.createElement("span"); s.textContent = msg; t.appendChild(s);
-    if (desfazer){ var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "Desfazer";
+    if (desfazer){ var bt = document.createElement("button"); bt.type = "button"; bt.textContent = rotulo || "Desfazer";
       bt.addEventListener("click", function(){ t.hidden = true; clearTimeout(tT); desfazer(); }); t.appendChild(bt); }
     t.hidden = false; clearTimeout(tT); tT = setTimeout(function(){ t.hidden = true; }, 5000);
   }
@@ -843,6 +876,22 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     }
     $("#bCat", f).addEventListener("click", criar);
     $("#iCat", f).addEventListener("keydown", function(e){ if (e.key === "Enter") criar(); });
+    var minhas = (S.cats[tipo] || []).filter(function(c){ return (tipo === "entrada" ? CAT_E : CAT_S).indexOf(c) < 0; });
+    if (minhas.length){ var gb = document.createElement("div"); gb.innerHTML = '<div class="rot" style="margin-top:20px">criadas por você</div>';
+      minhas.forEach(function(c){ var ln = document.createElement("div"); ln.className = "op";
+        ln.innerHTML = '<span></span><button type="button" class="lk">apagar</button>'; ln.firstChild.textContent = c;
+        ln.lastChild.setAttribute("aria-label", "Apagar a categoria " + c);
+        ln.lastChild.addEventListener("click", function(){ f.fechar(); apagarCategoria(tipo, c); }); gb.appendChild(ln); });
+      $(".folha", f).appendChild(gb); }
+  }
+
+  function apagarCategoria(tipo, nome){
+    var trocar = function(com){ S.cats = { entrada:S.cats.entrada.slice(), saida:S.cats.saida.slice() };
+      S.cats[tipo] = S.cats[tipo].filter(function(x){ return x !== nome; }); if (com) S.cats[tipo].push(nome); salvarCache(); pintar(); };
+    trocar(false);
+    enfileirar({ t:"del", tab:"categorias", onde:{ casa_id:S.casa, tipo:tipo, nome:nome } });
+    toast("Categoria apagada: " + nome + ". Os lançamentos antigos continuam com ela.", function(){ trocar(true);
+      enfileirar({ t:"ins", tab:"categorias", chave:"casa_id,tipo,nome", row:{ casa_id:S.casa, tipo:tipo, nome:nome } }); });
   }
 
   function abrirLanc(tipo, velho){
@@ -852,6 +901,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       + '<div class="campo"><label class="rot" for="iVal">Valor</label><input class="valor" id="iVal" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>'
       + '<div class="campo"><span class="rot">Categoria</span><button type="button" class="campo-sel vazio-sel" id="bSel"><span id="selTxt">Escolher categoria</span>' + SETA + '</button></div>'
       + '<div class="campo"><span class="rot">Conta</span><div class="seg2" id="cQ"></div></div>'
+      + (ed && !ehFixa ? '<div class="campo"><span class="rot">Tipo</span><div class="seg2" id="cT"></div></div>' : "")
       + '<div class="duas"><div class="campo"><label class="rot" for="iD">Data</label><input type="date" id="iD"></div>'
       + '<div class="campo"><label class="rot" for="iN">Descrição</label><input id="iN" placeholder="opcional" maxlength="120" autocomplete="off"></div></div>'
       + '<p class="erro" id="err" hidden></p>'
@@ -864,6 +914,10 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (ed){ $("#iVal", f).value = (velho.valor / 100).toFixed(2).replace(".", ","); $("#iN", f).value = velho.nota || "";
       if (ehFixa){ $("#bSel", f).parentNode.hidden = true; $("#iN", f).parentNode.hidden = true; } else marcar(velho.categoria);
       $("#bDel", f).addEventListener("click", function(){ f.fechar(); apagar(velho); }); }
+    if (ed && !ehFixa) seg2($("#cT", f), [["saida", "Saída"], ["entrada", "Entrada"]], tipo, function(t){ if (t === tipo) return; tipo = t;
+      $("h3", f).textContent = "Editar " + (tipo === "entrada" ? "entrada" : "saída");
+      $("#sub", f).textContent = tipo === "entrada" ? "dinheiro recebido" : "dinheiro gasto";
+      if (categorias(tipo).indexOf(sel.cat) < 0){ sel.cat = ""; $("#selTxt", f).textContent = "Escolher categoria"; $("#bSel", f).classList.add("vazio-sel"); } });
     $("#bSel", f).addEventListener("click", function(){ escolherCategoria(tipo, sel.cat, marcar); });
     seg2($("#cQ", f), [["sas", S.nomes.sas], ["ela", S.nomes.ela]], sel.conta, function(c){ sel.conta = c; });
     function salvar(){
@@ -916,7 +970,26 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   function abrirPeriodo(){
     var f = folha('<h3>Período</h3><div class="rot" style="margin-top:4px">o intervalo dos números da tela</div><div class="lista" id="lst" role="radiogroup"></div>');
     opcoes($("#lst", f), [["dia", "Dia", "hoje, contra o limite diário"], ["semana", "Semana", "de segunda a domingo"],
-      ["mes", "Mês", "com as contas fixas"], ["ano", "Ano", "de janeiro a dezembro"]], S.per, function(p){ S.per = p; pintar(); f.fechar(); });
+      ["mes", "Mês", "com as contas fixas"], ["ano", "Ano", "de janeiro a dezembro"]], S.per, function(p){ S.per = p; S.desl = 0; pintar(); f.fechar(); });
+  }
+
+  /* ── trocar a senha: com o login aberto não precisa de e-mail (que o plano grátis não entrega) ── */
+  function trocarSenha(){
+    var f = folha('<h3>Trocar a senha</h3><div class="rot" style="margin-top:4px">anote a nova — ainda não existe "esqueci a senha"</div>'
+      + '<div class="campo"><label class="rot" for="iS1">Nova senha</label><input id="iS1" type="password" autocomplete="new-password" minlength="6"></div>'
+      + '<p class="erro" id="err" hidden></p>'
+      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">Salvar</button></div>');
+    $("#bC", f).addEventListener("click", f.fechar);
+    $("#bO", f).addEventListener("click", function(){
+      var s = $("#iS1", f).value, er = $("#err", f), bt = this;
+      if (s.length < 6){ er.hidden = false; er.textContent = "A senha precisa ter pelo menos 6 caracteres."; $("#iS1", f).focus(); return; }
+      bt.disabled = true;
+      sb.auth.updateUser({ password:s }).then(function(r){ bt.disabled = false;
+        if (r.error){ er.hidden = false; var m = String(r.error.message || "");
+          er.textContent = /different|same/i.test(m) ? "Essa já é a sua senha atual." : /fetch|network/i.test(m) ? "Sem conexão. Tente de novo." : "Não deu certo agora. Tente de novo."; return; }
+        f.fechar(); toast("Senha trocada. Anote a nova."); });
+    });
+    setTimeout(function(){ $("#iS1", f).focus(); }, 60);
   }
 
   /* ── a planilha é do dono: todos os registros num arquivo que abre no Excel e no Google Planilhas ── */
@@ -953,6 +1026,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       + '<div class="campo"><label class="rot" for="n2">Pessoa 2</label><input id="n2" maxlength="20"></div>'
       + '<div class="acts"><button type="button" class="ok" id="bSv">Salvar nomes</button></div></div>'
       + '<div><button type="button" class="link" id="bCsv">Baixar planilha com todos os registros</button></div>'
+      + '<div><button type="button" class="link" id="bSenha">Trocar a senha</button></div>'
       + '<div><button type="button" class="link" id="bSair">Sair da conta</button></div>');
     opcoes($("#lst", f), [["todos", "Total", "soma das duas pessoas"], ["sas", S.nomes.sas, ""], ["ela", S.nomes.ela, S.temEla ? "" : "ainda não entrou"]],
       S.conta, function(c){ S.conta = c; pintar(); f.fechar(); });
@@ -972,6 +1046,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       enfileirar({ t:"upd", tab:"membros", set:{ nome:n2 }, onde:{ casa_id:S.casa, vaga:"ela" } });
       f.fechar(); toast("Nomes atualizados"); });
     $("#bCsv", f).addEventListener("click", function(){ baixarPlanilha(); f.fechar(); });
+    $("#bSenha", f).addEventListener("click", function(){ f.fechar(); trocarSenha(); });
     $("#bSair", f).addEventListener("click", function(){
       if (lerFila().length){ toast("Ainda há registros esperando internet. Conecte e saia depois, para não perder nada."); drenar(); return; }
       try { localStorage.removeItem(CK); localStorage.removeItem(CHK); localStorage.removeItem(FK); } catch(e){} sb.auth.signOut(); });
@@ -1089,11 +1164,14 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     toast(oculto ? "Valores escondidos. Toque na marca para mostrar." : "Valores à mostra."); vibrar(); });
 
   $("#bPer").addEventListener("click", abrirPeriodo);
+  $("#bAnt").addEventListener("click", function(){ S.desl--; pintar(); });
+  $("#bProx").addEventListener("click", function(){ if (S.desl < 0){ S.desl++; pintar(); } });
+  $("#iBusca").addEventListener("input", function(){ S.busca = this.value; pintar(); });
   $("#bConta").addEventListener("click", abrirConta);
   $("#bSaiu").addEventListener("click", function(){ abrirLanc("saida"); });
   $("#bEntrou").addEventListener("click", function(){ abrirLanc("entrada"); });
   $("#bPerg").addEventListener("click", abrirChat);
-  $("#bFixa").addEventListener("click", abrirFixa);
+  $("#bFixa").addEventListener("click", function(){ abrirFixa(); });   /* nunca passar o clique: abrirFixa(x) com x = edição */
   $("#bZero").addEventListener("click", function(){ sairDoExemplo(); pintar(); });
 
   /* ═══ A PORTA: login → casa → dados ═══ */
@@ -1189,7 +1267,9 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     aplicarFila();
   }
   async function carregar(){
-    try { S.lanc = await todosLancamentos(); await carregarMiudos(); S.offline = false; }
+    /* se algo da fila foi enviado ENQUANTO se lia o banco, a leitura já nasceu velha: lê de novo (senão o item somia da tela) */
+    try { for (var volta = 0; volta < 3; volta++){ var g = enviados; S.lanc = await todosLancamentos(); await carregarMiudos(); if (g === enviados) break; }
+      S.offline = false; }
     catch(e){ S.offline = true; clearTimeout(tIni); tIni = setTimeout(carregar, 20000); }   /* sinal fraco não avisa: tenta de novo */
     S.pronto = true; salvarCache(); avaliarExemplo(); pintar(); drenar();
   }
