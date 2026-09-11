@@ -136,7 +136,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--foco);outline-o
 .tec.feito i{background:var(--sinal)}
 .tec:active{transform:translateY(1px)}
 
-.fx{display:grid;grid-template-columns:minmax(0,1fr) auto auto 26px;gap:10px;align-items:center;padding:8px 0}
+.fx{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0}
+.fx-ed{text-align:left;min-height:44px;padding:0}
 .fx + .fx{border-top:1px solid var(--linha)}
 .fx .n{font-weight:600}
 .fx .m{font-size:12px;color:var(--tinta-2);display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
@@ -154,7 +155,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--foco);outline-o
 .pts i{aspect-ratio:1;border-radius:50%;background:var(--linha-2)}
 .pts i.c{background:var(--tinta)}
 
-.li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 26px;gap:12px;align-items:center;padding:10px 0}
+.li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 4px;width:100%;min-height:52px;text-align:left;border-radius:8px}
+button.li:hover{background:var(--linha)}
+.dia-cab{padding:14px 4px 4px}
+.dia-cab:first-child{padding-top:2px}
 .li + .li{border-top:1px solid var(--linha)}
 .mk{width:9px;height:9px;border-radius:50%;border:1.8px solid var(--tinta)}
 .mk.e{background:var(--tinta)}
@@ -379,6 +383,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   var CAT_S = ["Moradia","Alimentação","Mercado","Transporte","Saúde","Educação","Filhos","Lazer","Pessoal","Outros"];
   var CAT_E = ["Salário","Serviços","Freelance","Vendas","Reembolso","Outros"];
   var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  var SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   var FOLGA = 0.10, DEGRAU = 500;
   var CK = "vero-app-cache", EXK = "vero-app-sem-exemplo", TK = "vero-tema", OK_ = "vero-oculto", CHK = "vero-app-chat";
   var S = { conta:"todos", per:"mes", lanc:[], fixas:[], cats:{ entrada:[], saida:[] }, nomes:{ sas:"Você", ela:"Parceira" },
@@ -524,7 +529,8 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     hn.style.fontSize = "";
     var cabe = $("#hero").clientWidth - 36, w = hn.scrollWidth;
     if (cabe > 0 && w > cabe) hn.style.fontSize = Math.max(26, Math.floor(parseFloat(getComputedStyle(hn).fontSize) * cabe / w)) + "px";
-    $("#hero").classList.toggle("falta", heroV < 0);
+    var semEntradas = mes && !entrou && saiu > 0;
+    $("#hero").classList.toggle("falta", heroV < 0 && !semEntradas);
     pintarValor($("#vE"), entrou); pintarValor($("#vS"), saiu); pintarValor($("#vF"), dia ? M.tetoHoje : pend);
     $("#rotF").textContent = dia ? "Limite do dia" : "A pagar";
     $("#colF").hidden = !(mes || dia);
@@ -544,6 +550,9 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
         d.innerHTML = "Hoje passou " + b(redondo(M.hojeS - M.tetoHoje)) + " do limite diário.";
         fo.textContent = "Tudo bem: o limite dos próximos dias se ajusta sozinho.";
       }
+    } else if (semEntradas){
+      d.innerHTML = "Registre as <b>entradas do mês</b> — salário, diárias — e o Vero mostra quanto sobra e quanto dá por dia.";
+      fo.textContent = "Por enquanto o número acima é só o que já saiu.";
     } else if (mes && livre > 0){
       var teto = Math.floor(livre * (1 - FOLGA) / faltam / DEGRAU) * DEGRAU;
       if (teto > 0){
@@ -602,16 +611,13 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     fx.forEach(function(item){
       var paga = pagaEm(item), r = document.createElement("div");
       r.className = "fx" + (paga ? " paga" : "");
-      r.innerHTML = '<div><div class="n"></div><div class="m"><span class="mt"></span></div></div><div class="val din"></div>'
-        + '<button type="button" class="sw" role="switch"><span class="sw-tr"><span class="sw-t"></span></span></button>'
-        + '<button type="button" class="x">×</button>';
+      r.innerHTML = '<button type="button" class="fx-ed"><div class="n"></div><div class="m"><span class="mt"></span></div></button><div class="val din"></div>'
+        + '<button type="button" class="sw" role="switch"><span class="sw-tr"><span class="sw-t"></span></span></button>';
       $(".n", r).textContent = item.nome;
       $(".mt", r).textContent = (paga ? "paga dia " + paga.data.slice(8, 10) : item.dia ? "vence dia " + item.dia : "a pagar") + " · " + quem(item.conta);
-      if (item.dia && !S.exemplo){
-        var lk = document.createElement("button"); lk.type = "button"; lk.className = "lk"; lk.textContent = "lembrar na agenda";
-        lk.addEventListener("click", function(){ window.open(linkAgenda(item), "_blank", "noopener"); });
-        $(".m", r).appendChild(lk);
-      }
+      var ed = $(".fx-ed", r);
+      if (S.exemplo) ed.disabled = true;
+      else { ed.setAttribute("aria-label", "Editar a conta fixa " + item.nome); ed.addEventListener("click", function(){ abrirFixa(item); }); }
       $(".val", r).textContent = redondo(item.valor);
       var sw = $(".sw", r);
       sw.setAttribute("aria-checked", String(!!paga));
@@ -620,9 +626,6 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       if (!S.exemplo) sw.addEventListener("click", function(){
         if (paga) apagar(paga);
         else guardar({ id:novoId(), data:hoje(), tipo:"saida", valor:item.valor, categoria:"Fixas", conta:item.conta, nota:item.nome, fixa:item.id }); });
-      var xf = $(".x", r);
-      if (S.exemplo) xf.hidden = true;
-      else { xf.setAttribute("aria-label", "Remover a conta fixa " + item.nome); xf.addEventListener("click", function(){ removerFixa(item); }); }
       FX.appendChild(r);
     });
 
@@ -641,20 +644,25 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
         cats.appendChild(el); }); }
 
     var F = $("#feed"), ord = v.slice().sort(function(a, b2){ return a.data < b2.data ? 1 : a.data > b2.data ? -1 : 0; });
-    $("#rotFeed").textContent = v.length ? v.length + (v.length > 1 ? " itens" : " item") : "";
+    $("#rotFeed").textContent = v.length ? v.length + (v.length > 1 ? " itens" : " item") + (S.exemplo ? "" : " · toque para editar") : "";
     if (!ord.length) F.innerHTML = '<div class="vazio">' + (S.pronto || S.exemplo ? "Nada neste período." : "Carregando…") + "</div>";
     else { F.innerHTML = "";
-      ord.slice(0, 80).forEach(function(l){
-        var e = l.tipo === "entrada", r = document.createElement("div"); r.className = "li";
-        r.innerHTML = '<span class="mk"></span><div><div class="d"></div><div class="m"></div></div><div class="val din"></div><button type="button" class="x">×</button>';
+      var ult = "", hj = hoje(), ontem = new Date(); ontem.setDate(ontem.getDate() - 1); ontem = iso(ontem);
+      ord.slice(0, 150).forEach(function(l){
+        if (l.data !== ult){ ult = l.data; var dc = document.createElement("div"); dc.className = "rot dia-cab";
+          dc.textContent = l.data === hj ? "Hoje" : l.data === ontem ? "Ontem"
+            : SEMANA[new Date(l.data + "T12:00:00").getDay()] + ", " + l.data.slice(8, 10) + "/" + l.data.slice(5, 7);
+          F.appendChild(dc); }
+        var e = l.tipo === "entrada", r = document.createElement(S.exemplo ? "div" : "button"); r.className = "li";
+        if (!S.exemplo) r.type = "button";
+        r.innerHTML = '<span class="mk"></span><div><div class="d"></div><div class="m"></div></div><div class="val din"></div>';
         $(".mk", r).className = "mk" + (e ? " e" : "");
         $(".d", r).textContent = l.fixa ? (l.nota || "Conta fixa") : l.categoria + (l.nota ? " · " + l.nota : "");
-        $(".m", r).textContent = l.data.slice(8, 10) + "/" + l.data.slice(5, 7) + " · " + quem(l.conta) + (l.fixa ? " · conta fixa" : "");
+        $(".m", r).textContent = quem(l.conta) + (l.fixa ? " · conta fixa" : "");
         var val = $(".val", r); val.className = "val din " + (e ? "e" : "s");
         val.textContent = (e ? "+" : "−") + fmt(l.valor);
-        var x = $(".x", r);
-        if (S.exemplo) x.hidden = true;
-        else { x.setAttribute("aria-label", "Apagar " + l.categoria + " de " + fmt(l.valor)); x.addEventListener("click", function(){ apagar(l); }); }
+        if (!S.exemplo){ r.setAttribute("aria-label", "Editar " + (l.fixa ? l.nota : l.categoria) + " de " + fmt(l.valor));
+          r.addEventListener("click", function(){ abrirLanc(l.tipo, l); }); }
         F.appendChild(r); }); }
     pintarEstado();
 
@@ -713,6 +721,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
         var k = op.tab === "lancamentos" ? "lanc" : "fixas";
         if (op.t === "ins" && !S[k].some(function(x){ return x.id === op.row.id; })) S[k] = S[k].concat([op.tab === "lancamentos" ? doBanco(op.row) : op.row]);
         if (op.t === "del") S[k] = S[k].filter(function(x){ return x.id !== op.onde.id; });
+        if (op.t === "upd") S[k] = S[k].map(function(x){ return x.id === op.onde.id ? Object.assign({}, x, op.set) : x; });
       }
       if (op.tab === "categorias" && op.t === "ins" && S.cats[op.row.tipo].indexOf(op.row.nome) < 0) S.cats[op.row.tipo].push(op.row.nome);
       if (op.tab === "membros" && op.t === "upd") S.nomes[op.onde.vaga] = op.set.nome;
@@ -748,6 +757,27 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     enfileirar({ t:"del", tab:"fixas", onde:{ id:item.id } });
     toast("Conta fixa removida: " + item.nome, function(){ repor(); salvarCache(); pintar();
       enfileirar({ t:"ins", tab:"fixas", row:linhaFixa(item) }); });
+  }
+
+  /* editar = mandar só o que mudou; a tela muda na hora e o Desfazer devolve o que estava */
+  function diferenca(velho, novo, campos){ var set = {}, volta = {}, n = 0;
+    campos.forEach(function(k){ var a = velho[k] == null ? null : velho[k], z = novo[k] == null ? null : novo[k];
+      if (a !== z){ set[k] = z; volta[k] = a; n++; } });
+    return n ? { set:set, volta:volta } : null; }
+  function editar(velho, novo){
+    var d = diferenca(velho, novo, ["data", "valor", "categoria", "conta", "nota"]); if (!d) return;
+    var trocar = function(x){ S.lanc = S.lanc.map(function(l){ return l.id === x.id ? x : l; }); salvarCache(); pintar(); };
+    trocar(novo); vibrar();
+    enfileirar({ t:"upd", tab:"lancamentos", set:d.set, onde:{ id:velho.id } });
+    toast("Alterado: " + (novo.fixa ? novo.nota : novo.categoria) + " · " + redondo(novo.valor),
+      function(){ trocar(velho); enfileirar({ t:"upd", tab:"lancamentos", set:d.volta, onde:{ id:velho.id } }); });
+  }
+  function editarFixa(velho, novo){
+    var d = diferenca(velho, novo, ["nome", "valor", "conta", "dia"]); if (!d) return;
+    var trocar = function(x){ S.fixas = S.fixas.map(function(f){ return f.id === x.id ? x : f; }); salvarCache(); pintar(); };
+    trocar(novo);
+    enfileirar({ t:"upd", tab:"fixas", set:d.set, onde:{ id:velho.id } });
+    toast("Conta fixa alterada: " + novo.nome, function(){ trocar(velho); enfileirar({ t:"upd", tab:"fixas", set:d.volta, onde:{ id:velho.id } }); });
   }
 
   var tT = null;
@@ -815,8 +845,9 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     $("#iCat", f).addEventListener("keydown", function(e){ if (e.key === "Enter") criar(); });
   }
 
-  function abrirLanc(tipo){
-    var sel = { cat:"", conta: S.conta === "todos" ? S.vaga : S.conta };
+  function abrirLanc(tipo, velho){
+    var ed = !!velho, ehFixa = ed && !!velho.fixa;
+    var sel = { cat: ed ? velho.categoria : "", conta: ed ? velho.conta : (S.conta === "todos" ? S.vaga : S.conta) };
     var f = folha('<h3></h3><div class="rot" style="margin-top:4px" id="sub"></div>'
       + '<div class="campo"><label class="rot" for="iVal">Valor</label><input class="valor" id="iVal" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>'
       + '<div class="campo"><span class="rot">Categoria</span><button type="button" class="campo-sel vazio-sel" id="bSel"><span id="selTxt">Escolher categoria</span>' + SETA + '</button></div>'
@@ -824,37 +855,47 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       + '<div class="duas"><div class="campo"><label class="rot" for="iD">Data</label><input type="date" id="iD"></div>'
       + '<div class="campo"><label class="rot" for="iN">Descrição</label><input id="iN" placeholder="opcional" maxlength="120" autocomplete="off"></div></div>'
       + '<p class="erro" id="err" hidden></p>'
-      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">Registrar</button></div>');
-    $("h3", f).textContent = tipo === "entrada" ? "Nova entrada" : "Nova saída";
+      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">' + (ed ? "Salvar" : "Registrar") + '</button></div>'
+      + (ed ? '<div><button type="button" class="link" id="bDel">Apagar este lançamento</button></div>' : ""));
+    $("h3", f).textContent = (ed ? "Editar " : "Nova ") + (tipo === "entrada" ? "entrada" : "saída");
     $("#sub", f).textContent = tipo === "entrada" ? "dinheiro recebido" : "dinheiro gasto";
-    $("#iD", f).value = hoje();
+    $("#iD", f).value = ed ? velho.data : hoje();
     function marcar(c){ sel.cat = c; $("#selTxt", f).textContent = c; $("#bSel", f).classList.remove("vazio-sel"); $("#err", f).hidden = true; }
+    if (ed){ $("#iVal", f).value = (velho.valor / 100).toFixed(2).replace(".", ","); $("#iN", f).value = velho.nota || "";
+      if (ehFixa){ $("#bSel", f).parentNode.hidden = true; $("#iN", f).parentNode.hidden = true; } else marcar(velho.categoria);
+      $("#bDel", f).addEventListener("click", function(){ f.fechar(); apagar(velho); }); }
     $("#bSel", f).addEventListener("click", function(){ escolherCategoria(tipo, sel.cat, marcar); });
     seg2($("#cQ", f), [["sas", S.nomes.sas], ["ela", S.nomes.ela]], sel.conta, function(c){ sel.conta = c; });
     function salvar(){
       var n = lerValor($("#iVal", f).value), er = $("#err", f);
       if (!n){ er.hidden = false; er.textContent = "Digite um valor maior que zero, ex.: 20 ou 20,50."; $("#iVal", f).focus(); return; }
       if (!sel.cat){ er.hidden = false; er.textContent = "Escolha uma categoria."; return; }
-      guardar({ id:novoId(), data: $("#iD", f).value || hoje(), tipo:tipo, valor:n, categoria:sel.cat,
-                conta:sel.conta, nota: ($("#iN", f).value || "").trim().slice(0, 120), fixa:"" });
+      var novo = { id: ed ? velho.id : novoId(), data: $("#iD", f).value || hoje(), tipo:tipo, valor:n, categoria:sel.cat,
+                   conta:sel.conta, nota: ehFixa ? velho.nota : ($("#iN", f).value || "").trim().slice(0, 120), fixa: ed ? velho.fixa : "" };
+      if (ed) editar(velho, novo); else guardar(novo);
       f.fechar();
     }
     $("#bC", f).addEventListener("click", f.fechar);
     $("#bO", f).addEventListener("click", salvar);
     $("#iVal", f).addEventListener("keydown", function(e){ if (e.key === "Enter") salvar(); });
-    setTimeout(function(){ $("#iVal", f).focus(); }, 60);
+    if (!ed) setTimeout(function(){ $("#iVal", f).focus(); }, 60);
   }
 
-  function abrirFixa(){
-    var sel = { conta: S.conta === "todos" ? S.vaga : S.conta };
-    var f = folha('<h3>Conta fixa</h3><div class="rot" style="margin-top:4px">o que vence todo mês</div>'
+  function abrirFixa(velho){
+    var ed = !!velho, sel = { conta: ed ? velho.conta : (S.conta === "todos" ? S.vaga : S.conta) };
+    var f = folha('<h3>' + (ed ? "Editar conta fixa" : "Conta fixa") + '</h3><div class="rot" style="margin-top:4px">o que vence todo mês</div>'
       + '<div class="campo"><label class="rot" for="iNm">Nome</label><input id="iNm" placeholder="ex.: Aluguel" maxlength="40" autocomplete="off"></div>'
       + '<div class="duas"><div class="campo"><label class="rot" for="iV2">Valor mensal</label><input id="iV2" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>'
       + '<div class="campo"><label class="rot" for="iDia">Dia do vencimento</label><input id="iDia" inputmode="numeric" placeholder="ex.: 10" maxlength="2"></div></div>'
       + '<div class="campo"><span class="rot">Quem paga</span><div class="seg2" id="cQ"></div></div>'
       + '<p class="erro" id="err" hidden></p>'
-      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">Adicionar</button></div>');
+      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">' + (ed ? "Salvar" : "Adicionar") + '</button></div>'
+      + (ed ? '<div><button type="button" class="link" id="bAg" hidden>Lembrar na agenda todo mês</button></div>'
+            + '<div><button type="button" class="link" id="bDelF">Remover esta conta fixa</button></div>' : ""));
     seg2($("#cQ", f), [["sas", S.nomes.sas], ["ela", S.nomes.ela]], sel.conta, function(c){ sel.conta = c; });
+    if (ed){ $("#iNm", f).value = velho.nome; $("#iV2", f).value = (velho.valor / 100).toFixed(2).replace(".", ","); $("#iDia", f).value = velho.dia || "";
+      if (velho.dia){ $("#bAg", f).hidden = false; $("#bAg", f).addEventListener("click", function(){ window.open(linkAgenda(velho), "_blank", "noopener"); }); }
+      $("#bDelF", f).addEventListener("click", function(){ f.fechar(); removerFixa(velho); }); }
     $("#bC", f).addEventListener("click", f.fechar);
     $("#bO", f).addEventListener("click", function(){
       var nome = ($("#iNm", f).value || "").trim().slice(0, 40), n = lerValor($("#iV2", f).value), er = $("#err", f);
@@ -863,12 +904,13 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       if (!n){ er.hidden = false; er.textContent = "Digite o valor mensal, ex.: 800."; return; }
       if (($("#iDia", f).value || "").trim() && !(dia >= 1 && dia <= 31)){ er.hidden = false; er.textContent = "O dia do vencimento vai de 1 a 31."; return; }
       if (S.exemplo) sairDoExemplo();
-      var item = { id:novoId(), nome:nome, valor:n, conta:sel.conta, dia: dia >= 1 && dia <= 31 ? dia : null };
+      var item = { id: ed ? velho.id : novoId(), nome:nome, valor:n, conta:sel.conta, dia: dia >= 1 && dia <= 31 ? dia : null };
+      if (ed){ editarFixa(velho, item); f.fechar(); return; }
       S.fixas = S.fixas.concat([item]); salvarCache(); pintar();
       enfileirar({ t:"ins", tab:"fixas", row:linhaFixa(item) });
       toast("Conta fixa adicionada: " + nome); f.fechar();
     });
-    setTimeout(function(){ $("#iNm", f).focus(); }, 60);
+    if (!ed) setTimeout(function(){ $("#iNm", f).focus(); }, 60);
   }
 
   function abrirPeriodo(){
