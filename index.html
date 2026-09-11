@@ -733,14 +733,18 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     return q;
   }
   /* recusa do banco (dado inválido, sem permissão) não se resolve a insistir; o resto é rede e tenta-se de novo */
-  function recusa(err){ return /^(22|23|42)/.test(String(err.code || "")); }
+  /* 4xx = o banco leu o pedido e disse não: insistir não muda nada (401/408/429 são de esperar: login a renovar, demora, excesso) */
+  function recusa(err, st){ if (st >= 400 && st < 500 && st !== 401 && st !== 408 && st !== 429) return true; return /^(22|23|42)/.test(String(err.code || "")); }
   function drenar(){
     if (enviando || !S.casa) return;
     var ops = lerFila(); if (!ops.length){ pintarEstado(); return; }
+    var op0 = ops[0];
+    if (op0.t !== "ins" && (!op0.onde || !Object.keys(op0.onde).length || Object.keys(op0.onde).some(function(k){ return op0.onde[k] == null; }))){
+      ops.shift(); gravarFila(ops); drenar(); return; }   /* alterar/apagar sem dizer QUAL registro: nunca passaria, e prendia a fila */
     enviando = true;
     Promise.resolve(mandar(ops[0])).then(function(res){
-      var err = res && res.error;
-      if (err && !recusa(err)) throw err;
+      var err = res && res.error, st = res && res.status;
+      if (err && !recusa(err, st)) throw err;
       var resto = lerFila(); resto.shift(); gravarFila(resto); enviando = false; enviados++;
       if (err){ toast("Um registro foi recusado pelo banco e não foi salvo."); carregar(); return; }
       drenar();
@@ -1048,8 +1052,10 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     $("#bCsv", f).addEventListener("click", function(){ baixarPlanilha(); f.fechar(); });
     $("#bSenha", f).addEventListener("click", function(){ f.fechar(); trocarSenha(); });
     $("#bSair", f).addEventListener("click", function(){
-      if (lerFila().length){ toast("Ainda há registros esperando internet. Conecte e saia depois, para não perder nada."); drenar(); return; }
-      try { localStorage.removeItem(CK); localStorage.removeItem(CHK); localStorage.removeItem(FK); } catch(e){} sb.auth.signOut(); });
+      var sair = function(){ try { localStorage.removeItem(CK); localStorage.removeItem(CHK); localStorage.removeItem(FK); } catch(e){} f.fechar(); sb.auth.signOut(); };
+      var nf = lerFila().length;   /* avisa, mas nunca prende ninguém dentro da conta */
+      if (nf){ drenar(); toast("Ainda há " + (nf === 1 ? "1 registro" : nf + " registros") + " esperando internet. Se sair agora, " + (nf === 1 ? "ele se perde." : "eles se perdem."), sair, "Sair mesmo assim"); return; }
+      sair(); });
   }
 
   /* ═══ A IA DO VERO — o app calcula, a IA interpreta ═══
