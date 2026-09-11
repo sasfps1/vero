@@ -59,7 +59,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background-color:var(--chao);color:var(--tinta);
   font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.45;
-  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;padding-bottom:124px;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;padding-bottom:198px;
   padding-top:env(safe-area-inset-top)}
 body::before{content:"";position:fixed;inset:0;z-index:-3;background:var(--fundo)}
 .rede{position:fixed;inset:0;z-index:-2;width:100%;height:100%;pointer-events:none;opacity:var(--rede-a)}
@@ -183,7 +183,7 @@ button.li:hover{background:var(--linha)}
 .bP{display:inline-flex;align-items:center;gap:8px;padding:0 18px;background:var(--painel);border:1px solid var(--linha-2)!important;color:var(--tinta);font-weight:800;font-size:15px}
 .ia-pt{width:8px;height:8px;border-radius:50%;background:var(--sinal);box-shadow:0 0 0 2px var(--tinta);flex:0 0 auto}
 
-.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;
+.toast{position:fixed;left:50%;bottom:calc(156px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;
   display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:7px 7px 7px 16px;border-radius:10px;background:var(--cheia);color:var(--cheia-tinta);font-size:13.5px;box-shadow:0 6px 20px rgba(2,7,26,.25)}
 .toast button{min-height:34px;padding:0 12px;border-radius:7px;background:rgba(158,197,232,.24);color:inherit;font-weight:800}
 
@@ -251,6 +251,29 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
 .chat-pe{width:100%;max-width:720px;margin:0 auto;padding:10px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--linha)}
 .chat-pe .sug{margin-bottom:10px}
 
+/* as três telas */
+.tela-cab{padding:6px 0 2px}
+.tela-cab h1{font-size:28px;font-weight:800;letter-spacing:-.04em;line-height:1.05}
+.tela-cab .rot{margin-top:5px}
+.px{display:grid;grid-template-columns:80px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;min-height:52px;padding:8px 4px;text-align:left;border-radius:8px}
+.px + .px{border-top:1px solid var(--linha)}
+button.px:hover{background:var(--linha)}
+.px-d{line-height:1.35}
+.px-t b{display:block;font-weight:600;font-size:14.5px;overflow-wrap:break-word}
+.px-t small{display:block;margin-top:1px;font-size:12px;color:var(--tinta-2)}
+.px-v{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-weight:700;font-size:14.5px;letter-spacing:-.01em;white-space:nowrap}
+.px-a{min-height:34px;padding:0 12px;border:1px solid var(--linha-2);font-size:12.5px;font-weight:700}
+.px.atr .px-d{color:var(--tinta);font-weight:800}
+.px.emp{grid-template-columns:minmax(0,1fr) auto}
+.px.emp .px-d{display:none}
+.chk{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:13.5px;color:var(--tinta-2)}
+.chk input{width:20px;height:20px;min-height:0;padding:0;flex:0 0 auto;accent-color:var(--cheia)}
+.barra .in.dois{grid-template-columns:1fr 1fr}
+.abas{max-width:560px;margin:8px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.abas a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:50px;border-radius:10px;color:var(--tinta-3);text-decoration:none;font-size:11.5px;font-weight:700;letter-spacing:.01em}
+.abas a[aria-current="page"]{color:var(--tinta);background:var(--linha)}
+.abas svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
 @media (min-width:960px){
   .wrap{max-width:1024px;padding:0 32px}
   .grade{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
@@ -276,7 +299,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     </button>
     <button type="button" class="sw" id="bTema" role="switch" aria-checked="false" aria-label="Tema escuro"><span class="sw-tr"><span class="sw-t"></span></span></button>
   </header>
-  <div class="ctrl">
+  <div class="ctrl" id="ctrlInicio">
     <button type="button" class="conta" id="bPer" aria-haspopup="dialog">
       <span class="rot">Período</span><span id="nomePer">Mês</span>
       <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5"/></svg>
@@ -288,13 +311,14 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   </div>
 </div>
 
-<main class="wrap grade">
+<main class="wrap grade" id="telaInicio">
   <div class="col-a">
     <section class="painel hero" id="hero">
       <div class="hero-top"><span class="rot" id="rotN">Livre de verdade</span><div class="nav"><button type="button" id="bAnt" aria-label="Período anterior">‹</button><span class="rot" id="rotPer"></span><button type="button" id="bProx" aria-label="Próximo período">›</button></div></div>
       <div class="hero-n din" id="heroN">R$ 0<span class="cent">,00</span></div>
       <p class="hero-d" id="decide" aria-live="polite"></p>
       <p class="folga" id="folga"></p>
+      <p class="folga" id="receber" hidden></p>
       <div class="matriz" id="matriz" aria-hidden="true"></div>
       <div class="mat-leg"><span class="rot" id="rotRegua"></span><span class="rot" id="rotFalta"></span></div>
     </section>
@@ -310,6 +334,11 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       <button type="button" id="bZero">Começar do zero</button>
     </div>
 
+    <section class="painel bloco" id="blocoProx" hidden>
+      <div class="cab"><h2>Próximos 7 dias</h2><span class="rot" id="rotProx"></span></div>
+      <div id="prox"></div>
+    </section>
+
     <section class="painel bloco">
       <div class="cab"><h2>Atalhos</h2><span class="rot">um toque salva</span></div>
       <div class="teclas" id="teclas"></div>
@@ -317,11 +346,6 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   </div>
 
   <div class="col-b">
-    <section class="painel bloco" id="blocoFixas">
-      <div class="cab"><h2>Contas fixas</h2><span class="rot">ligue quando pagar</span></div>
-      <div id="fixas"></div>
-      <button type="button" class="mais" id="bFixa">+ Adicionar conta fixa</button>
-    </section>
     <section class="painel bloco">
       <div class="cab"><h2>Para onde está indo</h2><span class="rot" id="rotCats"></span></div>
       <div class="cats" id="cats"></div>
@@ -335,11 +359,51 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   </div>
 </main>
 
-<div class="barra"><div class="in">
+<main class="wrap" id="telaContas" hidden>
+  <header class="tela-cab"><h1>Contas</h1><p class="rot" id="rotContas"></p></header>
+  <section class="painel hero">
+    <div class="hero-top"><span class="rot">A pagar este mês</span></div>
+    <div class="hero-n din" id="nPagar"></div>
+    <p class="hero-d" id="dPagar"></p>
+  </section>
+  <section class="painel bloco" id="blocoFixas">
+    <div class="cab"><h2>Contas fixas</h2><span class="rot">ligue quando pagar</span></div>
+    <div id="fixas"></div>
+    <button type="button" class="mais" id="bFixa">+ Adicionar conta fixa</button>
+  </section>
+  <section class="painel bloco">
+    <div class="cab"><h2>Empréstimos a devolver</h2><span class="rot">de Pessoas</span></div>
+    <div id="devo"></div>
+  </section>
+</main>
+
+<main class="wrap" id="telaPessoas" hidden>
+  <header class="tela-cab"><h1>Pessoas</h1><p class="rot">dinheiro entre vocês e outras pessoas</p></header>
+  <div class="leit dois" style="margin-top:12px">
+    <div class="painel"><div class="rot">Te devem</div><div class="v din" id="vReceber"></div></div>
+    <div class="painel"><div class="rot">Você deve</div><div class="v din" id="vDevolver"></div></div>
+  </div>
+  <p class="folga" style="margin:9px 2px 0">O que te devem só entra no seu livre quando o dinheiro cair na conta.</p>
+  <section class="painel bloco"><div class="cab"><h2>Me devem</h2></div><div id="meDevem"></div></section>
+  <section class="painel bloco"><div class="cab"><h2>Eu devo</h2></div><div id="euDevo"></div></section>
+  <section class="painel bloco" id="blocoEnc" hidden><div class="cab"><h2>Encerrados</h2><span class="rot" id="rotEnc"></span></div><div id="enc"></div></section>
+</main>
+
+<div class="barra"><div class="in" id="acInicio">
   <button type="button" class="bS" id="bSaiu">− Saída</button>
   <button type="button" class="bE" id="bEntrou">+ Entrada</button>
   <button type="button" class="bP" id="bPerg" aria-label="Conversar com a IA do Vero"><span class="ia-pt"></span>IA</button>
-</div></div>
+</div>
+  <div class="in dois" id="acPessoas" hidden>
+    <button type="button" class="bS" id="bEmprestei">Emprestei</button>
+    <button type="button" class="bE" id="bPeguei">Peguei</button>
+  </div>
+  <nav class="abas" aria-label="Telas do Vero">
+    <a href="#/inicio" data-t="inicio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M5.8 9.6v10h12.4v-10"/></svg>Início</a>
+    <a href="#/contas" data-t="contas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.2"/><path d="M3.5 9.6h17M8 3v4M16 3v4"/></svg>Contas</a>
+    <a href="#/pessoas" data-t="pessoas"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.6" r="3.2"/><path d="M3.2 19.5c.6-3.2 3-5 5.8-5s5.2 1.8 5.8 5"/><circle cx="17" cy="9.4" r="2.5"/><path d="M16.4 14.6c2.3.2 4 1.7 4.5 4.4"/></svg>Pessoas</a>
+  </nav>
+</div>
 
 <div class="porta" id="porta" hidden>
   <div class="porta-in">
@@ -393,7 +457,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   var SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   var FOLGA = 0.10, DEGRAU = 500;
   var CK = "vero-app-cache", EXK = "vero-app-sem-exemplo", TK = "vero-tema", OK_ = "vero-oculto", CHK = "vero-app-chat";
-  var S = { conta:"todos", per:"mes", desl:0, busca:"", lanc:[], fixas:[], cats:{ entrada:[], saida:[] }, nomes:{ sas:"Você", ela:"Parceira" },
+  var S = { conta:"todos", per:"mes", desl:0, busca:"", tela:"inicio", emp:[], lanc:[], fixas:[], cats:{ entrada:[], saida:[] }, nomes:{ sas:"Você", ela:"Parceira" },
             user:null, casa:null, codigo:"", vaga:"sas", temEla:false, pronto:false, offline:false, exemplo:false, resumo:"" };
   var EX = gerarExemplo();
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -451,6 +515,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     base().forEach(function(l){ if (!ok(l) || l.data < a || l.data > z) return;
       if (l.tipo === "entrada") E += l.valor; else { Sd += l.valor; if (l.data === hj && !l.fixa) hS += l.valor; } });
     fixasBase().forEach(function(f){ if (ok(f) && !pagaEm(f)) pend += f.valor; });
+    pend += euDevoNoMes(conta);
     var livre = E - Sd - pend, faltam = Math.max(1, dias(n, new Date(n.getFullYear(), n.getMonth()+1, 0)) + 1);
     var teto = livre > 0 ? Math.floor(livre * (1 - FOLGA) / faltam / DEGRAU) * DEGRAU : 0;
     var tetoHoje = livre + hS > 0 ? Math.floor((livre + hS) * (1 - FOLGA) / faltam / DEGRAU) * DEGRAU : 0;
@@ -481,15 +546,15 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
 
   /* ── cache no aparelho: abre na hora e funciona sem internet ── */
   function lerCache(){ try { var c = JSON.parse(localStorage.getItem(CK) || "null");
-    if (c && c.casa === S.casa && Array.isArray(c.lanc)) { S.lanc = c.lanc; S.fixas = c.fixas || []; S.cats = c.cats || S.cats; S.nomes = c.nomes || S.nomes; S.codigo = c.codigo || ""; } } catch(e){} }
-  function salvarCache(){ try { localStorage.setItem(CK, JSON.stringify({ casa:S.casa, lanc:S.lanc, fixas:S.fixas, cats:S.cats, nomes:S.nomes, codigo:S.codigo })); } catch(e){} }
+    if (c && c.casa === S.casa && Array.isArray(c.lanc)) { S.lanc = c.lanc; S.fixas = c.fixas || []; S.cats = c.cats || S.cats; S.nomes = c.nomes || S.nomes; S.codigo = c.codigo || ""; S.emp = c.emp || []; } } catch(e){} }
+  function salvarCache(){ try { localStorage.setItem(CK, JSON.stringify({ casa:S.casa, lanc:S.lanc, fixas:S.fixas, cats:S.cats, nomes:S.nomes, codigo:S.codigo, emp:S.emp })); } catch(e){} }
   function avaliarExemplo(){ var fora = false; try { fora = localStorage.getItem(EXK) === "1"; } catch(e){}
     S.exemplo = S.pronto && !S.lanc.length && !S.fixas.length && !fora; }
   function sairDoExemplo(){ S.exemplo = false; try { localStorage.setItem(EXK, "1"); } catch(e){} }
 
   function atalhos(){
     var cont = {};
-    base().forEach(function(l){ if (l.fixa) return;
+    base().forEach(function(l){ if (l.fixa || l.emprestimo) return;
       var k = l.tipo + "|" + l.categoria + "|" + l.valor + "|" + l.conta + "|" + (l.nota || ""); cont[k] = (cont[k] || 0) + 1; });
     return Object.keys(cont).filter(function(k){ return cont[k] >= 2; })
       .sort(function(a, b2){ return cont[b2] - cont[a]; }).slice(0, 6)
@@ -529,6 +594,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     var corrente = !S.desl, mes = S.per === "mes" && corrente, dia = S.per === "dia" && corrente, sobra = entrou - saiu, M = calcMes(S.conta);
     var fx = fixasBase().filter(daConta), pend = 0;
     fx.forEach(function(f){ if (!pagaEm(f)) pend += f.valor; });
+    pend += euDevoNoMes(S.conta);
     var livre = mes ? sobra - pend : sobra;
     var agora = new Date(), f = fim(), faltam = Math.max(1, dias(agora, f) + 1), r0 = ini();
     var ddmm = pad(r0.getDate()) + "/" + pad(r0.getMonth() + 1), outroAno = r0.getFullYear() !== agora.getFullYear();
@@ -575,7 +641,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       var teto = Math.floor(livre * (1 - FOLGA) / faltam / DEGRAU) * DEGRAU;
       if (teto > 0){
         d.innerHTML = "Até " + b(redondo(teto) + " por dia") + " nos " + faltam + " dia" + (faltam > 1 ? "s" : "")
-          + " restantes" + (pend ? ", já descontando " + b(redondo(pend)) + " de contas fixas." : ".");
+          + " restantes" + (pend ? ", já descontando " + b(redondo(pend)) + " de contas a pagar." : ".");
         fo.textContent = "Margem de segurança de 10%. O saldo do dia " + f.getDate() + " vira reserva do próximo mês.";
       } else d.innerHTML = "O mês fecha, mas <b>sem margem diária</b>. Priorize os gastos essenciais até a próxima entrada.";
     } else if (mes){
@@ -608,6 +674,9 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     }
 
     $("#aviso").hidden = !S.exemplo;
+    var ar = aReceber(S.conta);
+    $("#receber").hidden = !(corrente && ar > 0);
+    $("#receber").textContent = "A receber de pessoas: " + redondo(ar) + " — só entra no livre quando cair na conta.";
 
     var tk = $("#teclas"); tk.innerHTML = "";
     var at = atalhos();
@@ -626,16 +695,16 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       tk.appendChild(bt);
     });
 
-    $("#blocoFixas").hidden = !mes;
+
     var FX = $("#fixas"); FX.innerHTML = "";
     if (!fx.length) FX.innerHTML = '<div class="vazio">Aluguel, energia, internet… Cadastre uma vez e o Vero desconta todo mês.</div>';
-    fx.forEach(function(item){
+    fx.slice().sort(function(a, z){ return (a.dia || 99) - (z.dia || 99); }).forEach(function(item){
       var paga = pagaEm(item), r = document.createElement("div");
       r.className = "fx" + (paga ? " paga" : "");
       r.innerHTML = '<button type="button" class="fx-ed"><div class="n"></div><div class="m"><span class="mt"></span></div></button><div class="val din"></div>'
         + '<button type="button" class="sw" role="switch"><span class="sw-tr"><span class="sw-t"></span></span></button>';
       $(".n", r).textContent = item.nome;
-      $(".mt", r).textContent = (paga ? "paga dia " + paga.data.slice(8, 10) : item.dia ? "vence dia " + item.dia : "a pagar") + " · " + quem(item.conta);
+      $(".mt", r).textContent = (paga ? "paga dia " + paga.data.slice(8, 10) : item.dia ? (vencFixa(item) < hoje() ? "venceu dia " : "vence dia ") + item.dia : "a pagar") + " · " + quem(item.conta);
       var ed = $(".fx-ed", r);
       if (S.exemplo) ed.disabled = true;
       else { ed.setAttribute("aria-label", "Editar a conta fixa " + item.nome); ed.addEventListener("click", function(){ abrirFixa(item); }); }
@@ -690,13 +759,14 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
         r.innerHTML = '<span class="mk"></span><div><div class="d"></div><div class="m"></div></div><div class="val din"></div>';
         $(".mk", r).className = "mk" + (e ? " e" : "");
         $(".d", r).textContent = l.fixa ? (l.nota || "Conta fixa") : l.categoria + (l.nota ? " · " + l.nota : "");
-        $(".m", r).textContent = quem(l.conta) + (l.fixa ? " · conta fixa" : "");
+        $(".m", r).textContent = quem(l.conta) + (l.fixa ? " · conta fixa" : "") + (l.emprestimo ? " · empréstimo" : "");
         var val = $(".val", r); val.className = "val din " + (e ? "e" : "s");
         val.textContent = (e ? "+" : "−") + fmt(l.valor);
         if (!S.exemplo){ r.setAttribute("aria-label", "Editar " + (l.fixa ? l.nota : l.categoria) + " de " + fmt(l.valor));
           r.addEventListener("click", function(){ abrirLanc(l.tipo, l); }); }
         F.appendChild(r); }); }
     pintarEstado();
+    pintarProx(); pintarContas(); pintarPessoas();
 
     S.resumo = nomePer + " (conta: " + nomeDaConta() + "): entradas " + fmt(entrou) + ", saídas " + fmt(saiu)
       + (mes ? ", contas fixas a pagar " + fmt(pend) + ", livre de verdade " + fmt(livre) : ", resultado " + fmt(sobra)) + ".";
@@ -719,7 +789,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   /* ── fila de envio: a tela muda na hora; a escrita fica guardada no aparelho e vai para o banco
         sozinha, na ordem, quando houver internet. Nada se perde se o sinal cair no meio da rua. ── */
   var FK = "vero-app-fila", enviando = false, tFila = null, enviados = 0;
-  function linhaDB(l){ return { id:l.id, casa_id:S.casa, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "" }; }
+  function linhaDB(l){ return { id:l.id, casa_id:S.casa, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "", emprestimo:l.emprestimo || "" }; }
   function linhaFixa(f){ return { id:f.id, casa_id:S.casa, nome:f.nome, valor:f.valor, conta:f.conta, dia:f.dia || null }; }
   function lerFila(){ try { var f = JSON.parse(localStorage.getItem(FK) || "null");
     return f && f.casa === S.casa && Array.isArray(f.ops) ? f.ops : []; } catch(e){ return []; } }
@@ -753,8 +823,8 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   /* o que ainda está na fila por cima do que veio do banco — senão sumia da tela até ser enviado */
   function aplicarFila(){
     lerFila().forEach(function(op){
-      if (op.tab === "lancamentos" || op.tab === "fixas"){
-        var k = op.tab === "lancamentos" ? "lanc" : "fixas";
+      if (op.tab === "lancamentos" || op.tab === "fixas" || op.tab === "emprestimos"){
+        var k = op.tab === "lancamentos" ? "lanc" : op.tab === "fixas" ? "fixas" : "emp";
         if (op.t === "ins" && !S[k].some(function(x){ return x.id === op.row.id; })) S[k] = S[k].concat([op.tab === "lancamentos" ? doBanco(op.row) : op.row]);
         if (op.t === "del") S[k] = S[k].filter(function(x){ return x.id !== op.onde.id; });
         if (op.t === "upd") S[k] = S[k].map(function(x){ return x.id === op.onde.id ? Object.assign({}, x, op.set) : x; });
@@ -929,7 +999,8 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       if (!n){ er.hidden = false; er.textContent = "Digite um valor maior que zero, ex.: 20 ou 20,50."; $("#iVal", f).focus(); return; }
       if (!sel.cat){ er.hidden = false; er.textContent = "Escolha uma categoria."; return; }
       var novo = { id: ed ? velho.id : novoId(), data: $("#iD", f).value || hoje(), tipo:tipo, valor:n, categoria:sel.cat,
-                   conta:sel.conta, nota: ehFixa ? velho.nota : ($("#iN", f).value || "").trim().slice(0, 120), fixa: ed ? velho.fixa : "" };
+                   conta:sel.conta, nota: ehFixa ? velho.nota : ($("#iN", f).value || "").trim().slice(0, 120), fixa: ed ? velho.fixa : "",
+                   emprestimo: ed ? (velho.emprestimo || "") : "" };
       if (ed) editar(velho, novo); else guardar(novo);
       f.fechar();
     }
@@ -1150,6 +1221,242 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     setTimeout(function(){ rolar(); $("#iQ", t).focus(); }, 60);
   }
 
+  /* ═══ AS TRÊS TELAS — o Início manda; Contas e Pessoas cadastram. Um número, uma fonte: tudo sai daqui. ═══ */
+  function empBase(){ return S.exemplo ? [] : S.emp; }
+  function pagoDe(e){ var t = e.direcao === "emprestei" ? "entrada" : "saida", s = 0;
+    base().forEach(function(l){ if (l.emprestimo === e.id && l.tipo === t) s += l.valor; }); return s; }
+  /* quitado não se guarda: deduz-se (falta zero). Só "perdoado" é escolha de alguém */
+  function faltaDe(e){ return e.estado === "perdoado" ? 0 : Math.max(0, e.valor - pagoDe(e)); }
+  function fimDoMes(){ var n = new Date(); return iso(new Date(n.getFullYear(), n.getMonth() + 1, 0)); }
+  /* o que EU devo e vence até ao fim do mês (ou sem data) conta como a pagar, como uma conta fixa */
+  function euDevoNoMes(conta){ var z = fimDoMes(), s = 0;
+    empBase().forEach(function(e){ if (e.direcao === "peguei" && (conta === "todos" || e.conta === conta) && (!e.prometido || e.prometido <= z)) s += faltaDe(e); });
+    return s; }
+  /* o que me devem NUNCA entra no livre: só quando cair na conta */
+  function aReceber(conta){ var s = 0;
+    empBase().forEach(function(e){ if (e.direcao === "emprestei" && (conta === "todos" || e.conta === conta)) s += faltaDe(e); }); return s; }
+  function vencFixa(f){ var n = new Date(), dm = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate();
+    return f.dia ? iso(new Date(n.getFullYear(), n.getMonth(), Math.min(f.dia, dm))) : ""; }
+  function ddmm(s){ return s ? s.slice(8, 10) + "/" + s.slice(5, 7) : ""; }
+  function rotData(s){ var hj = hoje(), am = new Date(); am.setDate(am.getDate() + 1); am = iso(am);
+    if (s < hj) return "Atrasada · " + ddmm(s);
+    if (s === hj) return "Hoje";
+    if (s === am) return "Amanhã";
+    return SEMANA[new Date(s + "T12:00:00").getDay()] + " · " + ddmm(s); }
+
+  function pagarFixa(item){
+    var pg = { id:novoId(), data:hoje(), tipo:"saida", valor:item.valor, categoria:"Fixas", conta:item.conta, nota:item.nome, fixa:item.id, emprestimo:"" };
+    guardar(pg, { rotulo:"Outro valor", acao:function(){ var ja = S.lanc.filter(function(x){ return x.id === pg.id; })[0]; if (ja) abrirLanc("saida", ja); } });
+  }
+  function linhaItem(el, dataTxt, titulo, meta, valor, clique){
+    var r = document.createElement(clique ? "button" : "div"); r.className = "px"; if (clique) r.type = "button";
+    r.innerHTML = '<span class="rot px-d"></span><span class="px-t"><b></b><small></small></span><span class="px-v din"></span>';
+    $(".px-d", r).textContent = dataTxt; $("b", r).textContent = titulo; $("small", r).textContent = meta; $(".px-v", r).textContent = valor;
+    if (clique) r.addEventListener("click", clique);
+    el.appendChild(r); return r; }
+
+  /* Início: o que vence e o que volta nos próximos 7 dias — atrasadas primeiro, por forma e nunca por cor */
+  function pintarProx(){
+    var el = $("#prox"), itens = [], limD = new Date(); el.innerHTML = ""; limD.setDate(limD.getDate() + 7); var lim = iso(limD), hj = hoje(), sai = 0;
+    fixasBase().filter(daConta).forEach(function(f){ var v = vencFixa(f); if (v && v <= lim && !pagaEm(f)) itens.push({ d:v, f:f }); });
+    empBase().filter(daConta).forEach(function(e){ if (e.prometido && e.prometido <= lim && faltaDe(e) > 0) itens.push({ d:e.prometido, e:e }); });
+    itens.sort(function(a, z){ return a.d < z.d ? -1 : a.d > z.d ? 1 : 0; });
+    itens.forEach(function(it){
+      var r;
+      if (it.f){ sai += it.f.valor;
+        r = linhaItem(el, rotData(it.d), it.f.nome, "conta fixa · " + quem(it.f.conta), redondo(it.f.valor), null);
+        if (!S.exemplo){ var bt = document.createElement("button"); bt.type = "button"; bt.className = "px-a"; bt.textContent = "Paguei";
+          bt.setAttribute("aria-label", "Marcar " + it.f.nome + " como paga"); bt.addEventListener("click", function(){ pagarFixa(it.f); }); $(".px-v", r).appendChild(bt); }
+      } else { var e = it.e, fal = faltaDe(e); if (e.direcao === "peguei") sai += fal;
+        r = linhaItem(el, rotData(it.d), e.pessoa, e.direcao === "emprestei" ? "te devolve" : "você devolve",
+          (e.direcao === "emprestei" ? "+" : "") + redondo(fal), function(){ abrirEmp(e); }); }
+      if (it.d < hj) r.classList.add("atr");
+    });
+    $("#blocoProx").hidden = !itens.length || !!S.desl;
+    $("#rotProx").textContent = sai ? redondo(sai) + " a pagar" : "";
+  }
+
+  /* Contas: o total vem das mesmas funções do número do topo — nunca de uma soma própria */
+  function pintarContas(){
+    var fx = fixasBase().filter(daConta), pend = 0, n = 0, prox = null;
+    fx.forEach(function(f){ if (!pagaEm(f)){ pend += f.valor; n++; var v = vencFixa(f); if (v && (!prox || v < prox.v)) prox = { v:v, f:f }; } });
+    var dev = euDevoNoMes(S.conta), tot = pend + dev;
+    pintarValor($("#nPagar"), tot);
+    $("#rotContas").textContent = MESES[new Date().getMonth()] + (S.conta === "todos" ? "" : " · " + nomeDaConta());
+    $("#dPagar").textContent = !tot ? "Tudo pago por este mês."
+      : [n ? n + (n > 1 ? " contas fixas por pagar" : " conta fixa por pagar") : "", dev ? redondo(dev) + " de empréstimo a devolver" : ""].filter(Boolean).join(" e ")
+        + (!prox ? "." : prox.v < hoje() ? ". Atrasada: " + prox.f.nome + ", dia " + ddmm(prox.v) + "." : ". Próxima: " + prox.f.nome + ", " + rotData(prox.v).toLowerCase() + ".");
+    renderEmp($("#devo"), empBase().filter(function(e){ return daConta(e) && e.direcao === "peguei" && faltaDe(e) > 0; }), "Nenhum empréstimo a devolver.");
+  }
+
+  function renderEmp(el, lista, vazio){
+    el.innerHTML = "";
+    if (!lista.length){ if (vazio){ el.innerHTML = '<div class="vazio"></div>'; el.firstChild.textContent = vazio; } return; }
+    lista.slice().sort(function(a, z){ return (a.prometido || "9") < (z.prometido || "9") ? -1 : 1; }).forEach(function(e){
+      var fal = faltaDe(e), pago = pagoDe(e), atr = e.prometido && e.prometido < hoje() && fal > 0;
+      var meta = (e.direcao === "emprestei" ? "emprestado " : "pego ") + ddmm(e.data)
+        + (e.prometido ? (atr ? " · atrasado desde " : " · prometido para ") + ddmm(e.prometido) : " · sem data")
+        + (pago > 0 && fal > 0 ? " · já " + (e.direcao === "emprestei" ? "voltou " : "devolvido ") + redondo(pago) : "") + " · " + quem(e.conta);
+      var r = linhaItem(el, "", e.pessoa, meta, fal ? redondo(fal) : (e.estado === "perdoado" ? "deixado pra lá" : "quitado"), function(){ abrirEmp(e); });
+      r.classList.add("emp"); if (atr) r.classList.add("atr");
+    });
+  }
+
+  function pintarPessoas(){
+    var todos = empBase().filter(daConta), aberto = function(e){ return faltaDe(e) > 0; };
+    pintarValor($("#vReceber"), aReceber(S.conta));
+    pintarValor($("#vDevolver"), todos.filter(function(e){ return e.direcao === "peguei"; }).reduce(function(s, e){ return s + faltaDe(e); }, 0));
+    renderEmp($("#meDevem"), todos.filter(function(e){ return e.direcao === "emprestei" && aberto(e); }),
+      "Ninguém te deve nada anotado. Quando passar dinheiro para alguém, toque em Emprestei.");
+    renderEmp($("#euDevo"), todos.filter(function(e){ return e.direcao === "peguei" && aberto(e); }), "Você não deve nada a ninguém aqui.");
+    var enc = todos.filter(function(e){ return !aberto(e); });
+    $("#blocoEnc").hidden = !enc.length;
+    $("#rotEnc").textContent = enc.length + (enc.length > 1 ? " encerrados" : " encerrado");
+    renderEmp($("#enc"), enc, "");
+  }
+
+  /* anotar um empréstimo: o dinheiro sai (emprestei) ou entra (peguei) na hora, ligado a ele */
+  function abrirNovoEmp(dir, velho){
+    var ed = !!velho, sel = { dir: ed ? velho.direcao : dir, conta: ed ? velho.conta : (S.conta === "todos" ? S.vaga : S.conta) };
+    var nomes = []; S.emp.forEach(function(e){ if (nomes.indexOf(e.pessoa) < 0) nomes.push(e.pessoa); });
+    var f = folha('<h3></h3><div class="rot" style="margin-top:4px" id="sub"></div>'
+      + (ed ? "" : '<div class="campo"><span class="rot">Tipo</span><div class="seg2" id="cDir"></div></div>')
+      + '<div class="campo"><label class="rot" for="ePessoa">Pessoa</label><input id="ePessoa" list="lPessoas" maxlength="40" autocomplete="off" placeholder="ex.: João"><datalist id="lPessoas"></datalist></div>'
+      + '<div class="campo"><label class="rot" for="eVal">Valor</label><input class="valor" id="eVal" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>'
+      + '<div class="duas"><div class="campo"><label class="rot" for="eData">Data</label><input type="date" id="eData"></div>'
+      + '<div class="campo"><label class="rot" for="eProm" id="lProm"></label><input type="date" id="eProm"></div></div>'
+      + '<div class="campo"><span class="rot">Conta</span><div class="seg2" id="cQ"></div></div>'
+      + '<div class="campo"><label class="rot" for="eNota">Descrição</label><input id="eNota" maxlength="120" placeholder="opcional" autocomplete="off"></div>'
+      + (ed ? "" : '<label class="chk"><input type="checkbox" id="eCaixa" checked><span id="tCaixa"></span></label>')
+      + '<p class="erro" id="err" hidden></p>'
+      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">' + (ed ? "Salvar" : "Anotar") + '</button></div>');
+    var dl = $("#lPessoas", f); nomes.forEach(function(n){ var o = document.createElement("option"); o.value = n; dl.appendChild(o); });
+    function rot(){ var em = sel.dir === "emprestei";
+      $("h3", f).textContent = ed ? "Editar empréstimo" : em ? "Emprestei dinheiro" : "Peguei emprestado";
+      $("#sub", f).textContent = em ? "você passou dinheiro para alguém" : "alguém passou dinheiro para você";
+      $("#lProm", f).textContent = em ? "Prometeu pagar em" : "Prometi devolver em";
+      if (!ed) $("#tCaixa", f).textContent = em ? "O dinheiro saiu da casa agora (entra como saída)" : "O dinheiro entrou na casa agora (entra como entrada)"; }
+    if (!ed) seg2($("#cDir", f), [["emprestei", "Emprestei"], ["peguei", "Peguei"]], sel.dir, function(d){ sel.dir = d; rot(); });
+    seg2($("#cQ", f), [["sas", S.nomes.sas], ["ela", S.nomes.ela]], sel.conta, function(c){ sel.conta = c; });
+    $("#eData", f).value = ed ? velho.data : hoje();
+    if (ed){ $("#ePessoa", f).value = velho.pessoa; $("#eVal", f).value = (velho.valor / 100).toFixed(2).replace(".", ",");
+      $("#eProm", f).value = velho.prometido || ""; $("#eNota", f).value = velho.nota || ""; }
+    rot();
+    $("#bC", f).addEventListener("click", f.fechar);
+    $("#bO", f).addEventListener("click", function(){
+      var er = $("#err", f), pessoa = ($("#ePessoa", f).value || "").trim().replace(/\s+/g, " ").slice(0, 40), n = lerValor($("#eVal", f).value);
+      if (!pessoa){ er.hidden = false; er.textContent = "Escreva o nome da pessoa."; $("#ePessoa", f).focus(); return; }
+      if (!n){ er.hidden = false; er.textContent = "Digite o valor, ex.: 100."; $("#eVal", f).focus(); return; }
+      var novo = { id: ed ? velho.id : novoId(), casa_id:S.casa, direcao:sel.dir, pessoa:pessoa, valor:n, data: $("#eData", f).value || hoje(),
+                   prometido: $("#eProm", f).value || null, conta:sel.conta, nota: ($("#eNota", f).value || "").trim().slice(0, 120), estado: ed ? velho.estado : "aberto" };
+      if (ed){ f.fechar();
+        var d = diferenca(velho, novo, ["pessoa", "valor", "data", "prometido", "conta", "nota"]); if (!d) return;
+        var trocar = function(x){ S.emp = S.emp.map(function(e){ return e.id === x.id ? x : e; }); salvarCache(); pintar(); };
+        trocar(novo); enfileirar({ t:"upd", tab:"emprestimos", set:d.set, onde:{ id:velho.id } });
+        toast("Empréstimo alterado: " + pessoa, function(){ trocar(velho); enfileirar({ t:"upd", tab:"emprestimos", set:d.volta, onde:{ id:velho.id } }); });
+        return; }
+      var mov = $("#eCaixa", f).checked ? { id:novoId(), data:novo.data, tipo: sel.dir === "emprestei" ? "saida" : "entrada", valor:n, categoria:"Empréstimos",
+        conta:sel.conta, nota: sel.dir === "emprestei" ? "Emprestado a " + pessoa : "Emprestado por " + pessoa, fixa:"", emprestimo:novo.id } : null;
+      f.fechar();
+      if (S.exemplo) sairDoExemplo();
+      S.emp = S.emp.concat([novo]); if (mov) S.lanc = S.lanc.concat([mov]); salvarCache(); pintar(); vibrar();
+      enfileirar({ t:"ins", tab:"emprestimos", row:novo }); if (mov) enfileirar({ t:"ins", tab:"lancamentos", row:linhaDB(mov) });
+      toast((sel.dir === "emprestei" ? "Anotado: " + pessoa + " te deve " : "Anotado: você deve a " + pessoa + " ") + redondo(n), function(){
+        S.emp = S.emp.filter(function(e){ return e.id !== novo.id; }); if (mov) S.lanc = S.lanc.filter(function(l){ return l.id !== mov.id; }); salvarCache(); pintar();
+        if (mov) enfileirar({ t:"del", tab:"lancamentos", onde:{ id:mov.id } });
+        enfileirar({ t:"del", tab:"emprestimos", onde:{ id:novo.id } }); });
+    });
+    if (!ed) setTimeout(function(){ $("#ePessoa", f).focus(); }, 60);
+  }
+
+  /* o empréstimo aberto: quanto falta, o histórico, e os gestos — o empurrão à pessoa é do dono, nunca do app */
+  function abrirEmp(e){
+    var em = e.direcao === "emprestei", fal = faltaDe(e), pago = pagoDe(e);
+    var f = folha('<h3></h3><div class="rot" style="margin-top:4px" id="sub"></div>'
+      + '<div class="hero-n din" id="eFal" style="font-size:40px;margin-top:12px"></div><p class="folga" id="eInfo"></p>'
+      + '<div class="lista" id="eHist"></div>'
+      + '<div class="acts" id="eActs"></div>'
+      + '<div><button type="button" class="link" id="bZap" hidden>Lembrar pelo WhatsApp</button></div>'
+      + '<div><button type="button" class="link" id="bPerd"></button></div>'
+      + '<div><button type="button" class="link" id="bEdE">Editar</button> · <button type="button" class="link" id="bDelE">Apagar</button></div>');
+    $("h3", f).textContent = e.pessoa;
+    $("#sub", f).textContent = fal ? (em ? "te deve" : "você deve") : "empréstimo encerrado";
+    pintarValor($("#eFal", f), fal);
+    $("#eInfo", f).textContent = (em ? "Emprestado em " : "Pego em ") + ddmm(e.data) + " · " + redondo(e.valor)
+      + (pago ? " · já " + (em ? "voltou " : "devolvido ") + redondo(pago) : "")
+      + (e.prometido ? " · " + (em ? "prometeu para " : "prometido para ") + ddmm(e.prometido) : "")
+      + (e.estado === "perdoado" ? " · deixado pra lá" : "") + (e.nota ? " · " + e.nota : "");
+    var H = $("#eHist", f);
+    base().filter(function(l){ return l.emprestimo === e.id; }).sort(function(a, z){ return a.data < z.data ? 1 : -1; }).forEach(function(l){
+      var r = document.createElement("div"); r.className = "op"; r.innerHTML = '<span></span><span class="din"></span>';
+      r.firstChild.textContent = ddmm(l.data) + " · " + l.nota; r.lastChild.textContent = (l.tipo === "entrada" ? "+" : "−") + fmt(l.valor); H.appendChild(r); });
+    var A = $("#eActs", f);
+    if (fal > 0){ var bp = document.createElement("button"); bp.type = "button"; bp.className = "ok"; bp.id = "bPag";
+      bp.textContent = em ? "Registrar o que voltou" : "Registrar o que devolvi";
+      bp.addEventListener("click", function(){ f.fechar(); abrirPagamento(e); }); A.appendChild(bp); }
+    else A.hidden = true;
+    if (em && fal > 0){ $("#bZap", f).hidden = false; $("#bZap", f).addEventListener("click", function(){
+      var txt = "Oi, " + e.pessoa + "! Tudo bem? Passando pra lembrar daquele valor de " + redondo(fal) + " de " + ddmm(e.data) + ". Quando der, me avisa. 🙂";
+      window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener"); }); }
+    var bPerd = $("#bPerd", f);
+    if (e.estado === "perdoado"){ bPerd.textContent = "Reabrir este empréstimo"; bPerd.addEventListener("click", function(){ f.fechar(); mudarEstado(e, "aberto"); }); }
+    else if (fal > 0){ bPerd.textContent = em ? "Deixa pra lá (encerrar sem receber)" : "Encerrar sem devolver (a pessoa perdoou)";
+      bPerd.addEventListener("click", function(){ f.fechar(); mudarEstado(e, "perdoado"); }); }
+    else bPerd.hidden = true;
+    $("#bEdE", f).addEventListener("click", function(){ f.fechar(); abrirNovoEmp(e.direcao, e); });
+    $("#bDelE", f).addEventListener("click", function(){ f.fechar(); apagarEmp(e); });
+  }
+  function mudarEstado(e, est){
+    var antes = e.estado, trocar = function(v){ S.emp = S.emp.map(function(x){ return x.id === e.id ? Object.assign({}, x, { estado:v }) : x; }); salvarCache(); pintar(); };
+    trocar(est); enfileirar({ t:"upd", tab:"emprestimos", set:{ estado:est }, onde:{ id:e.id } });
+    toast(est === "perdoado" ? "Encerrado: " + e.pessoa : "Reaberto: " + e.pessoa, function(){ trocar(antes); enfileirar({ t:"upd", tab:"emprestimos", set:{ estado:antes }, onde:{ id:e.id } }); });
+  }
+  function apagarEmp(e){
+    var ligados = S.lanc.filter(function(l){ return l.emprestimo === e.id; });
+    S.emp = S.emp.filter(function(x){ return x.id !== e.id; }); S.lanc = S.lanc.filter(function(l){ return l.emprestimo !== e.id; }); salvarCache(); pintar();
+    ligados.forEach(function(l){ enfileirar({ t:"del", tab:"lancamentos", onde:{ id:l.id } }); });
+    enfileirar({ t:"del", tab:"emprestimos", onde:{ id:e.id } });
+    toast("Apagado: empréstimo de " + e.pessoa + (ligados.length ? " e " + ligados.length + (ligados.length > 1 ? " lançamentos ligados" : " lançamento ligado") : ""), function(){
+      S.emp = S.emp.concat([e]); S.lanc = S.lanc.concat(ligados); salvarCache(); pintar();
+      enfileirar({ t:"ins", tab:"emprestimos", row:Object.assign({ casa_id:S.casa }, e) });
+      ligados.forEach(function(l){ enfileirar({ t:"ins", tab:"lancamentos", row:linhaDB(l) }); }); });
+  }
+  function abrirPagamento(e){
+    var em = e.direcao === "emprestei", fal = faltaDe(e);
+    var f = folha('<h3>' + (em ? "Recebi de volta" : "Devolvi") + '</h3><div class="rot" style="margin-top:4px" id="sub"></div>'
+      + '<div class="campo"><label class="rot" for="pVal">Valor</label><input class="valor" id="pVal" inputmode="decimal" autocomplete="off"></div>'
+      + '<div class="campo"><label class="rot" for="pData">Data</label><input type="date" id="pData"></div>'
+      + '<p class="erro" id="err" hidden></p>'
+      + '<div class="acts"><button type="button" id="bC">Cancelar</button><button type="button" class="ok" id="bO">Registrar</button></div>');
+    $("#sub", f).textContent = e.pessoa + " · falta " + redondo(fal) + " — pode ser só uma parte";
+    $("#pVal", f).value = (fal / 100).toFixed(2).replace(".", ","); $("#pData", f).value = hoje();
+    $("#bC", f).addEventListener("click", f.fechar);
+    $("#bO", f).addEventListener("click", function(){
+      var n = lerValor($("#pVal", f).value), er = $("#err", f), dt = $("#pData", f).value || hoje();
+      if (!n){ er.hidden = false; er.textContent = "Digite o valor, ex.: 50."; return; }
+      if (n > fal){ er.hidden = false; er.textContent = "O que falta é " + fmt(fal) + ". Para um valor maior, edite o empréstimo."; return; }
+      f.fechar();
+      guardar({ id:novoId(), data:dt, tipo: em ? "entrada" : "saida", valor:n, categoria:"Empréstimos", conta:e.conta,
+                nota: em ? e.pessoa + " devolveu" : "Devolvido a " + e.pessoa, fixa:"", emprestimo:e.id });
+    });
+    setTimeout(function(){ $("#pVal", f).select(); }, 60);
+  }
+
+  /* navegação por #/rota: o botão Voltar do celular anda entre as telas */
+  function irPara(){
+    var t = location.hash.replace(/^#\/?/, "") || "inicio";
+    if (["inicio", "contas", "pessoas"].indexOf(t) < 0) t = "inicio";
+    S.tela = t;
+    $("#telaInicio").hidden = t !== "inicio"; $("#ctrlInicio").hidden = t !== "inicio";
+    $("#telaContas").hidden = t !== "contas"; $("#telaPessoas").hidden = t !== "pessoas";
+    $("#acInicio").hidden = t !== "inicio"; $("#acPessoas").hidden = t !== "pessoas";
+    document.querySelectorAll(".abas a").forEach(function(a){ if (a.dataset.t === t) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    window.scrollTo(0, 0); pintar();
+  }
+  window.addEventListener("hashchange", irPara);
+  $("#bEmprestei").addEventListener("click", function(){ abrirNovoEmp("emprestei"); });
+  $("#bPeguei").addEventListener("click", function(){ abrirNovoEmp("peguei"); });
+
   /* ── tema e marca ── */
   function temaAtual(){ var t = document.documentElement.getAttribute("data-theme");
     if (t === "dark" || t === "light") return t;
@@ -1252,11 +1559,11 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       .then(function(r){ if (r.error) erroPorta($("#lErro"), traduzir(r.error.message)); });
   });
 
-  function doBanco(l){ return { id:l.id, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "" }; }
+  function doBanco(l){ return { id:l.id, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "", emprestimo:l.emprestimo || "" }; }
   async function todosLancamentos(){
     var out = [];
     for (var pg = 0; pg < 20; pg++){
-      var r = await sb.from("lancamentos").select("id,data,tipo,valor,categoria,conta,nota,fixa").order("data", { ascending:false }).order("id").range(pg * 1000, pg * 1000 + 999);
+      var r = await sb.from("lancamentos").select("id,data,tipo,valor,categoria,conta,nota,fixa,emprestimo").order("data", { ascending:false }).order("id").range(pg * 1000, pg * 1000 + 999);
       if (r.error) throw r.error;
       out = out.concat(r.data.map(doBanco));
       if (r.data.length < 1000) break;
@@ -1265,11 +1572,13 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
   }
   async function carregarMiudos(){
     var r = await Promise.all([ sb.from("fixas").select("id,nome,valor,conta,dia"), sb.from("categorias").select("tipo,nome"),
-      sb.from("membros").select("vaga,nome"), sb.from("casas").select("codigo").limit(1) ]);
+      sb.from("membros").select("vaga,nome"), sb.from("casas").select("codigo").limit(1),
+      sb.from("emprestimos").select("id,direcao,pessoa,valor,data,prometido,conta,nota,estado") ]);
     if (!r[0].error) S.fixas = r[0].data;
     if (!r[1].error){ var c = { entrada:[], saida:[] }; r[1].data.forEach(function(x){ c[x.tipo].push(x.nome); }); S.cats = c; }
     if (!r[2].error){ S.temEla = false; r[2].data.forEach(function(m){ S.nomes[m.vaga] = m.nome; if (m.vaga === "ela") S.temEla = true; }); }
     if (!r[3].error && r[3].data[0]) S.codigo = r[3].data[0].codigo;
+    if (!r[4].error) S.emp = r[4].data;
     aplicarFila();
   }
   async function carregar(){
@@ -1294,6 +1603,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       .on("postgres_changes", { event:"*", schema:"public", table:"fixas" }, recarregarMiudos)
       .on("postgres_changes", { event:"*", schema:"public", table:"categorias" }, recarregarMiudos)
       .on("postgres_changes", { event:"*", schema:"public", table:"membros" }, recarregarMiudos)
+      .on("postgres_changes", { event:"*", schema:"public", table:"emprestimos" }, recarregarMiudos)
       .subscribe();
   }
   async function iniciar(){
@@ -1309,11 +1619,11 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     lerCache(); pintar();
     await carregar(); assinar();
   }
-  sb.auth.onAuthStateChange(function(ev){ if (ev === "SIGNED_OUT"){ S.casa = null; S.lanc = []; S.fixas = []; S.pronto = false; mostrarPorta("login"); } });
+  sb.auth.onAuthStateChange(function(ev){ if (ev === "SIGNED_OUT"){ S.casa = null; S.lanc = []; S.fixas = []; S.emp = []; S.pronto = false; mostrarPorta("login"); } });
   window.addEventListener("online", function(){ if (S.casa){ carregar(); if (!canal) assinar(); } });
   document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.casa) drenar(); });
 
-  desenharRede(); pintar(); iniciar();
+  desenharRede(); irPara(); iniciar();
   if ("serviceWorker" in navigator){
     /* versão nova publicada → o app troca sozinho, uma vez; quem já tinha o app aberto não fica preso na antiga */
     var tinhaVersao = !!navigator.serviceWorker.controller, trocou = false;
