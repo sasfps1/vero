@@ -339,7 +339,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
 
     <div id="passoLogin">
       <h1>As finanças da casa, de verdade.</h1>
-      <p class="sub">Entre com a sua conta. Os seus dados ficam protegidos e só a sua casa vê.</p>
+      <p class="sub">Primeira vez? Digite o seu e-mail (pode ser o do Gmail), invente uma senha e toque em <b>Criar conta</b>. Só a sua casa vê os seus dados.</p>
       <div id="blocoGoogle" hidden>
         <div class="acts"><button type="button" class="google" id="bGoogle">
           <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
@@ -1066,6 +1066,11 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (/at least 6|password should/i.test(m)) return "A senha precisa ter pelo menos 6 caracteres.";
     if (/email not confirmed/i.test(m)) return "Confirme o e-mail pelo link que enviamos e depois entre.";
     if (/valid email|invalid email/i.test(m)) return "Digite um e-mail válido.";
+    if (/ja_existe/.test(m)) return "Este e-mail já tem conta. Digite a senha e toque em Entrar.";
+    if (/contas_cheias/.test(m)) return "Este Vero já tem as duas contas da casa. Entre com um desses e-mails.";
+    if (/email_invalido/.test(m)) return "Esse e-mail parece incompleto. Confira, ex.: nome@gmail.com.";
+    if (/senha_curta|senha_fraca/.test(m)) return "A senha precisa ter pelo menos 6 caracteres.";
+    if (/anonymous/i.test(m)) return "Digite o seu e-mail e uma senha antes de continuar.";
     if (/cadastro_fechado/.test(m)) return "Este Vero já tem uma casa. Peça o código de convite a quem a criou.";
     if (/codigo_invalido/.test(m)) return "Código não encontrado. Confira as 6 letras e números.";
     if (/casa_cheia/.test(m)) return "Essa casa já tem duas pessoas.";
@@ -1074,19 +1079,32 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     return "Não deu certo agora. Tente de novo."; }
   function ocupado(bt, sim){ bt.disabled = sim; bt.style.opacity = sim ? ".6" : ""; }
 
+  /* os campos são conferidos ANTES de ir ao servidor — campo vazio chegava lá como "entrada anônima" e voltava um erro sem sentido */
+  function lerPorta(er){
+    var email = $("#lEmail").value.trim(), senha = $("#lSenha").value;
+    if (!email){ erroPorta(er, "Digite o seu e-mail — pode ser o do Gmail."); $("#lEmail").focus(); return null; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ erroPorta(er, "Esse e-mail parece incompleto. Confira, ex.: nome@gmail.com."); $("#lEmail").focus(); return null; }
+    if (senha.length < 6){ erroPorta(er, "A senha precisa ter pelo menos 6 caracteres."); $("#lSenha").focus(); return null; }
+    return { email:email, senha:senha };
+  }
   $("#bEntrar").addEventListener("click", function(){
-    var bt = this, er = $("#lErro"); erroPorta(er, ""); ocupado(bt, true);
-    sb.auth.signInWithPassword({ email: $("#lEmail").value.trim(), password: $("#lSenha").value })
+    var bt = this, er = $("#lErro"); erroPorta(er, ""); var d = lerPorta(er); if (!d) return; ocupado(bt, true);
+    sb.auth.signInWithPassword({ email:d.email, password:d.senha })
       .then(function(r){ ocupado(bt, false); if (r.error) return erroPorta(er, traduzir(r.error.message)); iniciar(); });
   });
+  /* criar conta sem depender de e-mail: o servidor de e-mail grátis do Supabase só entrega à equipe do projeto,
+     por isso a conta nasce já confirmada pela função vero-cadastro (que fecha depois das duas pessoas da casa) */
   $("#bCriarConta").addEventListener("click", function(){
-    var bt = this, er = $("#lErro"); erroPorta(er, ""); ocupado(bt, true);
-    sb.auth.signUp({ email: $("#lEmail").value.trim(), password: $("#lSenha").value, options:{ emailRedirectTo: APP_URL } })
-      .then(function(r){ ocupado(bt, false);
-        if (r.error) return erroPorta(er, traduzir(r.error.message));
-        if (!r.data.session) return erroPorta(er, "Conta criada. Enviamos um link para o seu e-mail — abra e depois toque em Entrar.");
-        iniciar(); });
+    var bt = this, er = $("#lErro"); erroPorta(er, ""); var d = lerPorta(er); if (!d) return; ocupado(bt, true);
+    fetch(SB_URL + "/functions/v1/vero-cadastro", { method:"POST", headers:{ "Content-Type":"application/json", apikey:SB_KEY },
+      body: JSON.stringify({ email:d.email, senha:d.senha }) })
+      .then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(j){ if (!j.ok) throw new Error(j.erro || "falha");
+        return sb.auth.signInWithPassword({ email:d.email, password:d.senha }); })
+      .then(function(r){ ocupado(bt, false); if (r.error) return erroPorta(er, traduzir(r.error.message)); iniciar(); })
+      .catch(function(e){ ocupado(bt, false); erroPorta(er, traduzir(e && e.message)); });
   });
+  $("#lSenha").addEventListener("keydown", function(e){ if (e.key === "Enter") $("#bEntrar").click(); });
   $("#bNovaCasa").addEventListener("click", function(){
     var bt = this, er = $("#cErro"); erroPorta(er, ""); ocupado(bt, true);
     sb.rpc("criar_casa", { p_nome: $("#cNome").value.trim() || "Você" })
