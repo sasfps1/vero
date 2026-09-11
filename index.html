@@ -656,7 +656,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
         if (S.exemplo) x.hidden = true;
         else { x.setAttribute("aria-label", "Apagar " + l.categoria + " de " + fmt(l.valor)); x.addEventListener("click", function(){ apagar(l); }); }
         F.appendChild(r); }); }
-    $("#estado").textContent = S.offline ? "Sem conexão — mostrando a última cópia salva neste aparelho." : "";
+    pintarEstado();
 
     S.resumo = nomePer + " (conta: " + nomeDaConta() + "): entradas " + fmt(entrou) + ", saídas " + fmt(saiu)
       + (mes ? ", contas fixas a pagar " + fmt(pend) + ", livre de verdade " + fmt(livre) : ", resultado " + fmt(sobra)) + ".";
@@ -676,9 +676,54 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       + "&details=" + encodeURIComponent("Conta fixa do Vero. Depois de pagar, ligue o interruptor no app: " + APP_URL);
   }
 
-  /* ── escrita no banco: a tela muda na hora; o banco confirma; se falhar, desfaz e avisa ── */
+  /* ── fila de envio: a tela muda na hora; a escrita fica guardada no aparelho e vai para o banco
+        sozinha, na ordem, quando houver internet. Nada se perde se o sinal cair no meio da rua. ── */
+  var FK = "vero-app-fila", enviando = false, tFila = null;
   function linhaDB(l){ return { id:l.id, casa_id:S.casa, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "" }; }
-  function falhou(msg, reverter){ return function(res){ if (res && res.error){ reverter(); salvarCache(); pintar(); toast(msg); } }; }
+  function linhaFixa(f){ return { id:f.id, casa_id:S.casa, nome:f.nome, valor:f.valor, conta:f.conta, dia:f.dia || null }; }
+  function lerFila(){ try { var f = JSON.parse(localStorage.getItem(FK) || "null");
+    return f && f.casa === S.casa && Array.isArray(f.ops) ? f.ops : []; } catch(e){ return []; } }
+  function gravarFila(ops){ try { localStorage.setItem(FK, JSON.stringify({ casa:S.casa, ops:ops })); } catch(e){} }
+  function enfileirar(op){ op.em = Date.now(); var ops = lerFila(); ops.push(op); gravarFila(ops); drenar(); }
+  function mandar(op){
+    var t = sb.from(op.tab), q;
+    if (op.t === "ins") return t.upsert(op.row, { onConflict: op.chave || "id", ignoreDuplicates:true });   /* reenviar não duplica */
+    q = op.t === "del" ? t.delete() : t.update(op.set);
+    Object.keys(op.onde).forEach(function(k){ q = q.eq(k, op.onde[k]); });
+    return q;
+  }
+  /* recusa do banco (dado inválido, sem permissão) não se resolve a insistir; o resto é rede e tenta-se de novo */
+  function recusa(err){ return /^(22|23|42)/.test(String(err.code || "")); }
+  function drenar(){
+    if (enviando || !S.casa) return;
+    var ops = lerFila(); if (!ops.length){ pintarEstado(); return; }
+    enviando = true;
+    Promise.resolve(mandar(ops[0])).then(function(res){
+      var err = res && res.error;
+      if (err && !recusa(err)) throw err;
+      var resto = lerFila(); resto.shift(); gravarFila(resto); enviando = false;
+      if (err){ toast("Um registro foi recusado pelo banco e não foi salvo."); carregar(); return; }
+      drenar();
+    }).catch(function(){ enviando = false; pintarEstado(); clearTimeout(tFila); tFila = setTimeout(drenar, 20000); });
+  }
+  /* o que ainda está na fila por cima do que veio do banco — senão sumia da tela até ser enviado */
+  function aplicarFila(){
+    lerFila().forEach(function(op){
+      if (op.tab === "lancamentos" || op.tab === "fixas"){
+        var k = op.tab === "lancamentos" ? "lanc" : "fixas";
+        if (op.t === "ins" && !S[k].some(function(x){ return x.id === op.row.id; })) S[k] = S[k].concat([op.tab === "lancamentos" ? doBanco(op.row) : op.row]);
+        if (op.t === "del") S[k] = S[k].filter(function(x){ return x.id !== op.onde.id; });
+      }
+      if (op.tab === "categorias" && op.t === "ins" && S.cats[op.row.tipo].indexOf(op.row.nome) < 0) S.cats[op.row.tipo].push(op.row.nome);
+      if (op.tab === "membros" && op.t === "upd") S.nomes[op.onde.vaga] = op.set.nome;
+    });
+  }
+  function textoEstado(){
+    var agora = Date.now(), n = lerFila().filter(function(op){ return !navigator.onLine || agora - op.em > 4000; }).length;
+    if (n) return (n === 1 ? "1 registro guardado" : n + " registros guardados") + " neste aparelho — vão para a nuvem sozinhos quando a internet voltar.";
+    return S.offline ? "Sem conexão — mostrando a última cópia salva neste aparelho." : "";
+  }
+  function pintarEstado(){ var e = $("#estado"); if (e) e.textContent = textoEstado(); }
   function acender(l){ var chv = l.tipo + l.categoria + l.valor + (l.nota || "");
     document.querySelectorAll(".tec").forEach(function(bt){ if (bt.dataset.chave === chv){
       bt.classList.add("feito"); setTimeout(function(){ bt.classList.remove("feito"); }, 700); } }); }
@@ -686,23 +731,23 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (S.exemplo) sairDoExemplo();
     S.lanc = S.lanc.concat([l]); salvarCache(); pintar(); vibrar(); acender(l);
     var tirar = function(){ S.lanc = S.lanc.filter(function(x){ return x.id !== l.id; }); };
-    sb.from("lancamentos").insert(linhaDB(l)).then(falhou("Não foi possível salvar. Verifique a internet e tente de novo.", tirar));
+    enfileirar({ t:"ins", tab:"lancamentos", row:linhaDB(l) });
     toast("Registrado: " + (l.tipo === "entrada" ? "+" : "−") + redondo(l.valor) + " · " + (l.fixa ? l.nota : l.categoria),
-      function(){ tirar(); salvarCache(); pintar(); sb.from("lancamentos").delete().eq("id", l.id).then(function(){}); });
+      function(){ tirar(); salvarCache(); pintar(); enfileirar({ t:"del", tab:"lancamentos", onde:{ id:l.id } }); });
   }
   function apagar(l){
     S.lanc = S.lanc.filter(function(x){ return x.id !== l.id; }); salvarCache(); pintar();
     var repor = function(){ if (!S.lanc.some(function(x){ return x.id === l.id; })) S.lanc = S.lanc.concat([l]); };
-    sb.from("lancamentos").delete().eq("id", l.id).then(falhou("Não foi possível apagar. Tente de novo.", repor));
+    enfileirar({ t:"del", tab:"lancamentos", onde:{ id:l.id } });
     toast("Apagado: " + (l.fixa ? l.nota : l.categoria) + " · " + redondo(l.valor),
-      function(){ repor(); salvarCache(); pintar(); sb.from("lancamentos").insert(linhaDB(l)).then(function(){}); });
+      function(){ repor(); salvarCache(); pintar(); enfileirar({ t:"ins", tab:"lancamentos", row:linhaDB(l) }); });
   }
   function removerFixa(item){
     S.fixas = S.fixas.filter(function(x){ return x.id !== item.id; }); salvarCache(); pintar();
     var repor = function(){ if (!S.fixas.some(function(x){ return x.id === item.id; })) S.fixas = S.fixas.concat([item]); };
-    sb.from("fixas").delete().eq("id", item.id).then(falhou("Não foi possível remover. Tente de novo.", repor));
+    enfileirar({ t:"del", tab:"fixas", onde:{ id:item.id } });
     toast("Conta fixa removida: " + item.nome, function(){ repor(); salvarCache(); pintar();
-      sb.from("fixas").insert({ id:item.id, casa_id:S.casa, nome:item.nome, valor:item.valor, conta:item.conta, dia:item.dia || null }).then(function(){}); });
+      enfileirar({ t:"ins", tab:"fixas", row:linhaFixa(item) }); });
   }
 
   var tT = null;
@@ -763,7 +808,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       nome = nome.charAt(0).toUpperCase() + nome.slice(1);
       if (categorias(tipo).indexOf(nome) < 0){
         S.cats = { entrada:S.cats.entrada.slice(), saida:S.cats.saida.slice() }; S.cats[tipo].push(nome); salvarCache();
-        sb.from("categorias").insert({ casa_id:S.casa, tipo:tipo, nome:nome }).then(function(){}); }
+        enfileirar({ t:"ins", tab:"categorias", chave:"casa_id,tipo,nome", row:{ casa_id:S.casa, tipo:tipo, nome:nome } }); }
       pegar(nome); f.fechar();
     }
     $("#bCat", f).addEventListener("click", criar);
@@ -820,8 +865,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       if (S.exemplo) sairDoExemplo();
       var item = { id:novoId(), nome:nome, valor:n, conta:sel.conta, dia: dia >= 1 && dia <= 31 ? dia : null };
       S.fixas = S.fixas.concat([item]); salvarCache(); pintar();
-      sb.from("fixas").insert({ id:item.id, casa_id:S.casa, nome:item.nome, valor:item.valor, conta:item.conta, dia:item.dia })
-        .then(falhou("Não foi possível salvar a conta fixa. Tente de novo.", function(){ S.fixas = S.fixas.filter(function(x){ return x.id !== item.id; }); }));
+      enfileirar({ t:"ins", tab:"fixas", row:linhaFixa(item) });
       toast("Conta fixa adicionada: " + nome); f.fechar();
     });
     setTimeout(function(){ $("#iNm", f).focus(); }, 60);
@@ -831,6 +875,29 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     var f = folha('<h3>Período</h3><div class="rot" style="margin-top:4px">o intervalo dos números da tela</div><div class="lista" id="lst" role="radiogroup"></div>');
     opcoes($("#lst", f), [["dia", "Dia", "hoje, contra o limite diário"], ["semana", "Semana", "de segunda a domingo"],
       ["mes", "Mês", "com as contas fixas"], ["ano", "Ano", "de janeiro a dezembro"]], S.per, function(p){ S.per = p; pintar(); f.fechar(); });
+  }
+
+  /* ── a planilha é do dono: todos os registros num arquivo que abre no Excel e no Google Planilhas ── */
+  function baixarPlanilha(){
+    if (!S.lanc.length && !S.fixas.length){ toast("Ainda não há registros para baixar."); return; }
+    var cel = function(v){ v = String(v == null ? "" : v); if (/^[=+\-@]/.test(v)) v = "'" + v;
+      return /[;"\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var real = function(c){ return (c / 100).toFixed(2).replace(".", ","); };
+    var L = [["Data", "Tipo", "Valor (R$)", "Categoria", "Pessoa", "Descrição"]];
+    S.lanc.slice().sort(function(a, z){ return a.data < z.data ? 1 : a.data > z.data ? -1 : 0; }).forEach(function(l){
+      L.push([l.data.split("-").reverse().join("/"), l.tipo === "entrada" ? "Entrada" : "Saída", real(l.valor),
+        l.fixa ? "Contas fixas" : l.categoria, quem(l.conta), l.nota || ""]); });
+    if (S.fixas.length){ L.push([]); L.push(["Conta fixa", "Valor mensal (R$)", "Dia do vencimento", "Quem paga"]);
+      S.fixas.forEach(function(x){ L.push([x.nome, real(x.valor), x.dia || "", quem(x.conta)]); }); }
+    var nome = "vero-" + hoje() + ".csv";
+    var blob = new Blob(["\uFEFF" + L.map(function(r){ return r.map(cel).join(";"); }).join("\r\n")], { type:"text/csv;charset=utf-8" });
+    var toque = window.matchMedia && matchMedia("(pointer: coarse)").matches, arq = null;
+    try { arq = new File([blob], nome, { type:"text/csv" }); } catch(e){}
+    if (toque && arq && navigator.canShare && navigator.canShare({ files:[arq] })){
+      navigator.share({ files:[arq], title:"Vero — planilha" }).catch(function(){}); return; }
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast("Planilha baixada: " + nome);
   }
 
   function abrirConta(){
@@ -843,6 +910,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
       + '<div id="ed" hidden><div class="campo"><label class="rot" for="n1">Pessoa 1</label><input id="n1" maxlength="20"></div>'
       + '<div class="campo"><label class="rot" for="n2">Pessoa 2</label><input id="n2" maxlength="20"></div>'
       + '<div class="acts"><button type="button" class="ok" id="bSv">Salvar nomes</button></div></div>'
+      + '<div><button type="button" class="link" id="bCsv">Baixar planilha com todos os registros</button></div>'
       + '<div><button type="button" class="link" id="bSair">Sair da conta</button></div>');
     opcoes($("#lst", f), [["todos", "Total", "soma das duas pessoas"], ["sas", S.nomes.sas, ""], ["ela", S.nomes.ela, S.temEla ? "" : "ainda não entrou"]],
       S.conta, function(c){ S.conta = c; pintar(); f.fechar(); });
@@ -858,10 +926,13 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     $("#bSv", f).addEventListener("click", function(){
       var n1 = ($("#n1", f).value || "").trim().slice(0, 20) || "Você", n2 = ($("#n2", f).value || "").trim().slice(0, 20) || "Parceira";
       S.nomes = { sas:n1, ela:n2 }; salvarCache(); pintar();
-      sb.from("membros").update({ nome:n1 }).eq("casa_id", S.casa).eq("vaga", "sas").then(function(){});
-      sb.from("membros").update({ nome:n2 }).eq("casa_id", S.casa).eq("vaga", "ela").then(function(){});
+      enfileirar({ t:"upd", tab:"membros", set:{ nome:n1 }, onde:{ casa_id:S.casa, vaga:"sas" } });
+      enfileirar({ t:"upd", tab:"membros", set:{ nome:n2 }, onde:{ casa_id:S.casa, vaga:"ela" } });
       f.fechar(); toast("Nomes atualizados"); });
-    $("#bSair", f).addEventListener("click", function(){ try { localStorage.removeItem(CK); localStorage.removeItem(CHK); } catch(e){} sb.auth.signOut(); });
+    $("#bCsv", f).addEventListener("click", function(){ baixarPlanilha(); f.fechar(); });
+    $("#bSair", f).addEventListener("click", function(){
+      if (lerFila().length){ toast("Ainda há registros esperando internet. Conecte e saia depois, para não perder nada."); drenar(); return; }
+      try { localStorage.removeItem(CK); localStorage.removeItem(CHK); localStorage.removeItem(FK); } catch(e){} sb.auth.signOut(); });
   }
 
   /* ═══ A IA DO VERO — o app calcula, a IA interpreta ═══
@@ -904,6 +975,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (code === "sem_chave") return "A IA ainda não foi ligada: falta cadastrar a chave da Anthropic no Supabase (Edge Functions → Secrets → ANTHROPIC_API_KEY).";
     if (code === "chave_invalida") return "A chave da Anthropic cadastrada no Supabase não foi aceita. Confira o valor em Edge Functions → Secrets.";
     if (code === "limite") return "Muitas perguntas seguidas. Tente novamente em um minuto.";
+    if (code === "cota") return "A casa já fez as 40 perguntas de hoje à IA. Ela volta amanhã — o resto do app segue funcionando.";
     if (code === "offline") return "Sem internet agora. A IA precisa de conexão.";
     return "A IA não conseguiu responder agora. Tente novamente.";
   }
@@ -994,6 +1066,7 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (/at least 6|password should/i.test(m)) return "A senha precisa ter pelo menos 6 caracteres.";
     if (/email not confirmed/i.test(m)) return "Confirme o e-mail pelo link que enviamos e depois entre.";
     if (/valid email|invalid email/i.test(m)) return "Digite um e-mail válido.";
+    if (/cadastro_fechado/.test(m)) return "Este Vero já tem uma casa. Peça o código de convite a quem a criou.";
     if (/codigo_invalido/.test(m)) return "Código não encontrado. Confira as 6 letras e números.";
     if (/casa_cheia/.test(m)) return "Essa casa já tem duas pessoas.";
     if (/ja_tem_casa/.test(m)) return "Você já faz parte de uma casa.";
@@ -1053,13 +1126,14 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (!r[1].error){ var c = { entrada:[], saida:[] }; r[1].data.forEach(function(x){ c[x.tipo].push(x.nome); }); S.cats = c; }
     if (!r[2].error){ S.temEla = false; r[2].data.forEach(function(m){ S.nomes[m.vaga] = m.nome; if (m.vaga === "ela") S.temEla = true; }); }
     if (!r[3].error && r[3].data[0]) S.codigo = r[3].data[0].codigo;
+    aplicarFila();
   }
   async function carregar(){
     try { S.lanc = await todosLancamentos(); await carregarMiudos(); S.offline = false; }
-    catch(e){ S.offline = true; }
-    S.pronto = true; salvarCache(); avaliarExemplo(); pintar();
+    catch(e){ S.offline = true; clearTimeout(tIni); tIni = setTimeout(carregar, 20000); }   /* sinal fraco não avisa: tenta de novo */
+    S.pronto = true; salvarCache(); avaliarExemplo(); pintar(); drenar();
   }
-  var canal = null;
+  var canal = null, tIni = null;
   function assinar(){
     if (canal) sb.removeChannel(canal);
     var filtro = "casa_id=eq." + S.casa, miudos = null;
@@ -1081,7 +1155,8 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     if (!s){ mostrarPorta("login"); return; }
     S.user = s.user;
     var m = await sb.from("membros").select("casa_id,vaga,nome").eq("user_id", s.user.id).maybeSingle();
-    if (m.error){ S.offline = true; try { var c = JSON.parse(localStorage.getItem(CK) || "null"); if (c && c.casa){ S.casa = c.casa; lerCache(); S.pronto = true; $("#porta").hidden = true; pintar(); return; } } catch(e){} mostrarPorta("login"); erroPorta($("#lErro"), "Sem conexão. Verifique a internet."); return; }
+    if (m.error){ S.offline = true; try { var c = JSON.parse(localStorage.getItem(CK) || "null"); if (c && c.casa){ S.casa = c.casa; lerCache(); S.pronto = true; $("#porta").hidden = true; pintar();
+      drenar(); clearTimeout(tIni); tIni = setTimeout(iniciar, 20000); return; } } catch(e){} mostrarPorta("login"); erroPorta($("#lErro"), "Sem conexão. Verifique a internet."); return; }
     if (!m.data){ mostrarPorta("casa"); return; }
     S.casa = m.data.casa_id; S.vaga = m.data.vaga;
     $("#porta").hidden = true;
@@ -1089,7 +1164,8 @@ input.valor{font-size:36px;font-weight:800;text-align:center;letter-spacing:-.04
     await carregar(); assinar();
   }
   sb.auth.onAuthStateChange(function(ev){ if (ev === "SIGNED_OUT"){ S.casa = null; S.lanc = []; S.fixas = []; S.pronto = false; mostrarPorta("login"); } });
-  window.addEventListener("online", function(){ if (S.casa) carregar(); });
+  window.addEventListener("online", function(){ if (S.casa){ carregar(); if (!canal) assinar(); } });
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.casa) drenar(); });
 
   desenharRede(); pintar(); iniciar();
   if ("serviceWorker" in navigator) window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });

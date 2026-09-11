@@ -1,0 +1,24 @@
+# Batimento do Vero — uma leitura leve por dia no banco.
+# O Supabase grátis pausa o projeto depois de ~7 dias sem uso; isto garante que o app
+# nunca amanhece desligado. Se falhar, o GitHub manda e-mail ao dono do repositório.
+# ⚠️ O GitHub desliga agendamentos em repositório público sem commits há 60 dias.
+name: batimento
+
+on:
+  schedule:
+    - cron: "17 11 * * *"   # 08:17 em Brasília, todo dia
+  workflow_dispatch:
+
+jobs:
+  pulso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ler o banco (chave pública — a mesma que está no app)
+        run: |
+          r=$(curl -sS -m 30 -w '\n%{http_code}' -X POST \
+            "https://gxddaeujovalkdlaflwn.supabase.co/rest/v1/rpc/batimento" \
+            -H "apikey: sb_publishable_JGbmPLeJqfVB6JR0VjCimA_WttNN9rO" \
+            -H "Content-Type: application/json" -d '{}')
+          echo "$r"
+          [ "$(echo "$r" | tail -n1)" = "200" ]

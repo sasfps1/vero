@@ -55,12 +55,14 @@ create table public.categorias (
 );
 
 -- a casa de quem está logado (security definer evita recursão nas políticas de membros)
-create or replace function public.minha_casa() returns uuid
+-- vive no esquema `privado`, fora da API — ninguém a chama pelo endereço público
+create schema if not exists privado;
+create or replace function privado.minha_casa() returns uuid
 language sql stable security definer set search_path = public as $$
   select casa_id from public.membros where user_id = auth.uid() limit 1
 $$;
-revoke all on function public.minha_casa() from public, anon;
-grant execute on function public.minha_casa() to authenticated;
+revoke all on function privado.minha_casa() from public, anon;
+grant execute on function privado.minha_casa() to authenticated;
 
 alter table public.casas       enable row level security;
 alter table public.membros     enable row level security;
@@ -68,20 +70,20 @@ alter table public.lancamentos enable row level security;
 alter table public.fixas       enable row level security;
 alter table public.categorias  enable row level security;
 
-create policy casas_ver on public.casas for select to authenticated using (id = public.minha_casa());
+create policy casas_ver on public.casas for select to authenticated using (id = privado.minha_casa());
 
-create policy membros_ver on public.membros for select to authenticated using (casa_id = public.minha_casa());
+create policy membros_ver on public.membros for select to authenticated using (casa_id = privado.minha_casa());
 create policy membros_renomear on public.membros for update to authenticated
-  using (casa_id = public.minha_casa()) with check (casa_id = public.minha_casa());
+  using (casa_id = privado.minha_casa()) with check (casa_id = privado.minha_casa());
 revoke update on public.membros from authenticated;
 grant update (nome) on public.membros to authenticated;
 
 create policy lanc_casa on public.lancamentos for all to authenticated
-  using (casa_id = public.minha_casa()) with check (casa_id = public.minha_casa());
+  using (casa_id = privado.minha_casa()) with check (casa_id = privado.minha_casa());
 create policy fixas_casa on public.fixas for all to authenticated
-  using (casa_id = public.minha_casa()) with check (casa_id = public.minha_casa());
+  using (casa_id = privado.minha_casa()) with check (casa_id = privado.minha_casa());
 create policy cats_casa on public.categorias for all to authenticated
-  using (casa_id = public.minha_casa()) with check (casa_id = public.minha_casa());
+  using (casa_id = privado.minha_casa()) with check (casa_id = privado.minha_casa());
 
 -- criar a casa (quem chega primeiro fica na vaga 'sas')
 create or replace function public.criar_casa(p_nome text default 'Você') returns jsonb

@@ -8,6 +8,8 @@ O código vivo está no Supabase; esta pasta guarda a referência da arquitectur
 - A função dá à IA duas ferramentas — `consultar_lancamentos` e `somar_por_categoria` — que
   somam EXATO no banco com o login de quem pergunta. A RLS garante que cada casa só vê a sua.
 - Modelo `claude-opus-5`, esforço `medium`, `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`).
+- **Teto (v2, 11/09):** antes de chamar a IA, a função chama `gastar_pergunta_ia()` no banco —
+  40 perguntas por casa por dia. Passou disso → `{ "erro": "cota" }` (429), sem gastar a chave.
 
 **Segredo necessário (o dono põe, ninguém mais):** `ANTHROPIC_API_KEY` em
 Supabase → Edge Functions → Secrets. Sem ele, a função responde `{ "erro": "sem_chave" }`.
