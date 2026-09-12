@@ -513,7 +513,7 @@ button.px:hover{background:var(--linha)}
     var ok = function(x){ return conta === "todos" || x.conta === conta; };
     var E = 0, Sd = 0, hS = 0, pend = 0;
     base().forEach(function(l){ if (!ok(l) || l.data < a || l.data > z) return;
-      if (l.tipo === "entrada") E += l.valor; else { Sd += l.valor; if (l.data === hj && !l.fixa) hS += l.valor; } });
+      if (l.tipo === "entrada") E += l.valor; else { Sd += l.valor; if (l.data === hj && !l.fixa && !l.emprestimo) hS += l.valor; } });   /* emprestar nao e gastar: sai do bolso (e do livre), mas nao come o limite do dia */
     fixasBase().forEach(function(f){ if (ok(f) && !pagaEm(f)) pend += f.valor; });
     pend += euDevoNoMes(conta);
     var livre = E - Sd - pend, faltam = Math.max(1, dias(n, new Date(n.getFullYear(), n.getMonth()+1, 0)) + 1);
