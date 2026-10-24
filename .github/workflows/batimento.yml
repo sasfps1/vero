@@ -1,24 +1,87 @@
-# Batimento do Vero — uma leitura leve por dia no banco.
-# O Supabase grátis pausa o projeto depois de ~7 dias sem uso; isto garante que o app
-# nunca amanhece desligado. Se falhar, o GitHub manda e-mail ao dono do repositório.
-# ⚠️ O GitHub desliga agendamentos em repositório público sem commits há 60 dias.
+# Batimento do Vero — mantem o projeto Supabase gratis acordado.
+#
+# ┌─ PORQUE ESTA VERSAO EXISTE (2026-10-24) ────────────────────────────────────┐
+# │ A v1 fazia UMA requisicao por dia e o projeto pausou na mesma, a 18/09,     │
+# │ sete dias depois de nascer. As corridas de 11 a 17/09 deram SUCESSO e o     │
+# │ projeto adormeceu a seguir — ou seja, o ping funcionava e nao bastava.      │
+# │                                                                             │
+# │ A documentacao do Supabase diz, a letra:                                    │
+# │   "Typically a few user requests to the database each day over the          │
+# │    previous week is enough to keep the project from being paused."          │
+# │   https://supabase.com/docs/guides/platform/free-project-pausing            │
+# │                                                                             │
+# │ ALGUMAS requisicoes por dia. A v1 fazia uma. Dai a v2:                      │
+# │   · 3 corridas por dia em vez de 1                                          │
+# │   · 5 consultas por corrida, a tabelas REAIS do utilizador, nao so ao RPC   │
+# │   · = ~15 requisicoes/dia contra 1                                          │
+# │                                                                             │
+# │ ⚠️ E ISTO NAO SUBSTITUI O USO. Um projeto que e usado nunca pausa. Este     │
+# │    guarda e a rede para as semanas em que ninguem abre o app.               │
+# │                                                                             │
+# │ ⚠️ UM PING NAO ACORDA UM PROJETO JA PAUSADO. O Supabase tira o DNS, e o     │
+# │    curl morre com "Could not resolve host" — foi o que aconteceu 37 vezes   │
+# │    seguidas sem ninguem ver. Se este guarda falhar, o projeto JA dormiu:    │
+# │    acordar e manual, em supabase.com/dashboard -> Resume project.           │
+# │    Ha 90 dias para o fazer antes de a restauracao de 1 clique expirar.      │
+# └─────────────────────────────────────────────────────────────────────────────┘
+#
+# ⚠️ O GitHub desliga agendamentos em repositorio publico sem commits ha 60 dias.
+#    Cada push a este ficheiro reinicia esse contador.
+
 name: batimento
 
 on:
   schedule:
-    - cron: "17 11 * * *"   # 08:17 em Brasília, todo dia
+    - cron: "17 11 * * *"   # 08:17 em Brasilia
+    - cron: "17 17 * * *"   # 14:17 em Brasilia
+    - cron: "17 23 * * *"   # 20:17 em Brasilia
   workflow_dispatch:
+
+env:
+  SUPA: https://gxddaeujovalkdlaflwn.supabase.co
+  KEY: sb_publishable_JGbmPLeJqfVB6JR0VjCimA_WttNN9rO
 
 jobs:
   pulso:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     steps:
-      - name: Ler o banco (chave pública — a mesma que está no app)
+      - name: Varias consultas reais ao banco (chave publica, a mesma do app)
         run: |
-          r=$(curl -sS -m 30 -w '\n%{http_code}' -X POST \
-            "https://gxddaeujovalkdlaflwn.supabase.co/rest/v1/rpc/batimento" \
-            -H "apikey: sb_publishable_JGbmPLeJqfVB6JR0VjCimA_WttNN9rO" \
-            -H "Content-Type: application/json" -d '{}')
-          echo "$r"
-          [ "$(echo "$r" | tail -n1)" = "200" ]
+          set -u
+          falhas=0
+
+          bater () {
+            nome="$1"; caminho="$2"; metodo="${3:-GET}"
+            if [ "$metodo" = "POST" ]; then
+              c=$(curl -sS -m 30 -o /tmp/r -w '%{http_code}' -X POST \
+                "$SUPA$caminho" -H "apikey: $KEY" \
+                -H "Content-Type: application/json" -d '{}' 2>/dev/null || echo 000)
+            else
+              c=$(curl -sS -m 30 -o /tmp/r -w '%{http_code}' \
+                "$SUPA$caminho" -H "apikey: $KEY" 2>/dev/null || echo 000)
+            fi
+            if [ "$c" = "200" ]; then
+              echo "  OK   $nome ($c)"
+            else
+              echo "  FALHA $nome ($c) :: $(head -c 160 /tmp/r)"
+              falhas=$((falhas+1))
+            fi
+            sleep 3
+          }
+
+          echo "Batimento do Vero - $(date -u '+%Y-%m-%d %H:%M UTC')"
+          bater "funcao batimento" "/rest/v1/rpc/batimento" POST
+          bater "lancamentos"      "/rest/v1/lancamentos?select=id&limit=1"
+          bater "casas"            "/rest/v1/casas?select=id&limit=1"
+          bater "fixas"            "/rest/v1/fixas?select=id&limit=1"
+          bater "auth"             "/auth/v1/settings"
+
+          echo ""
+          if [ "$falhas" -gt 0 ]; then
+            echo "::error::$falhas de 5 consultas falharam. Se for 'Could not resolve host',"
+            echo "::error::o projeto JA esta pausado e tem de ser acordado a mao no painel"
+            echo "::error::do Supabase (Resume project). O ping nao acorda quem ja dormiu."
+            exit 1
+          fi
+          echo "5 de 5 OK — o banco esta vivo e contou 5 requisicoes de utilizador."
