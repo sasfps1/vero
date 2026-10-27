@@ -2,3 +2,19 @@
 vero.html
 _scratch/
 *.log
+
+# ⚠️ ESTE REPOSITÓRIO É PÚBLICO (github.com/sasfps1/vero, visibility PUBLIC).
+# Tudo o que entrar aqui fica na internet, com o nome do SAS em cima.
+#
+# _referencias/ são 29 capturas tiradas de DENTRO de produtos de outras
+# empresas (YNAB, Monarch, Copilot, Actual Budget, Simplifi…). Servem-nos
+# como estudo e vivem no disco; republicá-las num repositório público é
+# redistribuir material que não é nosso. Ficam de fora por isso.
+#
+# _propostas/ é material de trabalho: as três maquetas de direcção, as
+# fotografias de auditoria e a cópia do app antes da Direcção A. Não faz
+# parte do app que as pessoas abrem.
+#
+# Acrescentado 2026-10-27, ao descobrir que o repositório é público.
+_referencias/
+_propostas/

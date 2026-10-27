@@ -281,6 +281,263 @@ button.px:hover{background:var(--linha)}
   .hero-n{font-size:68px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ─────────────────────────────────────────────────────────────────
+   DIRECÇÃO INSTRUMENTO · 2026-10-25
+   Decidida por medição, não por gosto: em 36 telas de apps de finanças,
+   29 usam navy e NENHUMA o usa chapado — é sempre superfície iluminada.
+   Navy chapado é o espaço livre. E as 5 estrelas dizem que o que se
+   elogia é "limpo" e "fácil" (4,6:1), não "bonito" (1,3:1).
+   Escrito POR CIMA, sem apagar nada do que já funcionava: tirar este
+   bloco devolve o app ao que era. (lei 1: não mexer num gesto que já serve)
+
+   ⚠️ DÍVIDA DECLARADA, 25/10: o tema CLARO continua a ser a pele antiga
+   — creme com gradiente, cartões redondos, sombras. Quem tocar no
+   interruptor vê um app de outra marca. Não trava nada (todos arrancam
+   no Instrumento; o claro só se alcança a dedo), mas fica por achatar.
+   ───────────────────────────────────────────────────────────────── */
+:root:not([data-theme="light"]),
+:root[data-theme="dark"]{
+  --chao:#05113B;
+  --fundo:#05113B;
+  --painel:transparent; --painel-borda:transparent; --tecla:transparent;
+  --tinta:#F2EBD2; --tinta-2:rgba(242,235,210,.84); --tinta-3:rgba(242,235,210,.84);
+  --linha:rgba(242,235,210,.16); --linha-2:rgba(242,235,210,.28);
+  --cheia:#F2EBD2; --cheia-tinta:#05113B; --sinal:#9EC5E8; --foco:#9EC5E8;
+  --rede-a:0; --grao:0; --veu:rgba(2,7,26,.78);
+  --sombra:none;
+}
+/* sem cartões: as superfícies passam a ser separadas por FIO, não por caixa */
+.painel,.conta,.tec,.aviso,.li,.folha,.cat,.campo input,.campo{
+  box-shadow:none!important; backdrop-filter:none!important; -webkit-backdrop-filter:none!important;
+}
+.painel,.conta,.tec,.aviso,.li{border-radius:0!important}
+.painel{border:0;border-top:1px solid var(--linha);padding-left:0;padding-right:0}
+.leit{gap:0}
+.leit > div{border-top:1px solid var(--linha);padding-left:0;padding-right:0}
+.tec{border:0;border-top:1px solid var(--linha)}
+.aviso{border:0;border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}
+.folha{border-radius:0!important;background:#05113B;border-top:1px solid var(--linha)}
+.toast{box-shadow:none!important;border:1px solid var(--linha)}
+:root:not([data-theme="light"]) .sw-t,:root[data-theme="dark"] .sw-t{box-shadow:none;background:var(--tinta)}
+:root:not([data-theme="light"]) .sw-tr,:root[data-theme="dark"] .sw-tr{background:rgba(242,235,210,.28)}
+/* ④ os centimos pequenos liam a 3,29:1 — passa num numero de 52px, falha
+   num de 16px. O esbatido fica so no numero grande. */
+.v .cent,.px .cent,.li .cent{opacity:.84}
+/* ⑤ "Paguei" tinha 34px e e o botao a que a mulher dele vai tocar */
+.px-a{min-height:44px!important}
+/* ⑥ "ATRASADA · 05/10" partia-se em duas linhas e desalinhava a coluna.
+   A coluna da data passa de 80 para 96px e so o rotulo e que nao parte. */
+.px{grid-template-columns:104px minmax(0,1fr) auto;align-items:start}
+.px-d{line-height:1.5}
+.px-t{padding-top:1px}
+/* números tabulares: alinham em coluna, como num instrumento */
+.din,.v,.hero-n,input.valor{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+/* o número é o display */
+.hero{border-top:0}
+.hero-n{letter-spacing:-.035em}
+/* canto recto em tudo o que e superficie — MENOS nos controlos cuja
+   forma E o significado: o interruptor tem de parecer interruptor, e
+   um ponto tem de parecer ponto. Regra larga parte dobras longe. */
+button,input,select,textarea,.campo input,.abas a,.px,.toast,.ok{border-radius:0!important}
+/* dois estados que a foto da vista principal nao mostra, e sao os dois
+   superficie CHEIA e redonda: o numero quando o mes nao fecha (e o
+   momento em que mais se olha para ele) e o balao da conversa com a IA */
+.hero.falta .hero-n,.msg.eu{border-radius:0!important}
+.sw-tr{border-radius:13px!important} .sw-t{border-radius:50%!important}
+.matriz i,.pts i{border-radius:50%!important}
+.campo input{background:transparent;border:1px solid var(--linha)}
+/* o botão cheio continua a ser o único bloco preenchido de todo o app */
+.ok,button.cheia{border-radius:0!important;box-shadow:none!important}
+
+/* ─────────────────────────────────────────────────────────────────
+   DIRECÇÃO A · INSTRUMENTO EM COMPUTADOR · 2026-10-26
+   Escolhida POR ELE entre três maquetas a 1440 ("vamos com a A").
+
+   O QUE ISTO CORRIGE, e foi recusa dele de 26/10 de manhã: até aqui o
+   app era um telemóvel esticado — `.wrap` ia de 560 a 1024 e parava,
+   deixando ~400px de tela vazia a 1440; a barra de acções flutuava a
+   meio do nada; e o número que decide era pequeno.
+
+   O PADRÃO, contado em 14 telas de produtos reais (26/10):
+     · barra lateral fixa de 140-240px, com a navegação sempre à vista
+     · TRÊS ZONAS lado a lado — barra + miolo + painel de contexto
+     · o painel direito é CONTEXTO, nunca menu
+     · o número que decide mora no TOPO da coluna principal
+
+   Escrito POR CIMA, como o bloco Instrumento de 25/10: tirar daqui
+   até ao fim devolve o app ao que era. Nada acima foi apagado.
+   ───────────────────────────────────────────────────────────────── */
+@media (min-width:1180px){
+
+  /* ── 1. a barra deixa de flutuar em baixo e vira coluna à esquerda ── */
+  .barra{
+    top:0;bottom:0;right:auto;width:236px;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:1px 0 0 var(--linha);
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .barra .in{max-width:none;margin:0;grid-template-columns:1fr;gap:7px;order:2}
+  .barra .in.dois{grid-template-columns:1fr}
+  .barra button{min-height:44px;font-size:14px}
+
+  /* a navegação vai para cima e fica vertical, com o rótulo ao lado do ícone */
+  .abas{max-width:none;margin:0 0 auto;grid-template-columns:1fr;gap:2px;order:1}
+  .abas a{
+    flex-direction:row;justify-content:flex-start;gap:11px;
+    min-height:40px;padding:0 11px;border-radius:0;font-size:13.5px;letter-spacing:0;
+  }
+  .abas a[aria-current="page"]{box-shadow:inset 2px 0 0 var(--sinal)}
+  .abas svg{width:18px;height:18px}
+
+  /* ── 2. o conteúdo encosta à barra e deixa de ser uma coluna estreita ── */
+  /* a folga de 198 px no fundo existe para a barra de acções do telemóvel.
+     Aqui a barra está à esquerda, logo a folga era só vazio (medido 18h14). */
+  body{padding-bottom:0}
+  body > .wrap,main.wrap{max-width:none;margin:0 0 0 236px;padding:0 30px}
+  main.wrap{padding-bottom:30px}
+  .topo{padding-top:14px}
+
+  /* ── 3. TRÊS ZONAS: miolo largo + painel de contexto de 336px ───── */
+  #telaInicio.grade{
+    grid-template-columns:minmax(0,1fr) 336px;
+    gap:0 26px;align-items:start;
+  }
+  /* as duas colunas do telemóvel desaparecem como caixas e os seus filhos
+     sobem para esta grelha — assim posso pô-los onde a direcção A manda,
+     sem tocar numa linha de HTML nem no JS */
+  #telaInicio > .col-a,#telaInicio > .col-b{display:contents}
+
+  /* coluna 1 — o que decide e a lista */
+  #hero{grid-column:1;grid-row:1}
+
+  /* 🩸 A LISTA ROLA DENTRO DELA PRÓPRIA, e isto é correcção de um defeito
+     medido a 26/10 18h10: com 58 lançamentos a lista ia a y≈4815 enquanto a
+     coluna de contexto acabava a y=1283 — ao rolar, 392 px (27% da largura)
+     ficavam COMPLETAMENTE vazios. Era o mesmo vazio que ele recusou de manhã,
+     só que mais abaixo na página.
+     A correcção é o que os produtos reais fazem (Actual, YNAB, Monarch): a
+     tabela tem rolamento próprio e a tela não cresce por baixo dela. */
+  /* 🩸 CORRECÇÃO DA CORRECÇÃO, 18h14: o meu primeiro `100vh − 128` assumia
+     que o painel começava a 128 px do topo. MEDIDO: começa a 438 — o hero
+     está por cima dele. Resultado: a lista ficava mais alta que o espaço e
+     a última linha era cortada pelo fundo do ecrã, com rolamento DUPLO
+     (rolar a página E depois a lista). 468 = 438 do início + 30 de respiro. */
+  /* 🩸 TERCEIRA VOLTA, 18h17: o `max-height` fixo trocou um defeito por outro
+     — matou o rolamento infinito mas deixou a lista com QUATRO linhas à vista
+     e 481 px vazios por baixo dela ao rolar, porque a coluna de contexto é
+     mais comprida que a lista. A correcção não é encolher a lista: é esticá-la
+     até ao fundo da coluna do lado, para os dois fundos acabarem na mesma
+     linha. É o que separa uma tela desenhada de uma tela remendada. */
+  /* 🩸 QUARTA VOLTA, 18h20 — e esta linha é a lição toda.
+     `align-self:stretch` + `min-height` NÃO limita nada: o painel ocupa as
+     linhas 2-6 da grelha e, sem tecto, é o CONTEÚDO dele que manda na altura
+     delas. Resultado medido: o documento voltou a 4845 px e os 392 px vazios
+     à direita voltaram — a regressão exacta do defeito que ele recusou.
+     O que funciona: `height:0` tira-lhe o poder de mandar nas linhas, e o
+     `min-height:max(100%, …)` enche a área que a grelha lhe deu.
+     Medido depois: documento 1313 px, fundos a 14 px um do outro, 10
+     lançamentos inteiros à vista com rolamento próprio. */
+  #telaInicio > .col-b > .painel.bloco:last-child{
+    grid-column:1;grid-row:2/span 5;margin-top:14px;
+    height:0;min-height:max(100%, calc(100vh - 468px));
+    display:flex;flex-direction:column;
+  }
+  #telaInicio > .col-b > .painel.bloco:last-child > .cab,
+  #telaInicio > .col-b > .painel.bloco:last-child > .busca{flex:0 0 auto}
+  /* a barra de rolamento é um elemento na tela como outro qualquer: sem
+     `scrollbar-color` o Chrome punha uma faixa quase branca sobre o navy,
+     a única coisa fora da paleta em todo o ecrã (medido 18h14). */
+  #feed{
+    overflow-y:auto;min-height:0;flex:1 1 auto;
+    scrollbar-width:thin;scrollbar-color:var(--linha-2) transparent;
+  }
+
+  /* coluna 2 — contexto, por ordem de urgência.
+     O painel dos três números estica até à altura do hero: sem isto ficava
+     um buraco de 336×114 px entre ele e "Próximos 7 dias" (medido). */
+  #leit{grid-column:2;grid-row:1;margin-top:0;align-self:stretch;align-content:space-between}
+  #blocoProx{grid-column:2;grid-row:2;margin-top:14px}
+  #telaInicio > .col-b > .painel.bloco:first-child{grid-column:2;grid-row:3;margin-top:14px}
+  #telaInicio > .col-a > .painel.bloco:last-child{grid-column:2;grid-row:4;margin-top:14px}
+  #aviso{grid-column:2;grid-row:5;margin-top:14px}
+
+  /* o painel de contexto empilha os três números em vez de os espremer.
+     E dá-lhes PESO: medido às 18h17, um valor de 16 px dentro de uma célula
+     de 70 px fazia a coluna parecer magra ao lado do número de 76 px do hero.
+     O espaço estava certo; o que faltava era corpo. */
+  #leit{grid-template-columns:1fr}
+  #leit .v{font-size:23px;margin-top:4px}
+  #leit .rot{font-size:10px;letter-spacing:.14em}
+
+  /* ── 4. o MOSTRADOR — o hero ganha moldura e o número ganha corpo ── */
+  #hero{border:1.5px solid var(--tinta);padding:22px 24px 20px}
+  #hero .hero-n{font-size:76px;margin-top:10px}
+
+  /* a régua: um bloco por dia, não um ponto. Cheios os dias que passaram,
+     o de hoje é a ÚNICA luz de sinal da tela inteira. */
+  .matriz{gap:3px;margin-top:20px}
+  .matriz i{border-radius:0!important;aspect-ratio:auto;height:16px}
+  .matriz i.p{height:16px}
+  .matriz i.h{box-shadow:inset 0 0 0 1.5px var(--tinta)}
+
+  /* ── 5. as outras duas telas também deixam de ser coluna estreita ── */
+  #telaContas,#telaPessoas{max-width:1180px}
+  #telaContas .painel.hero,#telaPessoas .leit{max-width:620px}
+
+  /* ── 6. uma linguagem só: se a régua é de blocos, as barras de categoria
+     também são. Duas formas na mesma tela liam-se como dois apps. ── */
+  .pts i{border-radius:0!important}
+
+  /* ── 7. A LISTA DEIXA DE SER EXTRACTO BANCÁRIO ───────────────────
+     O defeito, dito sem métrica porque é de leitura: 58 linhas com o
+     mesmo peso lêem-se como um muro. O nome e o valor tinham AMBOS
+     14,5 px, e o dia era um rótulo de 10 px quase sem contraste — ou
+     seja, a lista tinha um só patamar.
+     Isto dá-lhe TRÊS, sem mudar uma vírgula do que ela mostra:
+       o DIA agrupa · o NOME identifica · o VALOR é o que se persegue.
+     ⚠️ Vive dentro do media query de propósito: a lista do telemóvel
+     está provada (0 píxeis de diferença, medido 26/10) e não se mexe
+     no que já serve. */
+
+  /* o valor passa a ser a coluna que o olho segue ao rolar */
+  #feed .li .val{font-size:18px;font-variant-numeric:tabular-nums}
+
+  /* 🩸 E A SAÍDA TEM DE PESAR TANTO COMO A ENTRADA, 27/10.
+     Medido: a saída estava a peso 500 e creme a 0,84, logo lia-se mais
+     fraca que o próprio nome ao lado. Num app de controlo de gastos é ao
+     contrário do que a pessoa procura — ninguém abre isto para ver o que
+     entrou. A entrada continua a distinguir-se, pelo peso 800 e pelo sinal;
+     a forma chega, e a marca não deixa usar cor para isto. */
+  #feed .li .val.s{font-weight:600;color:var(--tinta)}
+
+  /* o dia passa a separar secções, em vez de ser mais uma linha.
+     12,5 px e não 11: medido que a 11 px o dia era o texto MAIS PEQUENO da
+     lista — menor que a categoria —, e um separador que se lê por último
+     não está a separar nada. */
+  #feed .dia-cab{
+    padding:20px 4px 8px;margin-top:6px;
+    border-top:1px solid var(--linha-2);
+    font-size:12.5px;font-weight:700;letter-spacing:.13em;
+  }
+  #feed .dia-cab:first-child{border-top:0;margin-top:0;padding-top:2px}
+
+  /* o nome ganha corpo.
+     ⛔ E a linha de baixo NÃO se apaga: tentei `opacity:.72` e o alfa
+     efectivo caiu em 0,605 — dentro da zona morta de 0,50 a 0,72 que a lei
+     da marca proíbe, onde o creme renderiza cinzento neutro (R−B = −3,
+     contra 15 antes). Passava no contraste e falhava na cor. A hierarquia
+     fica feita pelo peso dos outros dois, que é de graça e não tem zona morta. */
+  #feed .li .d{font-weight:600}
+}
+
+/* O gesto certo para o aparelho certo. Por omissão fala-se de toque (o
+   telemóvel é a maioria); quem tem rato vê "clique". Sem JS: o CSS sabe. */
+.g-rato{display:none}
+@media (pointer:fine){
+  .g-dedo{display:none}
+  .g-rato{display:inline}
+}
 </style>
 </head>
 <body>
@@ -318,6 +575,7 @@ button.px:hover{background:var(--linha)}
       <div class="hero-n din" id="heroN">R$ 0<span class="cent">,00</span></div>
       <p class="hero-d" id="decide" aria-live="polite"></p>
       <p class="folga" id="folga"></p>
+    <p class="folga" id="velho" hidden></p>
       <p class="folga" id="receber" hidden></p>
       <div class="matriz" id="matriz" aria-hidden="true"></div>
       <div class="mat-leg"><span class="rot" id="rotRegua"></span><span class="rot" id="rotFalta"></span></div>
@@ -340,7 +598,7 @@ button.px:hover{background:var(--linha)}
     </section>
 
     <section class="painel bloco">
-      <div class="cab"><h2>Atalhos</h2><span class="rot">um toque salva</span></div>
+      <div class="cab"><h2>Atalhos</h2><span class="rot"><span class="g-dedo">um toque salva</span><span class="g-rato">um clique salva</span></span></div>
       <div class="teclas" id="teclas"></div>
     </section>
   </div>
@@ -504,6 +762,11 @@ button.px:hover{background:var(--linha)}
       if (l.fixa === f.id && l.data.slice(0,7) === m) return l; }
     return null; }
   function quem(c){ return S.nomes[c === "ela" ? "ela" : "sas"]; }
+  // Quem ANOTOU (nao de quem e o dinheiro). Vazio quando fui eu: o que
+  // segura quem nao desiste e ver o OUTRO, nao ver-se a si proprio.
+  function autor(l){ if (!l.criado_por || !S.user || l.criado_por === S.user.id) return "";
+    var n = S.nomes[S.vaga === "ela" ? "sas" : "ela"];
+    return n === quem(l.conta) ? "" : n; }
   function nomeDaConta(){ return S.conta === "todos" ? "Total" : quem(S.conta); }
   function categorias(tipo){ var bs = tipo === "entrada" ? CAT_E : CAT_S, extra = S.cats[tipo] || [];
     return bs.slice(0, -1).concat(extra.filter(function(c){ return bs.indexOf(c) < 0; })).concat([bs[bs.length-1]]); }
@@ -596,6 +859,8 @@ button.px:hover{background:var(--linha)}
     fx.forEach(function(f){ if (!pagaEm(f)) pend += f.valor; });
     pend += euDevoNoMes(S.conta);
     var livre = mes ? sobra - pend : sobra;
+    var devo = euDevoNoMes(S.conta);
+    S.detalhe = { entrou:entrou, saiu:saiu, fixas:pend - devo, devo:devo, livre:livre, mes:mes, sobra:sobra };
     var agora = new Date(), f = fim(), faltam = Math.max(1, dias(agora, f) + 1), r0 = ini();
     var ddmm = pad(r0.getDate()) + "/" + pad(r0.getMonth() + 1), outroAno = r0.getFullYear() !== agora.getFullYear();
     var nomePer = corrente ? ({ dia:"Hoje", semana:"Esta semana", mes:"Este mês", ano:"Este ano" })[S.per]
@@ -620,6 +885,16 @@ button.px:hover{background:var(--linha)}
     $("#colF").hidden = !(mes || dia);
     $("#leit").classList.toggle("dois", !(mes || dia));
 
+    var H = $("#hero");
+    H.onclick = abrirDeOndeVem;
+    H.style.cursor = "pointer";
+    var vlh = $("#velho"), ultima = "";
+    base().forEach(function(l){ if (l.data > ultima) ultima = l.data; });
+    var diasParado = ultima ? dias(new Date(ultima + "T12:00:00"), new Date()) : -1;
+    if (!S.exemplo && diasParado >= 3){
+      vlh.textContent = "Último lançamento há " + diasParado + " dias — o número acima pode estar desatualizado.";
+      vlh.hidden = false;
+    } else vlh.hidden = true;
     var d = $("#decide"), fo = $("#folga"); fo.textContent = "";
     if (!base().length && !fixasBase().length){
       d.innerHTML = "Registre a primeira entrada ou saída e o Vero calcula <b>quanto dá para gastar por dia</b>.";
@@ -721,7 +996,10 @@ button.px:hover{background:var(--linha)}
     });
 
     var cats = $("#cats"), ch = Object.keys(porCat).sort(function(a, b2){ return porCat[b2] - porCat[a]; });
-    $("#rotCats").textContent = saiu ? "toque para filtrar" : "";
+    /* 26/10: "toque" a quem tem rato foi recusa dele. O app já sabia
+       distinguir o ponteiro (pointer:coarse, usado mais abaixo) — só não
+       usava isso nas palavras que aparecem na tela. */
+    $("#rotCats").textContent = saiu ? (matchMedia("(pointer:coarse)").matches ? "toque para filtrar" : "clique para filtrar") : "";
     if (!ch.length) cats.innerHTML = '<div class="vazio">Nenhuma saída neste período.</div>';
     else { cats.innerHTML = "";
       ch.slice(0, 6).forEach(function(k){
@@ -744,7 +1022,7 @@ button.px:hover{background:var(--linha)}
     var F = $("#feed"), ord = v.filter(acha).sort(function(a, b2){ return a.data < b2.data ? 1 : a.data > b2.data ? -1 : 0; });
     var somaQ = 0; ord.forEach(function(l){ somaQ += l.tipo === "entrada" ? l.valor : -l.valor; });
     $("#rotFeed").textContent = q ? ord.length + " de " + v.length + " · " + (somaQ > 0 ? "+" : "") + redondo(somaQ)
-      : v.length ? v.length + (v.length > 1 ? " itens" : " item") + (S.exemplo ? "" : " · toque para editar") : "";
+      : v.length ? v.length + (v.length > 1 ? " itens" : " item") + (S.exemplo ? "" : (matchMedia("(pointer:coarse)").matches ? " · toque para editar" : " · clique para editar")) : "";
     if (!ord.length){ F.innerHTML = '<div class="vazio"></div>';
       F.firstChild.textContent = q ? "Nada encontrado para “" + S.busca.trim() + "” neste período." : S.pronto || S.exemplo ? "Nada neste período." : "Carregando…"; }
     else { F.innerHTML = "";
@@ -759,7 +1037,7 @@ button.px:hover{background:var(--linha)}
         r.innerHTML = '<span class="mk"></span><div><div class="d"></div><div class="m"></div></div><div class="val din"></div>';
         $(".mk", r).className = "mk" + (e ? " e" : "");
         $(".d", r).textContent = l.fixa ? (l.nota || "Conta fixa") : l.categoria + (l.nota ? " · " + l.nota : "");
-        $(".m", r).textContent = quem(l.conta) + (l.fixa ? " · conta fixa" : "") + (l.emprestimo ? " · empréstimo" : "");
+        $(".m", r).textContent = quem(l.conta) + (l.fixa ? " · conta fixa" : "") + (l.emprestimo ? " · empréstimo" : "") + (autor(l) ? " · anotado por " + autor(l) : "");
         var val = $(".val", r); val.className = "val din " + (e ? "e" : "s");
         val.textContent = (e ? "+" : "−") + fmt(l.valor);
         if (!S.exemplo){ r.setAttribute("aria-label", "Editar " + (l.fixa ? l.nota : l.categoria) + " de " + fmt(l.valor));
@@ -906,6 +1184,29 @@ button.px:hover{background:var(--linha)}
     document.addEventListener("keydown", esc, true);
     f.addEventListener("click", function(e){ if (e.target === f) fechar(); });
     f.fechar = fechar; return f;
+  }
+  function abrirDeOndeVem(){
+    var x = S.detalhe; if (!x) return;
+    // So classes que o app ja tem (.painel .rot .din .ok .folga) + estilo
+    // em linha. Nao se inventa CSS novo: regra larga parte dobras longe
+    // do sitio onde foi escrita.
+    var lin = function(rot, val, sinal){
+      return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:11px 0">'
+        + '<span class="rot">' + rot + '</span>'
+        + '<b class="din" style="font-size:16.5px;font-weight:800;letter-spacing:-.03em;white-space:nowrap">'
+        + (sinal || "") + fmt(Math.abs(val)) + '</b></div>'; };
+    var h = '<h2>De onde vem este número</h2><div class="painel" style="padding:4px 14px">'
+      + lin("Entrou no período", x.entrou, "+")
+      + lin("Saiu no período", x.saiu, "−");
+    if (x.mes){
+      if (x.fixas) h += lin("Contas fixas por pagar", x.fixas, "−");
+      if (x.devo) h += lin("O que eu devo a alguém", x.devo, "−");
+    }
+    h += lin(x.mes ? "Livre de verdade" : "Sobra do período", x.livre, x.livre < 0 ? "−" : "")
+      + '</div><p class="folga">O que você tem a receber não entra nesta conta — só conta quando o dinheiro voltar.</p>'
+      + '<button type="button" class="ok" id="bFecha">Entendi</button>';
+    var f = folha(h);
+    $("#bFecha", f).addEventListener("click", function(){ f.fechar(); });
   }
   function seg2(box, lista, atual, pegar){
     lista.forEach(function(it){
@@ -1559,11 +1860,11 @@ button.px:hover{background:var(--linha)}
       .then(function(r){ if (r.error) erroPorta($("#lErro"), traduzir(r.error.message)); });
   });
 
-  function doBanco(l){ return { id:l.id, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "", emprestimo:l.emprestimo || "" }; }
+  function doBanco(l){ return { id:l.id, data:l.data, tipo:l.tipo, valor:l.valor, categoria:l.categoria, conta:l.conta, nota:l.nota || "", fixa:l.fixa || "", emprestimo:l.emprestimo || "", criado_por:l.criado_por || "" }; }
   async function todosLancamentos(){
     var out = [];
     for (var pg = 0; pg < 20; pg++){
-      var r = await sb.from("lancamentos").select("id,data,tipo,valor,categoria,conta,nota,fixa,emprestimo").order("data", { ascending:false }).order("id").range(pg * 1000, pg * 1000 + 999);
+      var r = await sb.from("lancamentos").select("id,data,tipo,valor,categoria,conta,nota,fixa,emprestimo,criado_por").order("data", { ascending:false }).order("id").range(pg * 1000, pg * 1000 + 999);
       if (r.error) throw r.error;
       out = out.concat(r.data.map(doBanco));
       if (r.data.length < 1000) break;
