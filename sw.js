@@ -1,25 +1,43 @@
-// Vero — funciona sem internet: rede primeiro, cópia guardada se cair.
-// "no-cache" = pergunta sempre ao servidor se há versão nova. Sem isto, o GitHub Pages manda guardar a
-// página 10 minutos e uma correção publicada não chegava a quem já tinha o app aberto (11/09).
-const CACHE = "vero-v2";
-const BASE = ["./", "./index.html", "./manifest.webmanifest", "./icone.svg", "./icone-192.png", "./icone-512.png"];
+/* O app tem de abrir sem rede -- e um livro de contas, nao um site.
+   Estrategia: a rede primeiro, a cache como rede de seguranca. Assim uma
+   versao nova chega sem ficar presa numa cache velha, e um aparelho sem sinal
+   abre com a ultima que viu. */
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).catch(() => {}));
-  self.skipWaiting();
+const CACHE = 'vero-v6';
+const BASE = ['./', './index.html', './estilo.css', './app.js', './sync.js', './manifest.webmanifest', './icone.svg', './icone-192.png', './icone-512.png'];
+const BIBLIOTECA = 'https://cdn.jsdelivr.net/npm/@supabase/';
+
+self.addEventListener('install', function (ev) {
+  ev.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); }).then(function () {
+    return self.skipWaiting();
+  }));
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
-  self.clients.claim();
+self.addEventListener('activate', function (ev) {
+  ev.waitUntil(caches.keys().then(function (nomes) {
+    return Promise.all(nomes.filter(function (n) { return n !== CACHE; })
+      .map(function (n) { return caches.delete(n); }));
+  }).then(function () { return self.clients.claim(); }));
 });
 
-self.addEventListener("fetch", (e) => {
-  const u = new URL(e.request.url);
-  if (e.request.method !== "GET" || u.origin !== self.location.origin) return;
-  e.respondWith(
-    fetch(e.request, { cache: "no-cache" })
-      .then((r) => { const copia = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copia)); return r; })
-      .catch(() => caches.match(e.request).then((r) => r || caches.match("./index.html")))
+self.addEventListener('fetch', function (ev) {
+  if (ev.request.method !== 'GET') return;
+  // ⚠️ O servidor passa ao lado. Sem esta linha, um pedido ao banco sem sinal recebia
+  // o index.html como resposta, em vez de falhar e deixar a fila tentar de novo.
+  const meu = new URL(ev.request.url).origin === location.origin;
+  const biblioteca = ev.request.url.startsWith(BIBLIOTECA);
+  if (!meu && !biblioteca) return;
+  ev.respondWith(
+    fetch(ev.request).then(function (r) {
+      if (r && r.ok) {
+        const copia = r.clone();
+        caches.open(CACHE).then(function (c) { c.put(ev.request, copia); });
+      }
+      return r;
+    }).catch(function () {
+      return caches.match(ev.request).then(function (r) {
+        return r || caches.match('./index.html');
+      });
+    })
   );
 });

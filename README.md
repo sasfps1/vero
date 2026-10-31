@@ -1,6 +1,8 @@
 # Vero
 
-Finanças da casa: quanto está **livre de verdade** e quanto dá para gastar por dia. By SAS.ads [IA].
+Finanças da casa: **para onde foi o dinheiro** e quanto dá para gastar por dia. By SAS.ads [IA].
+
+> **Vero novo (31/10/2026).** `index.html`, `app.js`, `estilo.css`, `sync.js` e `sw.js` vêm de `Projetos\casa\`, onde vivem as provas e o `LEIA-ME.md`, e é lá que se edita. O app antigo está no histórico deste repositório. O restante deste README descreve o app antigo.
 
 **App:** https://sasfps1.github.io/vero/ — abre no celular e instala na tela inicial.
 

@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><radialGradient id="g" cx="50%" cy="44%" r="72%"><stop offset="0" stop-color="#0B1D5B"/><stop offset=".55" stop-color="#05113B"/><stop offset="1" stop-color="#02071A"/></radialGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><circle cx="256" cy="256" r="176" fill="none" stroke="#F2EBD2" stroke-width="16" stroke-dasharray="497.6 55.3" stroke-dashoffset="525.25"/><path d="M180 178 L256 346 L332 178" fill="none" stroke="#F2EBD2" stroke-width="30" stroke-linejoin="miter" stroke-miterlimit="10"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vero">
+  <!-- O icone do Vero original: o anel aberto da logo SAS com o V dentro.
+       O miolo fica dentro dos 80% centrais para o Android poder recortar em
+       mascara sem comer a forma. -->
+  <rect width="512" height="512" fill="#05113B"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#F2EBD2" stroke-width="16" stroke-dasharray="497.6 55.3" stroke-dashoffset="525.25"/>
+  <path d="M180 178 L256 346 L332 178" fill="none" stroke="#F2EBD2" stroke-width="30" stroke-linejoin="miter" stroke-miterlimit="10"/>
+</svg>

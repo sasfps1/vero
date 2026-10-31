@@ -1,0 +1,572 @@
+/* Tokens copiados de _marca/DESIGN.md, nunca derivados, no "Modo Casa" aprovado a
+   31/10: a receita das telas de finanças (cartão arredondado, degradê, rosca,
+   barras, botão central) com a paleta da marca. Paleta FECHADA: quem acrescentar
+   cor aqui falha o porteiro-de-cor.py. */
+
+:root {
+  --surface:            #05113B;
+  --surface-dim:        #03091F;
+  --surface-raised:     #0A1A4A;
+  --on-surface:         #F2EBD2;
+  --on-surface-muted:   rgba(242, 235, 210, 0.62);
+  --on-surface-faint:   rgba(242, 235, 210, 0.38);
+  --outline:            rgba(242, 235, 210, 0.14);
+  --outline-strong:     rgba(242, 235, 210, 0.24);
+  --signal:             #9EC5E8;
+  --azul-medio:         #4B80CC;
+  --azul-fundo:         #173F96;
+  --azul-rosca:         #4F79BF;
+
+  --gutter: 14px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+svg.traco { width: 20px; height: 20px; display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex: none; background: rgba(158, 197, 232, 0.16); color: var(--signal); }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: Inter, -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 96px;           /* barra de navegacao, com o botao central */
+  overscroll-behavior-y: contain;
+}
+
+/* ── papeis tipograficos: tres, e so tres ───────────────────────────────── */
+
+.logotipo {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 0;
+  min-height: 44px;
+}
+/* O anel aberto da SAS com o V: o que diz de onde o Vero veio, em qualquer paleta.
+   Usa a cor do texto para continuar a valer quando as cores mudarem. */
+.anel-v { width: 1.35em; height: 1.35em; flex: none; fill: none; stroke: currentColor; stroke-linejoin: miter; }
+/* Tocar no anel esconde os valores, e o anel fecha: o estado lê-se sem ler. */
+.anel-v circle { transition: stroke-dasharray .3s ease; }
+body.oculto .anel-v circle { stroke-dasharray: 553 0; }
+
+.rotulo {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--on-surface-muted);
+}
+
+/* ⚠️ O `faint` (creme a 38%) da 3,09:1 sobre o navy -- medido a 2026-10-31 pelo
+   olho-da-pagina, e reprova o minimo de 4,5:1. NAO serve para texto, e muito
+   menos para a data que decide ("venceu 03/10"). Fica so para o que nao e
+   texto: fios, e os blocos do mes que ainda nao chegaram.
+   Texto secundario usa `muted` (62% -> 6,34:1), que ja esta na paleta.
+   Isto e a reincidencia de 12/09: medi opacidades, declarei feito, e a dobra
+   estava ilegivel no ecra dele. */
+.rotulo-fraco { color: var(--on-surface-muted); }
+
+.frase {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--on-surface-muted);
+}
+
+/* O numero que decide. Direccao dele de 24/10: o numero gigante FICA.
+   Os centimos descem de tamanho para o inteiro poder ser grande no celular. */
+.numero-grande {
+  font-size: clamp(46px, 13.5vw, 76px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+  margin: 10px 0 12px;
+}
+.numero-grande .moeda { font-size: 0.42em; font-weight: 700; letter-spacing: -0.01em; margin-right: 0.14em; }
+.numero-grande .cent  { font-size: 0.46em; font-weight: 700; letter-spacing: -0.01em; }
+
+.numero-medio { font-size: 23px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; }
+.numero-medio .cent { font-size: 0.66em; }
+.numero-medio .moeda { font-size: 0.56em; font-weight: 600; color: var(--on-surface-muted); margin-right: 0.2em; }
+
+/* ── estrutura ──────────────────────────────────────────────────────────── */
+
+header.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px var(--gutter) 12px;
+}
+.topo-texto h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.topo-texto span { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+.btn.lancar-topo, .logo-rail { display: none; }
+
+main { padding: 0 var(--gutter); max-width: 720px; margin: 0 auto; }
+
+/* Cada bloco é um cartão: a separação deixou de ser o fio e passou a ser o fundo. */
+section.bloco {
+  padding: 16px 15px;
+  margin-bottom: 12px;
+  background: var(--surface-raised);
+  border-radius: 22px;
+}
+
+/* O cartão principal de cada tela, em degradê do azul da marca. O claro fica no
+   canto de cima, longe do número, e o texto dentro dele usa o creme pleno. */
+section.bloco.he {
+  --on-surface-muted: var(--on-surface);
+  padding: 20px 18px 16px;
+  border-radius: 26px;
+  background: radial-gradient(125% 150% at 100% 0%, var(--signal) 0%, var(--azul-medio) 24%, var(--azul-fundo) 54%, var(--surface-raised) 100%);
+}
+.he .rotulo { font-size: 13.5px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.he .numero-grande { margin: 4px 0 12px; }
+.he .frase { margin-top: 8px; }
+.pode-gastar { display: inline-block; font-size: 14px; font-weight: 800; border-radius: 99px; padding: 7px 14px; background: var(--on-surface); color: var(--surface); }
+.he .medida { margin: 16px 0 6px; }
+.legenda-dias { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 500; }
+
+.painel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.painel section.bloco { margin-bottom: 0; }
+
+.quatro { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cartao { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; background: var(--surface-raised); border-radius: 22px; padding: 15px; }
+.cartao-rotulo { display: block; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
+.cartao strong { display: block; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-top: 1px; white-space: nowrap; }
+.cartao.forte strong { font-weight: 800; }
+
+.titulo-cartao { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
+
+/* Rosca: os dois maiores destinos têm tom próprio, os outros partilham um azul. */
+.rosca-e-lista { display: grid; gap: 8px; margin-top: 12px; }
+.rosca { position: relative; width: 190px; height: 190px; margin: 0 auto; }
+.rosca svg { width: 100%; height: 100%; display: block; }
+.arco { fill: none; stroke-width: 11; stroke-linecap: round; }
+.arco.um { stroke: var(--on-surface); }
+.arco.dois { stroke: var(--signal); }
+.arco.resto { stroke: var(--azul-rosca); }
+.rosca-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); line-height: 1.15; }
+.rosca-centro span { max-width: 118px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rosca-centro b { color: var(--on-surface); font-size: 39px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.destino { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; font-size: 14.5px; }
+.destino-nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.destino-nome small { color: var(--on-surface-muted); font-size: 12.5px; font-weight: 500; margin-left: 5px; }
+.destino b { font-weight: 700; }
+.ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
+.ponto.um { background: var(--on-surface); }
+.ponto.dois { background: var(--signal); }
+.ponto.resto { background: var(--azul-rosca); }
+
+/* Barras: uma por dia do mês, com o dia de maior gasto aceso. */
+.barras { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; align-items: end; height: 124px; margin-top: 30px; }
+.barras i { display: block; border-radius: 3px 3px 0 0; background: rgba(158, 197, 232, 0.3); }
+.barras i.maior { background: var(--signal); }
+.balao { position: absolute; bottom: 100%; transform: translate(-50%, -4px); background: var(--on-surface); color: var(--surface); font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.eixo { position: relative; height: 22px; margin-top: 5px; padding-top: 3px; font-size: 12px; color: var(--on-surface-muted); border-top: 1px solid var(--outline); }
+.eixo span { position: absolute; }
+.eixo span:last-child { right: 0; }
+.eixo-hoje { transform: translateX(-50%); color: var(--on-surface); font-weight: 700; }
+
+/* O que vence: rola para o lado dentro do cartão, nunca a tela inteira. */
+.fila { display: grid; grid-auto-flow: column; grid-auto-columns: 152px; gap: 10px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.fila::-webkit-scrollbar { display: none; }
+.vence-item { display: flex; flex-direction: column; align-items: flex-start; border-radius: 18px; padding: 13px; background: rgba(242, 235, 210, 0.07); }
+/* Trocar os tokens troca de uma vez o texto, a marca e o traço do botão. */
+.vence-item.aceso { --on-surface: #05113B; --on-surface-muted: #05113B; background: var(--signal); color: #05113B; }
+.vence-nome { display: flex; align-items: center; gap: 7px; max-width: 100%; font-size: 14.5px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.vence-nome .marca { flex: none; }
+.vence-item strong { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+.vence-item small { font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); margin: 1px 0 10px; }
+.vence-item.atrasada small { font-weight: 800; }
+
+h2.secao {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+/* ⚠️ Aqui esteve um `padding-right: 62px` para o botao flutuante nao tapar o
+   titulo. Era remendo e fez um defeito novo: empurrava 62px para a esquerda
+   tudo o que e alinhado a direita NESSA linha (o "Voce deve" em Pessoas, o
+   "Nova conta" em Contas), e a coluna da direita ganhou um degrau visivel.
+   O defeito nao estava no titulo -- estava em ter um botao a flutuar sobre a
+   lista. O botao passou a barra ancorada em baixo e o remendo morreu com ele.
+   (Lei: escrever a regra nova e nao matar a velha e meio conserto.) */
+
+/* ── medida: blocos rectangulares, um por dia do mes ────────────────────── */
+/* Distingue-se por FORMA, nunca por cor. E a marca do Casa: nenhuma das 17 telas
+   de referencia tem esta regua dos dias. */
+
+.medida { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin-bottom: 8px; }
+.medida i { flex: 1 1 0; display: block; border-radius: 2px; }
+.medida i.passado { height: 11px; background: var(--on-surface); }
+.medida i.hoje    { height: 24px; background: var(--on-surface); }
+.medida i.futuro  { height: 11px; background: rgba(242, 235, 210, 0.26); }
+/* A mesma medida, mais baixa, a dizer que fatia do mes cada destino levou. */
+/* ⚠️ `max-width: 170px` NÃO dá largura: dentro de uma caixa flexível o flex
+   encolhe-a, e a medida saiu a 22px — reservava a altura e não se via. Num
+   contentor flex, largura pedida é `flex: none` + `width`, nunca `max-width`. */
+.medida.fina { height: 5px; margin: 0; flex: none; width: 170px; }
+.medida.fina i.passado { height: 5px; }
+.medida.fina i.futuro  { height: 5px; }
+
+/* ── linhas ─────────────────────────────────────────────────────────────── */
+
+.linha {
+  display: grid;
+  /* `minmax(0, 1fr)`, nunca `1fr`: com `1fr` a coluna do nome nao pode encolher
+     abaixo do seu conteudo, e tres botoes na celula da direita empurravam-na
+     para zero -- a 390px o nome "Emprestei R$ 400,00 / prometeu 25/10"
+     desapareceu do ecra e ficou so no DOM (medido a 2026-10-31). */
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 31px;
+  padding: 5px 0;
+  border-top: 1px solid var(--outline);
+  text-align: left;
+  width: 100%;
+  background: none;
+  border-left: 0; border-right: 0; border-bottom: 0;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.linha:first-of-type { border-top: 0; }
+.titulo-editavel { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 24px; background: none; border: 0; text-align: left; }
+.titulo-editavel span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titulo-editavel svg.traco { width: 14px; height: 14px; color: var(--on-surface-muted); }
+.linha.dupla.compacta { min-height: 44px; }
+.linha.tocavel { cursor: pointer; }
+.linha.tocavel:active { background: var(--surface-dim); }
+
+/* O período de Gastos: quatro destinos, um aceso. */
+.periodos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; padding: 3px; border-radius: 99px; background: rgba(5, 17, 59, 0.45); }
+.periodo { min-height: 36px; background: none; border: 0; border-radius: 99px; font-size: 13px; font-weight: 600; }
+.periodo.activo { background: var(--on-surface); color: var(--surface); font-weight: 800; }
+
+/* A pergunta à IA. */
+.perguntar { width: 100%; min-height: 48px; padding: 8px 16px; text-align: left; background: var(--surface-raised); border: 0; border-radius: 18px; font-size: 13.5px; font-weight: 600; color: var(--on-surface); }
+.ia-conversa { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 6px; }
+.fala { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fala.minha { align-self: flex-end; background: var(--on-surface); color: var(--surface); font-weight: 600; }
+.fala.dele { align-self: flex-start; background: var(--surface-raised); }
+
+/* Lançamentos: mês, busca e o cabeçalho de cada dia. */
+.seletor-mes { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -6px 10px; font-size: 14px; font-weight: 700; }
+.seta { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; }
+.seta:disabled { opacity: 0.38; cursor: default; }
+input.busca { margin: 12px 0 6px; }
+.soma-busca { font-size: 13px; font-weight: 700; padding: 8px 0 2px; }
+h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); padding: 14px 0 4px; }
+.linha.dupla { min-height: 60px; align-items: start; }
+.linha.dupla .marca { margin-top: 5px; }
+/* A celula do nome nao corta -- quem corta e o TITULO dentro dela. Se o corte
+   estivesse na celula, levava a segunda linha (data e botoes) com ele. */
+.linha .nome { min-width: 0; }
+.linha .nome .titulo { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Lista sem marcas (Gastos): sem a coluna de 14px, senao fica um recuo vazio
+   a esquerda e o nome comeca 24px depois do titulo da tela. */
+.linha.sem-marca { grid-template-columns: minmax(0, 1fr) auto; }
+.linha.sem-marca.com-icone { grid-template-columns: 36px minmax(0, 1fr) auto; }
+/* `muted`, nao `faint`: esta linha leva a data que decide ("venceu 03/10"). */
+.linha .sub { font-size: 12px; color: var(--on-surface-muted); }
+/* A coluna do dinheiro alinha SEMPRE.
+   ⚠️ Primeira tentativa: `min-width` no numero. Nao resolveu, e o auditor
+   apanhou-o duas rondas seguidas -- o recuo nao vinha do numero, vinha da
+   LARGURA DO BOTAO ao lado dele. Tratei o sintoma.
+   Agora a celula do valor e uma caixa flexivel com DUAS gavetas de largura
+   fixa: o numero e a accao. A gaveta da accao existe mesmo quando esta vazia,
+   senao as linhas sem botao empurravam o numero mais para a direita. */
+.linha .valor {
+  font-weight: 600; white-space: nowrap;
+  min-width: 86px; text-align: right;
+  align-self: start; padding-top: 1px;
+}
+
+/* ⭐ A ACÇÃO VIVE NA SEGUNDA LINHA, ao lado da data -- onde já havia espaço
+   vazio. Foram precisas tres tentativas para chegar aqui:
+     1.ª o botao na celula do valor  -> com tres botoes a tela rolava para o lado
+     2.ª o botao em linha propria    -> linhas de 95px, "parece formulario"
+     3.ª gaveta fixa de 94px        -> arrumou a coluna do dinheiro e passou a
+         CORTAR OS NOMES: "Devolver a Tia ..." esconde qual tia, e
+         "Emprestei R$ 4..." esconde quanto.
+   A segunda linha resolve as tres: o nome fica com a largura toda, a coluna do
+   dinheiro alinha sozinha (nada lhe rouba espaco a direita), e a altura da
+   linha continua nos ~60px porque a linha da data ja existia. */
+.linha .sub-linha {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-top: 3px;
+}
+/* ⚠️ A data tem largura FIXA, senao o botao comeca num x diferente em cada
+   linha ("Paguei" a 84 numa e a 140 na outra) e a lista faz ziguezague. */
+.linha .sub-linha .sub { min-width: 104px; }
+.linha .extra-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 7px; }
+.linha.atrasada .nome, .linha.atrasada .valor { font-weight: 800; }
+.linha.fraca { color: var(--on-surface-muted); }
+.linha.fraca .valor { font-weight: 500; }
+
+/* (A `.linha .accoes` que existia aqui morreu: as accoes passaram para a
+   `.sub-linha`, ao lado da data. Ver o comentario em `.linha .valor`.) */
+
+/* marcas: a forma substitui o verde e o vermelho (DESIGN.md) */
+.marca { width: 10px; height: 10px; border: 1px solid var(--on-surface); border-radius: 2px; overflow: hidden; position: relative; }
+.marca.saiu     { background: var(--on-surface); }                    /* cheio */
+.marca.entrou   { background: none; }                                 /* vazio */
+/* Meio cheio = transferencia (emprestimo). Feito com um filho de 50% e nao com
+   um `linear-gradient`: o DESIGN.md proibe gradientes, e um degrade de dois
+   topos duros continua a escrever a palavra proibida no ficheiro -- quem ler
+   depois nao sabe que era so meia forma. */
+.marca.transfer::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 50%;
+  background: var(--on-surface);
+}
+/* Estados de uma conta, cada um com a SUA forma -- a lei da marca diz que a
+   interface tem de funcionar para quem nao distingue duas cores.
+   ⚠️ A atrasada era o quadrado CHEIO, que ja significava "dinheiro que saiu".
+   O cheio queria dizer duas coisas (apanhado a 2026-10-31). Agora:
+      vence  = oco           atrasada = oco com barra a esquerda
+      paga   = oco com ponto no meio
+   O cheio volta a ser so uma coisa: saiu dinheiro. */
+.marca.paga::after {
+  content: ""; position: absolute; inset: 2px; background: var(--on-surface);
+}
+/* ⚠️ A atrasada era uma barra de 3px A ESQUERDA. A 10px de tamanho lia-se igual
+   ao meio-cheio do emprestimo, que tambem e a esquerda (medido a 2026-10-31:
+   "o Aluguel e o Marcos parecem iguais"). Duas formas no mesmo eixo colidem.
+   Agora a atrasada enche a metade DE CIMA: outro eixo, outra forma.
+      oco = vence · metade de cima = atrasada · ponto no meio = paga
+      metade da esquerda = transferencia · cheio = saiu dinheiro */
+.marca.vencida::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 50%;
+  background: var(--on-surface);
+}
+.marca.fraca { border-color: var(--on-surface-faint); }
+.marca.fraca::before, .marca.fraca::after { background: var(--on-surface-faint); }
+.marca.saiu.fraca { background: var(--on-surface-faint); }
+
+/* ── botoes: arredondados, traco de 1px, um primario por tela ───────────── */
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 0 14px;
+  border-radius: 99px;
+  background: none;
+  /* `outline-strong` (24%) da 1,94:1 -- um botao que nao se ve nao e um botao.
+     O traco usa `muted`, que ja esta na paleta. */
+  border: 1px solid var(--on-surface-muted);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.01em;
+  /* o botão nunca parte o próprio texto: "Deixa pra lá" saía "Deixa / pra lá"
+     dentro de um botão mais estreito que a palavra */
+  white-space: nowrap; flex: none;
+}
+.btn.primario { background: var(--on-surface); color: var(--surface); border-color: var(--on-surface); }
+/* 36px, nao 30: 30 e pequeno para um dedo. E sem MAIUSCULAS -- eram elas que,
+   somadas aos rotulos, faziam a tela ler como documento em vez de instrumento. */
+.btn.pequeno  { min-height: 38px; padding: 0 11px; font-size: 12.5px; font-weight: 600; }
+/* Desfazer uma acção não pode gritar como a acção. */
+.btn.fraco { border-color: var(--outline-strong); color: var(--on-surface-muted); font-weight: 500; }
+
+/* O nome de uma PESSOA nao e um rotulo de regiao. Em maiusculas com
+   letter-spacing, "TIA ROSA" lia-se como o titulo de uma secção, nao como
+   alguem. E eram mais duas caixas-altas na tela, no meu tique de sempre. */
+.nome-pessoa { display: block; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.btn:disabled { opacity: 0.38; cursor: default; }
+.btn[hidden], .campo[hidden] { display: none; }
+.btn.apagar { width: 100%; margin: 4px 0 24px; }
+
+/* ── barra inferior: 3 destinos, icone + uma palavra ────────────────────── */
+
+nav.barra {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  /* 4 destinos e o botao de lancar ao centro. */
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end;
+  background: var(--surface-dim);
+  border-radius: 22px 22px 0 0;
+  padding: 8px 4px calc(9px + env(safe-area-inset-bottom));
+}
+nav.barra a {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  color: var(--on-surface-muted);     /* 38% dava 3,09:1 e o nome da aba sumia */
+  text-decoration: none;
+  font-size: 11.5px; font-weight: 600;
+}
+nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
+
+/* Lancar: a accao mais repetida da casa, sempre a um toque.
+   ⚠️ Ja foi botao redondo a flutuar no canto, e tapava o valor da conta que vence
+   hoje. Este sobe da barra, mas nao fica sobre a lista: o padding-bottom do body
+   reserva o espaco dele. Alvo de 56px (digitar custa-lhe, o teclado dele morreu a
+   21/10). */
+.lancar-centro {
+  justify-self: center;
+  width: 56px; height: 56px; margin-top: -26px;
+  display: grid; place-items: center;
+  border: 4px solid var(--surface); border-radius: 50%;
+  background: var(--on-surface); color: var(--surface);
+}
+.lancar-centro svg.traco { width: 24px; height: 24px; stroke-width: 2.4; }
+
+/* O aviso da copia perdeu a caixa: com traco e negrito era o segundo elemento
+   mais pesado do Inicio, mais que o numero do limite do dia. */
+.aviso.sem-caixa { border: 0; padding: 0; margin: 0; }
+
+/* ── folha de lancamento ────────────────────────────────────────────────── */
+
+.folha {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--surface);
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.folha[hidden] { display: none; }
+.folha .cabeca { display: flex; align-items: center; justify-content: space-between; padding: 14px var(--gutter); border-bottom: 1px solid var(--outline); }
+.folha .mostrador { flex: 1 1 auto; overflow-y: auto; padding: 26px var(--gutter) 16px; }
+.folha .corpo { flex: 1 1 auto; overflow-y: auto; padding: 0 var(--gutter); }
+
+.teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.teclado button {
+  background: var(--surface-raised);
+  border: 0;
+  border-radius: 14px;
+  min-height: 56px;
+  font-size: 21px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.teclado button:active { background: var(--surface-dim); }
+
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 18px; }
+.duas .btn { min-height: 48px; gap: 9px; }
+
+/* campos */
+label.campo { display: block; margin: 14px 0; }
+label.campo .rotulo { margin-bottom: 6px; }
+input[type="text"], input[type="number"], input[type="date"], input[type="search"], input[type="email"], input[type="password"], select {
+  width: 100%; min-height: 42px; padding: 0 10px;
+  background: var(--surface-dim); color: var(--on-surface);
+  border: 1px solid var(--outline-strong);
+  border-radius: 12px;
+  font: inherit; font-variant-numeric: tabular-nums;
+  appearance: none;
+}
+
+/* ── aviso de copia e desfazer ──────────────────────────────────────────── */
+
+.aviso {
+  display: flex; align-items: center; gap: 10px;
+  margin: 18px 0 4px; padding: 11px 12px;
+  border: 1px solid var(--outline-strong);
+  font-size: 12.5px; color: var(--on-surface-muted);
+}
+.aviso.pesado { font-weight: 700; color: var(--on-surface); }
+.aviso .btn { margin-left: auto; flex: 0 0 auto; }
+
+.desfazer {
+  position: fixed; z-index: 70;
+  left: var(--gutter); right: var(--gutter);
+  bottom: calc(72px + env(safe-area-inset-bottom) + 14px);
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--outline-strong);
+  border-radius: 16px;
+  font-size: 13px;
+}
+.desfazer[hidden] { display: none; }
+.desfazer .btn { margin-left: auto; }
+
+.vazio { padding: 10px 0 4px; font-size: 13px; color: var(--on-surface-muted); }
+
+@media (min-width: 640px) {
+  .rosca-e-lista { grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: center; }
+  .rosca { width: 200px; height: 200px; }
+}
+
+/* ── computador: tres zonas, estrutura igual, so o arranjo muda ─────────── */
+
+@media (min-width: 1180px) {
+  /* ⚠️ Cada zona diz ONDE fica, por nome. A versao anterior deixava a grelha
+     colocar sozinha e a ordem do DOM (header, main, fab, nav) punha o conteudo
+     na coluna de 220px e a navegacao na coluna larga: o numero gigante saia
+     cortado em "1.01..." e metade do ecra ficava vazia. Medido a 2026-10-31.
+     Colocacao automatica numa grelha de duas colunas e uma armadilha sempre
+     que a ordem visual nao e a ordem do ficheiro. */
+  /* Casca de aplicacao: a janela nao rola, a obra rola por dentro.
+     ⚠️ A versao anterior punha a navegacao `sticky` com 100vh de altura e ela
+     passava por cima do cabecalho -- o logotipo "Casa" desapareceu no ecra
+     largo (medido a 2026-10-31). `sticky` dentro de uma grelha de duas filas
+     e uma armadilha: ele cola-se ao topo da JANELA, nao ao topo da sua fila. */
+  body {
+    padding-bottom: 0;
+    display: grid;
+    grid-template-columns: 212px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "rail topo" "rail obra";
+    height: 100vh; overflow: hidden;
+  }
+  header.topo { grid-area: topo; padding: 22px 28px 14px; max-width: 1188px; width: 100%; }
+  .topo-texto h1 { font-size: 26px; }
+  header.topo > .logotipo { display: none; }
+  .btn.lancar-topo { display: inline-flex; min-height: 44px; padding: 0 20px; font-size: 14px; font-weight: 800; }
+  nav.barra {
+    grid-area: rail;
+    position: static;
+    grid-template-columns: 1fr;
+    align-content: start;            /* as abas juntas em cima, nao esticadas */
+    align-items: stretch;
+    gap: 3px;
+    border-radius: 0;
+    height: 100%; padding: 22px 14px 0;
+  }
+  .logo-rail { display: flex; font-size: 22px; padding: 0 10px 20px; }
+  nav.barra a { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 0 12px; min-height: 44px; border-radius: 14px; font-size: 14.5px; }
+  nav.barra a.activo { background: var(--surface-raised); }
+  .lancar-centro { display: none; }
+  main { grid-area: obra; max-width: 1188px; width: 100%; margin: 0; padding: 0 28px 28px; overflow-y: auto; height: 100%; }
+  main > section.bloco { max-width: 760px; }
+  .painel { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+  /* No celular "Para onde foi" vem logo a seguir ao número; aqui cabem os dois na
+     primeira tela, com os quatro números ao lado do principal. */
+  .painel .he { order: 1; }
+  .quatro { order: 2; }
+  .perguntar { order: 3; grid-column: 1 / -1; }
+  .para-onde { order: 4; }
+  .por-dia { order: 5; }
+  .vence { order: 6; }
+  .avisos { order: 7; }
+  .painel .he { grid-column: span 7; padding: 28px 28px 22px; }
+  .painel .he .numero-grande { font-size: 74px; }
+  .quatro { grid-column: span 5; gap: 16px; }
+  .cartao strong { font-size: 22px; }
+  .para-onde { grid-column: span 7; }
+  .por-dia { grid-column: span 5; display: flex; flex-direction: column; }
+  .por-dia .barras { flex: 1 1 auto; min-height: 150px; }
+  .vence, .avisos { grid-column: 1 / -1; }
+  .fila { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* Se a primeira ou a segunda fila ficar sem par, o cartão ocupa a largura toda. */
+  .painel:not(:has(.por-dia)) .para-onde { grid-column: 1 / -1; }
+  /* Gastos: os destinos e os lançamentos lado a lado, sem faixa vazia à direita. */
+  .painel.gastos .he { grid-column: 1 / -1; }
+  .painel.gastos .grupos { grid-column: span 5; order: 2; align-self: start; }
+  .painel.gastos .lancamentos { grid-column: span 7; order: 3; }
+  .painel.gastos:not(:has(.grupos)) .lancamentos { grid-column: 1 / -1; }
+  .desfazer { left: auto; right: 28px; bottom: 28px; max-width: 420px; }
+}
