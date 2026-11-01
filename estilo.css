@@ -114,6 +114,43 @@ header.topo {
 .topo-texto span { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
 .btn.lancar-topo, .logo-rail { display: none; }
 
+/* De quem são os números: mecanismo do Vero de 11/09, um botão que abre a lista. */
+.seletor-conta {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-left: auto; min-height: 40px; max-width: 42vw; padding: 0 10px 0 13px;
+  background: var(--surface-raised); border: 1px solid var(--outline-strong); border-radius: 99px;
+  font-size: 13px; font-weight: 700;
+}
+.seletor-conta[hidden] { display: none; }
+.seletor-conta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seletor-conta svg.traco { flex: none; width: 15px; height: 15px; }
+.opcoes-conta { display: grid; gap: 8px; margin: 18px 0 32px; }
+.opcao-conta {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 62px; padding: 10px 14px; text-align: left;
+  background: var(--surface-raised); border: 1px solid transparent; border-radius: 16px;
+  font-size: 15px; font-weight: 700;
+}
+.opcao-conta small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+.opcao-conta[aria-checked="true"] { border-color: var(--on-surface); }
+.opcao-conta svg.traco { flex: none; width: 20px; height: 20px; visibility: hidden; }
+.opcao-conta[aria-checked="true"] svg.traco { visibility: visible; }
+
+/* A porta de entrada cobre tudo: nav e números só aparecem depois dela. */
+.portao {
+  position: fixed; inset: 0; z-index: 80; overflow-y: auto;
+  display: flex; padding: 24px var(--gutter) calc(24px + env(safe-area-inset-bottom));
+  background: var(--surface);
+}
+.portao[hidden] { display: none; }
+.portao-caixa { width: 100%; max-width: 380px; margin: auto; }
+.portao-marca { display: flex; align-items: center; gap: 10px; font-family: "Playfair Display", Georgia, serif; font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+.portao-caixa > .frase { margin: 10px 0 20px; font-size: 14px; }
+.portao-caixa .btn { width: 100%; min-height: 48px; margin-top: 10px; white-space: normal; }
+.portao-erro:empty { display: none; }
+.portao-erro { margin-top: 6px; color: var(--on-surface); }
+.portao-sem-conta { display: block; width: 100%; min-height: 44px; margin-top: 12px; background: none; border: 0; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); text-decoration: underline; }
+
 main { padding: 0 var(--gutter); max-width: 720px; margin: 0 auto; }
 
 /* Cada bloco é um cartão: a separação deixou de ser o fio e passou a ser o fundo. */
@@ -544,6 +581,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   header.topo { grid-area: topo; padding: 22px 28px 14px; max-width: 1188px; width: 100%; }
   .topo-texto h1 { font-size: 26px; }
   header.topo > .logotipo { display: none; }
+  .seletor-conta { max-width: 240px; min-height: 44px; font-size: 14px; }
   .btn.lancar-topo { display: inline-flex; min-height: 44px; padding: 0 20px; font-size: 14px; font-weight: 800; }
   nav.barra {
     grid-area: rail;

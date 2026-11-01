@@ -20,6 +20,7 @@
     <h1 id="topo-titulo"></h1>
     <span id="topo-mes"></span>
   </div>
+  <button class="seletor-conta" id="seletor-conta" data-acao="escolher-conta" aria-haspopup="dialog" hidden><span id="seletor-nome"></span><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <button class="logotipo" data-acao="ocultar" aria-pressed="false" aria-label="Esconder os valores"><svg class="anel-v" viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="176" stroke-width="28" stroke-dasharray="497.6 55.3" stroke-dashoffset="525.25"/><path d="M180 178 L256 346 L332 178" stroke-width="36"/></svg>Vero</button>
   <button class="btn primario lancar-topo" data-acao="lancar">+ Lançar um gasto</button>
 </header>
@@ -88,6 +89,10 @@
       <span class="rotulo">Dia</span>
       <input type="date" id="lancar-data">
     </label>
+    <label class="campo" id="campo-dono" hidden>
+      <span class="rotulo">De quem é</span>
+      <select id="lancar-dono"></select>
+    </label>
     <button class="btn fraco apagar" id="lancar-apagar" data-acao="apagar-lanc" hidden>Apagar este lançamento</button>
   </div>
 </div>
@@ -106,6 +111,9 @@
   <span id="desfazer-texto"></span>
   <button class="btn pequeno" id="desfazer-btn">Desfazer</button>
 </div>
+
+<!-- A porta de entrada: quem chega sem conta vê isto antes dos números. -->
+<div class="portao" id="portao" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 <script src="app.js"></script>

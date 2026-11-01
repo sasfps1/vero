@@ -36,24 +36,26 @@ const VAZIO = {
 function carregar() {
   try {
     const bruto = localStorage.getItem(CHAVE);
-    if (!bruto) return estrutura(VAZIO);
+    if (!bruto) return estrutura();
     return estrutura(JSON.parse(bruto));
   } catch (e) {
     // Dados ilegiveis valem menos que um app que abre: nao apagamos nada,
     // passamos a memoria e avisamos na tela.
     soMemoria = true;
-    return estrutura(VAZIO);
+    return estrutura();
   }
 }
 
 // Ler o contrato, nunca a memoria: campo que falta nasce com valor, para uma
 // versao antiga dos dados nao rebentar numa tela.
 function estrutura(d) {
+  // ⚠️ As listas nascem aqui, nunca as do VAZIO: partilhadas, o que se lançava na primeira
+  // abertura ficava no molde e voltava a aparecer depois de sair da conta.
   const s = Object.assign({}, VAZIO, d || {});
-  s.lancamentos = Array.isArray(s.lancamentos) ? s.lancamentos : [];
-  s.contas      = Array.isArray(s.contas) ? s.contas : [];
-  s.emprestimos = Array.isArray(s.emprestimos) ? s.emprestimos : [];
-  s.categorias  = Array.isArray(s.categorias) ? s.categorias : [];
+  s.lancamentos = Array.isArray(d && d.lancamentos) ? d.lancamentos : [];
+  s.contas      = Array.isArray(d && d.contas) ? d.contas : [];
+  s.emprestimos = Array.isArray(d && d.emprestimos) ? d.emprestimos : [];
+  s.categorias  = Array.isArray(d && d.categorias) ? d.categorias : [];
   s.config     = Object.assign({}, VAZIO.config, s.config || {});
   return s;
 }
@@ -133,6 +135,52 @@ function esc(t) {
   });
 }
 
+// ── de quem são os números ───────────────────────────────────────────────────
+
+/* Mecanismo do Vero de 11/09: Total, a pessoa 1 ou a pessoa 2. O filtro fica aqui, antes
+   de calc(), para as quatro telas continuarem a somar pela mesma função. Sem conta
+   ligada não há duas pessoas, logo a tela mostra tudo. */
+const K_VISTA = 'vero.vista';
+let verConta = (function () {
+  try {
+    const v = localStorage.getItem(K_VISTA);
+    return v === 'sas' || v === 'ela' ? v : 'todos';
+  } catch (e) { return 'todos'; }
+})();
+
+function haContas() { return !!(window.veroLigado && window.veroLigado()); }
+function minhaVaga() { return window.veroMinhaVaga ? window.veroMinhaVaga() : 'sas'; }
+function contaVista() { return haContas() ? verConta : 'todos'; }
+function daVista(x) {
+  const v = contaVista();
+  return v === 'todos' || (x.vaga || minhaVaga()) === v;
+}
+function lancamentosVistos() { return S.lancamentos.filter(daVista); }
+function contasVistas() { return S.contas.filter(daVista); }
+function emprestimosVistos() { return S.emprestimos.filter(daVista); }
+
+function nomeDaVaga(v) { return window.veroNomeDaVaga ? window.veroNomeDaVaga(v) : ''; }
+function nomeDaVista() { return contaVista() === 'todos' ? 'Total' : nomeDaVaga(verConta); }
+function mudarVista(v) {
+  verConta = v === 'sas' || v === 'ela' ? v : 'todos';
+  try { localStorage.setItem(K_VISTA, verConta); } catch (e) { /* vale até fechar */ }
+}
+
+/** A conta aberta decide de quem é o que se lança. No Total, é de quem está a lançar. */
+function donoPadrao() { return contaVista() === 'todos' ? minhaVaga() : verConta; }
+function opcoesDono(atual) {
+  return ['sas', 'ela'].map(function (v) {
+    return '<option value="' + v + '"' + (v === atual ? ' selected' : '') + '>' + esc(nomeDaVaga(v)) + '</option>';
+  }).join('');
+}
+function campoDono(nome, atual) {
+  if (!haContas()) return '';
+  return '<label class="campo"><span class="rotulo">De quem é</span><select id="' + nome + '">' + opcoesDono(atual) + '</select></label>';
+}
+function lerDono(nome, atual) {
+  return haContas() ? (document.getElementById(nome).value || atual) : atual;
+}
+
 // ── a UNICA funcao que calcula ───────────────────────────────────────────────
 
 function falta(e) {
@@ -144,13 +192,13 @@ function falta(e) {
 }
 
 function contasPorPagar(mes) {
-  return S.contas.filter(function (c) {
+  return contasVistas().filter(function (c) {
     return c.ativa !== false && !(c.pagos && c.pagos[mes]);
   });
 }
 
 function abertos(direcao) {
-  return S.emprestimos.filter(function (e) {
+  return emprestimosVistos().filter(function (e) {
     return e.direcao === direcao && e.estado === 'aberto' && falta(e) > 0;
   });
 }
@@ -169,7 +217,7 @@ function euDevoNoMes(mes) {
     seria cobra-la duas vezes. */
 function gastoDeHoje() {
   const h = hoje();
-  return S.lancamentos.filter(function (l) {
+  return lancamentosVistos().filter(function (l) {
     return l.tipo === 'saida' && l.data === h && !l.emprestimo && !l.conta;
   }).reduce(function (a, l) { return a + l.centavos; }, 0);
 }
@@ -184,9 +232,11 @@ function limiteDoDia(livre) {
   const h = hoje();
   const red = S.config.redondo;
   const bruto = livre <= 0 ? 0 : Math.floor(livre * (1 - S.config.folga) / diasRestantes() / red) * red;
-  const c = S.config.limite;
+  // Cada conta congela o seu: trocar de conta na tela não pode mexer no limite de ninguém.
+  const chave = contaVista() === 'todos' ? 'limite' : 'limite_' + verConta;
+  const c = S.config[chave];
   if (c && c.dia === h && livre <= c.base) return c.centavos;
-  S.config.limite = { dia: h, centavos: bruto, base: livre };
+  S.config[chave] = { dia: h, centavos: bruto, base: livre };
   guardar();
   return bruto;
 }
@@ -195,7 +245,7 @@ function limiteDoDia(livre) {
     nunca poderem divergir. */
 function resumoEntre(de, ate) {
   let entradas = 0, saidas = 0;
-  for (const l of S.lancamentos) {
+  for (const l of lancamentosVistos()) {
     if (l.data < de || l.data > ate) continue;
     if (l.tipo === 'entrada') entradas += l.centavos; else saidas += l.centavos;
   }
@@ -231,7 +281,7 @@ function calc() {
     barras do Início somarem exactamente o "saiu". */
 function gastoPorDia(mes) {
   const dias = new Array(diasNoMes(mes)).fill(0);
-  for (const l of S.lancamentos) {
+  for (const l of lancamentosVistos()) {
     if (l.tipo === 'saida' && mesDe(l.data) === mes) dias[diaDe(l.data) - 1] += l.centavos;
   }
   return dias;
@@ -311,7 +361,7 @@ function paraOndeFoi(mes) {
 function paraOndeEntre(de, ate) {
   const porNome = {};
   let total = 0;
-  for (const l of S.lancamentos) {
+  for (const l of lancamentosVistos()) {
     if (l.tipo !== 'saida' || l.data < de || l.data > ate) continue;
     total += l.centavos;
     const nome = categoriaDe(l) || String(l.nota || '').trim() || 'Sem nome';
@@ -336,7 +386,8 @@ const ICONES = {
   agua: 'M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z', casa: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z',
   celular: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2', pessoa: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
   voltar: 'M15 5l-7 7 7 7', avancar: 'M9 5l7 7-7 7', lapis: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
-  agenda: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4'
+  agenda: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4',
+  certo: 'M5 12l5 5 9-10'
 };
 function icone(n) {
   return '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONES[n] + '"/></svg>';
@@ -398,7 +449,7 @@ function refAndada(d) {
 }
 /** O dia mais antigo com lançamento: as setas não levam a períodos vazios. */
 function primeiroDia() {
-  return S.lancamentos.reduce(function (m, l) { return l.data < m ? l.data : m; }, hoje());
+  return lancamentosVistos().reduce(function (m, l) { return l.data < m ? l.data : m; }, hoje());
 }
 function primeiroMes() { return mesDe(primeiroDia()); }
 function podeAndar(d) {
@@ -463,7 +514,7 @@ function rotuloDoDia(data) {
     é feita meses depois, e presa ao mês aberto respondia que não havia nada. */
 function listaHtml() {
   const t = sinNorm(buscaTexto.trim()), p = periodoDaTela();
-  const itens = S.lancamentos
+  const itens = lancamentosVistos()
     .filter(function (l) { return t ? bateNaBusca(l, t) : l.data >= p.de && l.data <= p.ate; })
     .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.em || 0) - (a.em || 0); });
   let html = '';
@@ -491,7 +542,7 @@ function listaHtml() {
       titulo: esc(String(l.nota || '').trim() || cat || 'Sem nome'),
       // "Mercado / Mercado" não diz nada duas vezes.
       sub: [l.nota && cat && sinNorm(l.nota) !== sinNorm(cat) ? esc(cat) : '',
-        window.veroAutor ? esc(window.veroAutor(l)) : ''].filter(Boolean).join(' · '),
+        window.veroDono ? esc(window.veroDono(l, contaVista())) : ''].filter(Boolean).join(' · '),
       prefixo: l.tipo === 'entrada' ? '+' : '',
       centavos: l.centavos,
       classes: 'compacta',
@@ -613,6 +664,8 @@ function desenhar() {
   });
   document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() : r[0].toUpperCase() + r.slice(1);
   document.getElementById('topo-mes').textContent = 'Dia ' + diaDe(hoje()) + ' de ' + MESES[Number(n.mes.slice(5, 7)) - 1];
+  document.getElementById('seletor-conta').hidden = !haContas();
+  document.getElementById('seletor-nome').textContent = nomeDaVista();
   document.querySelectorAll('nav.barra a').forEach(function (a) {
     a.classList.toggle('activo', a.dataset.rota === r);
   });
@@ -859,7 +912,8 @@ function itensProximos() {
 
 function telaContas(n) {
   const mes = n.mes, h = hoje();
-  const ordenadas = S.contas.slice().sort(function (a, b) { return a.dia - b.dia; });
+  const vistas = contasVistas();
+  const ordenadas = vistas.slice().sort(function (a, b) { return a.dia - b.dia; });
   let linhas = '';
   for (const c of ordenadas) {
     const pago = c.pagos && c.pagos[mes];
@@ -880,7 +934,7 @@ function telaContas(n) {
   return '<section class="bloco he">' +
       '<span class="rotulo">Falta pagar este mês</span>' +
       '<div class="numero-grande">' + numeroGrande(n.contasFalta) + '</div>' +
-      '<p class="frase">' + contasPorPagar(mes).length + ' de ' + S.contas.length + ' contas por pagar.</p>' +
+      '<p class="frase">' + contasPorPagar(mes).length + ' de ' + vistas.length + ' contas por pagar.</p>' +
     '</section>' +
     '<section class="bloco"><h2 class="secao"><span class="rotulo">Todas as contas</span>' +
       '<button class="btn pequeno" data-acao="nova-conta">Nova conta</button></h2>' +
@@ -892,7 +946,7 @@ function telaContas(n) {
 
 function telaPessoas(n) {
   const porPessoa = {};
-  for (const e of S.emprestimos) {
+  for (const e of emprestimosVistos()) {
     (porPessoa[e.pessoa] = porPessoa[e.pessoa] || []).push(e);
   }
   const nomes = Object.keys(porPessoa).sort();
@@ -1008,7 +1062,7 @@ function preencherDaFrase(texto) {
     fora: têm botão próprio e mexem noutras coisas. */
 function gastosFrequentes() {
   const porNota = {};
-  const lista = S.lancamentos.filter(function (l) {
+  const lista = lancamentosVistos().filter(function (l) {
     return l.tipo === 'saida' && String(l.nota || '').trim() && !l.conta && !l.emprestimo && !emprestimoDeOrigem(l);
   }).sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
   for (const l of lista) {
@@ -1098,6 +1152,9 @@ function abrirFolha(l) {
   document.getElementById('lancar-nova').value = '';
   document.getElementById('campo-nova').hidden = true;
   document.getElementById('campo-categoria').hidden = !!ligado;
+  // A conta paga e o empréstimo seguem o dono deles: o livro não pode dizer outra coisa.
+  document.getElementById('campo-dono').hidden = !haContas() || !!ligado;
+  if (haContas()) document.getElementById('lancar-dono').innerHTML = opcoesDono(l ? (l.vaga || minhaVaga()) : donoPadrao());
   categoriaEscolhida = !!(l && l.categoria);
   const data = document.getElementById('lancar-data');
   document.getElementById('lancar-apagar').hidden = !l;
@@ -1218,7 +1275,10 @@ function corrigir(tipo) {
     data: document.getElementById('lancar-data').value || l.data,
     nota: document.getElementById('lancar-nota').value.trim()
   };
-  if (!ligado) mudancas.categoria = categoriaDaFolha();
+  if (!ligado) {
+    mudancas.categoria = categoriaDaFolha();
+    mudancas.vaga = lerDono('lancar-dono', l.vaga);
+  }
   aplicarEdicao(l.id, mudancas);
   fecharFolhas();
   desenhar();
@@ -1243,7 +1303,8 @@ function lancar(tipo) {
     id: id(), tipo: tipo, centavos: centavos, data: quando,
     nota: document.getElementById('lancar-nota').value.trim(),
     categoria: categoriaDaFolha(),
-    conta: null, emprestimo: null, em: Date.now()
+    conta: null, emprestimo: null, em: Date.now(),
+    vaga: lerDono('lancar-dono')
   };
   S.lancamentos.push(l);
   guardar();
@@ -1252,7 +1313,9 @@ function lancar(tipo) {
   refData = null;
   buscaTexto = '';
   desenhar();
-  oferecerDesfazer((tipo === 'saida' ? 'Saiu ' : 'Entrou ') + dinheiro(centavos) + (quando === hoje() ? '' : ' em ' + porExtensoData(quando)), function () {
+  // Lançado para a outra pessoa, não aparece nesta tela: o aviso diz para onde foi.
+  const paraOutra = daVista(l) ? '' : ' para ' + nomeDaVaga(l.vaga);
+  oferecerDesfazer((tipo === 'saida' ? 'Saiu ' : 'Entrou ') + dinheiro(centavos) + (quando === hoje() ? '' : ' em ' + porExtensoData(quando)) + paraOutra, function () {
     S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== l.id; });
     guardar(); desenhar();
   });
@@ -1262,11 +1325,30 @@ function lancar(tipo) {
 
 function abrirForm(titulo, html, aoGuardar, rotulo) {
   document.getElementById('form-titulo').textContent = titulo;
-  document.getElementById('form-corpo').innerHTML = html +
-    '<div style="display:flex;gap:10px;margin:22px 0 40px">' +
-    '<button class="btn primario" style="flex:1" id="form-ok">' + (rotulo || 'Salvar') + '</button></div>';
+  document.getElementById('form-corpo').innerHTML = html + (aoGuardar
+    ? '<div style="display:flex;gap:10px;margin:22px 0 40px">' +
+      '<button class="btn primario" style="flex:1" id="form-ok">' + (rotulo || 'Salvar') + '</button></div>'
+    : '');
   document.getElementById('folha-form').hidden = false;
-  document.getElementById('form-ok').addEventListener('click', function () { aoGuardar(); });
+  if (aoGuardar) document.getElementById('form-ok').addEventListener('click', function () { aoGuardar(); });
+}
+
+function escolherConta() {
+  const v = contaVista(), eu = minhaVaga();
+  const opcao = function (ref, nome, sub) {
+    return '<button class="opcao-conta" role="radio" aria-checked="' + (v === ref) + '" data-acao="ver-conta" data-ref="' + ref + '">' +
+      '<span>' + esc(nome) + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + icone('certo') + '</button>';
+  };
+  const sub = function (vaga) {
+    if (vaga === eu) return 'Sua conta';
+    return window.veroVagaOcupada(vaga) ? '' : 'Ainda não entrou. O código da casa está na sua conta.';
+  };
+  abrirForm('De quem são os números',
+    '<div class="opcoes-conta" role="radiogroup">' +
+      opcao('todos', 'Total', 'Soma das duas pessoas') +
+      opcao('sas', nomeDaVaga('sas'), sub('sas')) +
+      opcao('ela', nomeDaVaga('ela'), sub('ela')) +
+    '</div>', null);
 }
 
 function campoTexto(nome, rotulo, extra) {
@@ -1341,6 +1423,7 @@ function editarConta(ref) {
     campoTexto('c-nome', 'Qual conta', 'maxlength="40"') +
     campoValor('c-valor', 'Quanto costuma ser') +
     '<label class="campo"><span class="rotulo">Vence todo dia</span><input type="number" id="c-dia" min="1" max="31"></label>' +
+    campoDono('c-dono', c.vaga || minhaVaga()) +
     botaoAgenda(linkAgendaConta(c)) +
     botaoApagar('apagar-conta', c.id, 'Apagar esta conta'),
     function () {
@@ -1353,7 +1436,7 @@ function editarConta(ref) {
       const atual = S.contas.find(function (x) { return x.id === ref; });
       if (!atual) { fecharFolhas(); desenhar(); return; }
       const antes = JSON.stringify(S);
-      atual.nome = nome; atual.centavos = centavos; atual.dia = dia;
+      atual.nome = nome; atual.centavos = centavos; atual.dia = dia; atual.vaga = lerDono('c-dono', atual.vaga);
       guardar(); fecharFolhas(); desenhar();
       oferecerDesfazer('Conta corrigida', reporDe(antes));
     });
@@ -1372,6 +1455,7 @@ function aplicarEmprestimo(ref, m) {
   if (origem) {
     origem.origem = e.id;
     origem.centavos = e.centavos;
+    origem.vaga = e.vaga;
     origem.nota = (e.direcao === 'emprestei' ? 'Emprestei a ' : 'Peguei com ') + e.pessoa;
   }
   reajustarEmprestimo(e);
@@ -1393,6 +1477,7 @@ function editarEmprestimo(ref) {
     campoTexto('e-pessoa', 'Quem', 'maxlength="40"') +
     campoValor('e-valor', 'Quanto') +
     campoData('e-prometida', 'Data prometida', e.prometida || '') +
+    campoDono('e-dono', e.vaga || minhaVaga()) +
     (e.prometida ? botaoAgenda(linkAgendaEmprestimo(e)) : '') +
     botaoApagar('apagar-emprestimo', e.id, 'Apagar este empréstimo'),
     function () {
@@ -1400,7 +1485,7 @@ function editarEmprestimo(ref) {
       const centavos = lerValor('e-valor');
       if (!pessoa || !centavos) return;
       const antes = JSON.stringify(S);
-      aplicarEmprestimo(ref, { pessoa: pessoa, centavos: centavos, prometida: document.getElementById('e-prometida').value || null });
+      aplicarEmprestimo(ref, { pessoa: pessoa, centavos: centavos, prometida: document.getElementById('e-prometida').value || null, vaga: lerDono('e-dono', e.vaga) });
       fecharFolhas(); desenhar();
       oferecerDesfazer('Empréstimo corrigido', reporDe(antes));
     });
@@ -1420,13 +1505,14 @@ function novaConta() {
     campoTexto('c-nome', 'Qual conta', 'placeholder="aluguel, luz, internet" maxlength="40"') +
     campoValor('c-valor', 'Quanto costuma ser') +
     '<label class="campo"><span class="rotulo">Vence todo dia</span>' +
-    '<input type="number" id="c-dia" min="1" max="31" value="5"></label>',
+    '<input type="number" id="c-dia" min="1" max="31" value="5"></label>' +
+    campoDono('c-dono', donoPadrao()),
     function () {
       const nome = document.getElementById('c-nome').value.trim();
       const centavos = lerValor('c-valor');
       const dia = Math.min(31, Math.max(1, Number(document.getElementById('c-dia').value || 1)));
       if (!nome || !centavos) return;
-      S.contas.push({ id: id(), nome: nome, centavos: centavos, dia: dia, ativa: true, pagos: {} });
+      S.contas.push({ id: id(), nome: nome, centavos: centavos, dia: dia, ativa: true, pagos: {}, vaga: lerDono('c-dono') });
       guardar(); fecharFolhas(); desenhar();
     });
 }
@@ -1436,18 +1522,20 @@ function novoEmprestimo(direcao) {
   abrirForm(eu ? 'Emprestei a alguém' : 'Peguei com alguém',
     campoTexto('e-pessoa', 'Quem', 'placeholder="nome da pessoa" maxlength="40"') +
     campoValor('e-valor', 'Quanto') +
-    campoData('e-prometida', eu ? 'Prometeu devolver em' : 'Você prometeu devolver em', ''),
+    campoData('e-prometida', eu ? 'Prometeu devolver em' : 'Você prometeu devolver em', '') +
+    campoDono('e-dono', donoPadrao()),
     function () {
       const pessoa = document.getElementById('e-pessoa').value.trim();
       const centavos = lerValor('e-valor');
       const prometida = document.getElementById('e-prometida').value || null;
       if (!pessoa || !centavos) return;
-      const e = { id: id(), direcao: direcao, pessoa: pessoa, centavos: centavos, data: hoje(), prometida: prometida, estado: 'aberto' };
+      const dono = lerDono('e-dono');
+      const e = { id: id(), direcao: direcao, pessoa: pessoa, centavos: centavos, data: hoje(), prometida: prometida, estado: 'aberto', vaga: dono };
       S.emprestimos.push(e);
       // O dinheiro mexe-se na hora: emprestar e uma saida, pegar e uma entrada.
       S.lancamentos.push({
         id: id(), tipo: eu ? 'saida' : 'entrada', centavos: centavos, data: hoje(),
-        nota: (eu ? 'Emprestei a ' : 'Peguei com ') + pessoa, conta: null, emprestimo: null, origem: e.id, em: Date.now()
+        nota: (eu ? 'Emprestei a ' : 'Peguei com ') + pessoa, conta: null, emprestimo: null, origem: e.id, em: Date.now(), vaga: dono
       });
       guardar(); fecharFolhas(); desenhar();
     });
@@ -1467,7 +1555,7 @@ function devolucao(ref) {
       if (!centavos) return;
       S.lancamentos.push({
         id: id(), tipo: eu ? 'entrada' : 'saida', centavos: centavos, data: hoje(),
-        nota: (eu ? 'Recebi de ' : 'Devolvi a ') + e.pessoa, conta: null, emprestimo: e.id, em: Date.now()
+        nota: (eu ? 'Recebi de ' : 'Devolvi a ') + e.pessoa, conta: null, emprestimo: e.id, em: Date.now(), vaga: e.vaga
       });
       reajustarEmprestimo(S.emprestimos.find(function (x) { return x.id === ref; }));
       guardar(); fecharFolhas(); desenhar();
@@ -1494,7 +1582,7 @@ function pagarConta(ref) {
       const mes = mesDe(hoje());
       const l = {
         id: id(), tipo: 'saida', centavos: centavos, data: hoje(),
-        nota: c.nome, conta: c.id, emprestimo: null, em: Date.now()
+        nota: c.nome, conta: c.id, emprestimo: null, em: Date.now(), vaga: c.vaga
       };
       S.lancamentos.push(l);
       marcarPago(ref, mes, { data: hoje(), centavos: centavos, lanc: l.id });
@@ -1663,6 +1751,11 @@ document.addEventListener('click', function (ev) {
       desenhar();
       return window.scrollTo(0, 0);
     case 'conta':           return window.veroAbrirConta();
+    case 'escolher-conta':  return escolherConta();
+    case 'ver-conta':
+      mudarVista(ref);
+      fecharFolhas();
+      return desenhar();
     case 'editar':          return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'apagar-lanc':     return apagarLancamento();
     case 'andar':           return mudarPeriodo(Number(ref));

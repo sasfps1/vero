@@ -16,7 +16,7 @@
   const SB_URL = 'https://gxddaeujovalkdlaflwn.supabase.co';
   // Chave pública: a segurança está no login e na RLS do banco.
   const SB_KEY = 'sb_publishable_JGbmPLeJqfVB6JR0VjCimA_WttNN9rO';
-  const K_FILA = 'vero.fila', K_ESPELHO = 'vero.espelho', K_EU = 'vero.eu';
+  const K_FILA = 'vero.fila', K_ESPELHO = 'vero.espelho', K_EU = 'vero.eu', K_SEM_CONTA = 'vero.semConta';
   const CAMPOS = {
     lancamentos: ['id', 'data', 'tipo', 'valor', 'categoria', 'conta', 'nota', 'fixa', 'emprestimo', 'origem', 'em'],
     fixas: ['id', 'nome', 'valor', 'conta', 'dia', 'ativa'],
@@ -31,6 +31,7 @@
   let sb = null, sessao = null, eu = ler(K_EU), espelho = ler(K_ESPELHO), fila = ler(K_FILA) || [];
   let enviando = false, enviados = 0, recusados = 0, semRede = false, puxando = false, repuxar = false;
   let relerNoFim = false, relogioFila = null, relogioPuxar = null, canal = null, nomes = {}, codigo = eu ? eu.codigo : null;
+  let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null;
 
   // ── do estado do app para as linhas do banco, e de volta ──────────────────
 
@@ -203,10 +204,13 @@
         lido = await lerTudo();
         if (antes === enviados) break;
       }
-      const mem = await sb.from('membros').select('user_id,nome').eq('casa_id', eu.casa);
+      const mem = await sb.from('membros').select('user_id,nome,vaga').eq('casa_id', eu.casa);
       if (!mem.error) {
         nomes = {};
-        mem.data.forEach(function (m) { nomes[m.user_id] = m.nome; });
+        nomesVaga = {};
+        mem.data.forEach(function (m) { nomes[m.user_id] = m.nome; nomesVaga[m.vaga] = m.nome; });
+        eu.nomesVaga = nomesVaga;
+        gravar(K_EU, eu);
       }
       const casa = await sb.from('casas').select('codigo').eq('id', eu.casa);
       if (!casa.error && casa.data[0]) {
@@ -222,7 +226,10 @@
             if (!lido.d[t][k]) novos.push({ op: 'poe', t: t, k: k, linha: local[t][k] });
           }
         }
-        enfileirar(novos);
+        // Número de teste num aparelho subia sozinho e aparecia no celular da outra
+        // pessoa. Quem decide é o dono; recusar baixa a cópia antes de limpar o aparelho.
+        const registros = novos.filter(function (op) { return op.t !== 'categorias'; }).length;
+        if (!registros || await perguntarSeJunta(registros)) enfileirar(novos);
       }
       for (const op of fila) {
         if (op.op === 'poe') lido.d[op.t][op.k] = op.linha; else delete lido.d[op.t][op.k];
@@ -268,7 +275,8 @@
   // ── conta e casa ──────────────────────────────────────────────────────────
 
   function esquecer() {
-    eu = null; espelho = null; fila = []; codigo = null; nomes = {}; conversa = [];
+    eu = null; espelho = null; fila = []; codigo = null; nomes = {}; nomesVaga = {}; conversa = [];
+    mudarVista('todos');
     gravar(K_EU, null); gravar(K_ESPELHO, null); gravar(K_FILA, []); gravar(K_CHAT, []);
     if (canal) { sb.removeChannel(canal); canal = null; }
   }
@@ -314,24 +322,59 @@
     return 'Não deu certo agora. Confira a internet e tente de novo.';
   }
 
-  function abrirEntrar() {
-    abrirForm('Entrar no Vero',
-      '<p class="frase" style="margin:14px 0">Com a conta, o que um lança aparece no celular do outro.</p>' +
+  /* A porta de entrada. Sem conta o Vero continua a funcionar só no aparelho, por isso a
+     saída fica à vista: sem internet ninguém pode ficar preso aqui. */
+  const MARCA = '<div class="portao-marca"><svg class="anel-v" viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="176" stroke-width="28" stroke-dasharray="497.6 55.3" stroke-dashoffset="525.25"/><path d="M180 178 L256 346 L332 178" stroke-width="36"/></svg>Vero</div>';
+
+  function esconderPortao() {
+    const p = document.getElementById('portao');
+    p.hidden = true;
+    p.innerHTML = '';
+  }
+
+  async function entrou(user) {
+    gravar(K_SEM_CONTA, null);
+    esconderPortao();
+    fecharFolhas();
+    await ligar(user);
+  }
+
+  function mostrarPortao(podeVoltar) {
+    const p = document.getElementById('portao');
+    p.innerHTML = '<form class="portao-caixa" id="portao-form" novalidate>' + MARCA +
+      '<p class="frase">Entre para ver a sua conta em qualquer aparelho.</p>' +
       campoConta('c-email', 'E-mail', 'email', 'autocomplete="username" inputmode="email"') +
       campoConta('c-senha', 'Senha', 'password', 'autocomplete="current-password"') +
-      '<p class="frase" id="conta-erro" role="alert"></p>' +
-      '<button class="btn" id="conta-criar" style="width:100%;margin-top:14px">Ainda não tenho conta: criar</button>',
-      async function () {
-        const r = await sb.auth.signInWithPassword({
+      '<p class="frase portao-erro" id="conta-erro" role="alert"></p>' +
+      '<button type="submit" class="btn primario" id="conta-entrar">Entrar</button>' +
+      '<button type="button" class="btn" id="conta-criar">Criar uma conta</button>' +
+      '<button type="button" class="portao-sem-conta" id="conta-sem">' + (podeVoltar ? 'Voltar' : 'Usar sem conta, só neste aparelho') + '</button>' +
+      '</form>';
+    p.hidden = false;
+
+    const ocupar = function (sim) {
+      document.getElementById('conta-entrar').disabled = sim;
+      document.getElementById('conta-criar').disabled = sim;
+    };
+    document.getElementById('portao-form').addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      ocupar(true);
+      mostrarErro('');
+      let r;
+      try {
+        r = await sb.auth.signInWithPassword({
           email: document.getElementById('c-email').value.trim(),
           password: document.getElementById('c-senha').value
         });
-        if (r.error) return mostrarErro(textoDoErro(r.error));
-        fecharFolhas();
-        await ligar(r.data.user);
-      }, 'Entrar');
+      } catch (e) { r = { error: e }; }
+      ocupar(false);
+      if (r.error) return mostrarErro(textoDoErro(r.error));
+      await entrou(r.data.user);
+    });
     document.getElementById('conta-criar').addEventListener('click', async function () {
       const email = document.getElementById('c-email').value.trim(), senha = document.getElementById('c-senha').value;
+      ocupar(true);
+      mostrarErro('');
       // A conta nasce confirmada: o e-mail grátis do Supabase só chega à equipe do projeto.
       let j;
       try {
@@ -341,12 +384,41 @@
           body: JSON.stringify({ email: email, senha: senha })
         });
         j = await res.json();
-      } catch (e) { return mostrarErro(textoDoErro(e)); }
-      if (j.erro) return mostrarErro(textoDoErro(j.erro));
+      } catch (e) { ocupar(false); return mostrarErro(textoDoErro(e)); }
+      if (j.erro) { ocupar(false); return mostrarErro(textoDoErro(j.erro)); }
       const r = await sb.auth.signInWithPassword({ email: email, password: senha });
+      ocupar(false);
       if (r.error) return mostrarErro(textoDoErro(r.error));
-      fecharFolhas();
-      await ligar(r.data.user);
+      await entrou(r.data.user);
+    });
+    document.getElementById('conta-sem').addEventListener('click', function () {
+      if (!podeVoltar) gravar(K_SEM_CONTA, true);
+      esconderPortao();
+    });
+  }
+
+  function abrirEntrar() { mostrarPortao(true); }
+
+  /** Promessa que só acaba com a escolha: não há como sair sem decidir, e o que está
+      no aparelho não se mexe até lá. */
+  function perguntarSeJunta(n) {
+    return new Promise(function (acabar) {
+      const p = document.getElementById('portao');
+      p.innerHTML = '<div class="portao-caixa">' + MARCA +
+        '<p class="frase">Este aparelho tem ' + n + (n === 1 ? ' registro que não está' : ' registros que não estão') + ' na sua conta. O que fazer?</p>' +
+        '<button class="btn primario" id="local-juntar">Juntar à minha conta</button>' +
+        '<button class="btn" id="local-fora">Deixar de fora e baixar uma cópia</button>' +
+        '<p class="frase" style="margin-top:14px">Juntar coloca tudo na conta, e a outra pessoa da casa também vê. Deixar de fora tira do aparelho, e a cópia baixada pode ser restaurada depois.</p>' +
+        '</div>';
+      p.hidden = false;
+      decidirLocal = function (junta) {
+        decidirLocal = null;
+        if (!junta) guardarCopia();
+        esconderPortao();
+        acabar(junta);
+      };
+      document.getElementById('local-juntar').addEventListener('click', function () { decidirLocal(true); });
+      document.getElementById('local-fora').addEventListener('click', function () { decidirLocal(false); });
     });
   }
 
@@ -384,6 +456,8 @@
         guardar();
         fecharFolhas();
         desenhar();
+        gravar(K_SEM_CONTA, null);
+        mostrarPortao(false);
       }, fila.length ? 'Sair mesmo assim' : 'Sair desta conta');
     document.getElementById('conta-senha').addEventListener('click', async function () {
       const campo = document.getElementById('c-nova-senha'), senha = campo.value;
@@ -420,6 +494,7 @@
     const n = calc();
     return 'Você é o Vero, o app de controle financeiro desta casa. Responda em português do Brasil, curto e direto, sem julgar.\n' +
       'Hoje é ' + hoje() + '. Pessoas da casa: ' + (Object.values(nomes).join(', ') || 'não informado') + '.\n' +
+      'A tela está mostrando a conta: ' + nomeDaVista() + '. Os números deste mês, abaixo, são dessa conta.\n' +
       'Para qualquer data, valor ou registro, use as ferramentas antes de responder e nunca responda de memória. ' +
       'Para procurar algo como "pneu", use consultar_lancamentos com `texto` e sem datas, para olhar todo o histórico; tente também palavras parecidas. ' +
       'Se não encontrar, diga que não encontrou e nunca invente. Se houver mais de um registro parecido, mostre todos com as datas. ' +
@@ -496,10 +571,18 @@
       '<button class="btn pequeno" data-acao="conta">' + (eu ? 'Conta' : 'Entrar') + '</button></div>';
   };
 
-  /** Quem lançou só se diz quando a casa tem duas pessoas. */
-  window.veroAutor = function (l) {
-    if (Object.keys(nomes).length < 2 || !l.autor) return '';
-    return nomes[l.autor] || '';
+  window.veroMinhaVaga = function () { return eu ? eu.vaga : 'sas'; };
+  window.veroVagaOcupada = function (v) { return !!nomesVaga[v]; };
+  /** A segunda vaga existe antes de a pessoa entrar: dá para lançar para ela desde já. */
+  window.veroNomeDaVaga = function (v) {
+    return nomesVaga[v] || (v === 'ela' ? 'Segunda pessoa' : 'Primeira pessoa');
+  };
+  /** De quem é a linha só se diz no Total: dentro de uma conta, já se sabe. */
+  window.veroDono = function (l, vista) {
+    if (vista !== 'todos') return '';
+    const v = l.vaga || window.veroMinhaVaga();
+    if (Object.keys(nomes).length < 2 && v === window.veroMinhaVaga()) return '';
+    return window.veroNomeDaVaga(v);
   };
 
   async function iniciar() {
@@ -509,10 +592,14 @@
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) { drenar(); agendarPuxar(); }
     });
+    // Antes de pedir a sessão: quem não tem conta aqui não chega a ver os números.
+    if (!eu && !ler(K_SEM_CONTA)) mostrarPortao(false);
     const r = await sb.auth.getSession();
-    if (r.data && r.data.session) await ligar(r.data.session.user);
-    else redesenhar();
+    if (r.data && r.data.session) {
+      esconderPortao();
+      await ligar(r.data.session.user);
+    } else redesenhar();
   }
 
-  window.veroSync = { pronto: iniciar(), puxar: puxar, drenar: drenar, fila: function () { return fila; }, recusados: function () { return recusados; } };
+  window.veroSync = { pronto: iniciar(), puxar: puxar, drenar: drenar, fila: function () { return fila; }, recusados: function () { return recusados; }, decidir: function (junta) { if (decidirLocal) decidirLocal(junta); } };
 })();
