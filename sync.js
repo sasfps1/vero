@@ -373,6 +373,8 @@
       (codigo ? '<span class="rotulo" style="margin-top:18px">Código para a outra pessoa entrar</span>' +
         '<div class="numero-medio" style="margin:6px 0 14px">' + esc(codigo) + '</div>' : '') +
       '<p class="frase" id="conta-erro">' + textoDoEstado() + '</p>' +
+      campoConta('c-nova-senha', 'Nova senha (só se quiser trocar)', 'password', 'autocomplete="new-password" minlength="6"') +
+      '<button class="btn" id="conta-senha" style="width:100%">Trocar a senha</button>' +
       (fila.length ? '<p class="frase" style="margin-top:8px">Se sair agora, o que ainda não foi enviado se perde.</p>' : ''),
       async function () {
         await sb.auth.signOut();
@@ -383,6 +385,14 @@
         fecharFolhas();
         desenhar();
       }, fila.length ? 'Sair mesmo assim' : 'Sair desta conta');
+    document.getElementById('conta-senha').addEventListener('click', async function () {
+      const campo = document.getElementById('c-nova-senha'), senha = campo.value;
+      if (senha.length < 6) return mostrarErro(ERROS.senha_curta);
+      const r = await sb.auth.updateUser({ password: senha });
+      if (r.error) return mostrarErro(/same/i.test(r.error.message) ? 'Essa já é a sua senha.' : textoDoErro(r.error));
+      campo.value = '';
+      mostrarErro('Senha trocada.');
+    });
   }
 
   function textoDoEstado() {

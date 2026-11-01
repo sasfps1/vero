@@ -49,6 +49,17 @@
     <button class="btn pequeno" data-fechar-folha>Fechar</button>
   </div>
   <div class="mostrador">
+    <div id="campo-frase" class="campo-frase">
+      <span class="rotulo">Fale ou escreva tudo de uma vez</span>
+      <div class="frase-linha">
+        <input type="text" id="lancar-frase" maxlength="160" autocomplete="off" placeholder="gasolina 50 ontem" aria-label="Fale ou escreva o lançamento">
+        <button class="btn microfone" id="lancar-microfone" data-acao="ouvir" aria-label="Falar o lançamento" hidden>
+          <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+      </div>
+      <p class="frase" id="frase-dica" role="status"></p>
+    </div>
+    <div class="atalhos" id="lancar-atalhos" hidden></div>
     <span class="rotulo" id="lancar-rotulo">Quanto</span>
     <div class="numero-grande" id="lancar-valor"></div>
     <div class="teclado" id="teclado">
@@ -73,7 +84,7 @@
       <span class="rotulo">Nome da categoria</span>
       <input type="text" id="lancar-nova" maxlength="28" autocomplete="off">
     </label>
-    <label class="campo" id="campo-data" hidden>
+    <label class="campo" id="campo-data">
       <span class="rotulo">Dia</span>
       <input type="date" id="lancar-data">
     </label>

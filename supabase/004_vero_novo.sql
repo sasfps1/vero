@@ -1,4 +1,4 @@
--- Vero novo (escrito a 2026-10-31; confirmar com list_migrations ou com as colunas se foi aplicado):
+-- Vero novo (aplicado em 2026-10-31):
 -- a categoria deixa de ser obrigatória, o lançamento guarda de que empréstimo nasceu e quando foi
 -- feito, e a conta fixa pode ser desativada. Só acrescenta: nada se apaga.
 alter table public.lancamentos drop constraint if exists lancamentos_categoria_check;

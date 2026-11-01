@@ -272,6 +272,25 @@ h2.secao {
 .seta:disabled { opacity: 0.38; cursor: default; }
 input.busca { margin: 12px 0 6px; }
 .soma-busca { font-size: 13px; font-weight: 700; padding: 8px 0 2px; }
+.tempo-busca { font-size: 13px; color: var(--on-surface-muted); padding: 2px 0 4px; }
+
+/* Lançar por frase, por voz ou repetindo um gasto. */
+.campo-frase { width: 100%; }
+.campo-frase[hidden], .atalhos[hidden] { display: none; }
+.campo-frase .rotulo { margin-bottom: 6px; }
+.frase-linha { display: flex; gap: 8px; align-items: stretch; }
+.frase-linha input { flex: 1; min-width: 0; }
+.btn.microfone { flex: none; width: 48px; min-height: 48px; padding: 0; justify-content: center; }
+.btn.microfone[hidden] { display: none; }
+.btn.microfone.ouvindo { background: var(--on-surface); color: var(--surface); }
+#frase-dica:empty { display: none; }
+.atalhos { display: flex; gap: 8px; width: 100%; overflow-x: auto; padding: 2px 0; }
+.atalho { flex: none; min-height: 40px; padding: 0 12px; background: var(--surface-raised); border: 1px solid var(--outline); border-radius: 99px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.atalho b { font-weight: 800; }
+
+/* Agenda e cópia. */
+a.btn.agenda { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; color: var(--on-surface); text-decoration: none; }
+.botoes-aviso { display: flex; flex-wrap: wrap; gap: 8px; }
 h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); padding: 14px 0 4px; }
 .linha.dupla { min-height: 60px; align-items: start; }
 .linha.dupla .marca { margin-top: 5px; }

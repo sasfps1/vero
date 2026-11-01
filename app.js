@@ -277,7 +277,7 @@ const CAT_ENTRADA = ['Salário', 'Serviços', 'Freelance', 'Vendas', 'Reembolso'
 const PISTAS = [
   [/mercado|feira|compras?\b|padaria|a[cç]ougue/, 'Mercado'],
   [/lanche|comida|almo[cç]o|jantar|pizza|caf[eé]|restaurante/, 'Alimentação'],
-  [/gasolina|combust|posto|[aá]lcool|uber|[oô]nibus|moto\b|oficina/, 'Transporte'],
+  [/gasolina|combust|posto|[aá]lcool|uber|[oô]nibus|moto\b|oficina|pneu|mec[aâ]nico/, 'Transporte'],
   [/farm[aá]cia|rem[eé]dio|m[eé]dico|dentista|consulta/, 'Saúde'],
   [/aluguel|condom[ií]nio|\bluz\b|energia|[aá]gua|internet|wi-?fi|\bg[aá]s\b/, 'Moradia'],
   [/escola|curso|faculdade|livro/, 'Educação'],
@@ -335,7 +335,8 @@ const ICONES = {
   internet: 'M2.5 9a14 14 0 0 1 19 0M6 13a9 9 0 0 1 12 0M9.5 16.5a4 4 0 0 1 5 0M12 20h.01', luz: 'M13 3L5 14h6l-1 7 8-11h-6z',
   agua: 'M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z', casa: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z',
   celular: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2', pessoa: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
-  voltar: 'M15 5l-7 7 7 7', avancar: 'M9 5l7 7-7 7', lapis: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4'
+  voltar: 'M15 5l-7 7 7 7', avancar: 'M9 5l7 7-7 7', lapis: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  agenda: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4'
 };
 function icone(n) {
   return '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONES[n] + '"/></svg>';
@@ -418,6 +419,35 @@ function bateNaBusca(l, t) {
   return /^[\d.,]+$/.test(t) && dinheiroReal(l.centavos).includes(t);
 }
 
+/** Dias corridos entre duas datas. Em UTC: o horário de verão não pode comer um dia. */
+function diasEntre(a, b) {
+  const x = a.split('-').map(Number), y = b.split('-').map(Number);
+  return Math.round((Date.UTC(y[0], y[1] - 1, y[2]) - Date.UTC(x[0], x[1] - 1, x[2])) / 86400000);
+}
+
+/** ⭐ "Quantos dias durou o pneu?" responde-se aqui, sem IA: o app calcula. */
+function tempoDasDatas(datas) {
+  const d = Array.from(new Set(datas)).sort();
+  if (!d.length) return null;
+  const ultima = d[d.length - 1];
+  return {
+    ultima: ultima,
+    haDias: diasEntre(ultima, hoje()),
+    anterior: d.length > 1 ? d[d.length - 2] : null,
+    entreUltimas: d.length > 1 ? diasEntre(d[d.length - 2], ultima) : null,
+    media: d.length > 2 ? Math.round(diasEntre(d[0], ultima) / (d.length - 1)) : null
+  };
+}
+function comAno(data) { return porExtensoData(data) + '/' + data.slice(0, 4); }
+function quantosDias(n) { return n + (n === 1 ? ' dia' : ' dias'); }
+function fraseDoTempo(t) {
+  const quando = t.haDias === 0 ? 'hoje' : t.haDias === 1 ? 'ontem' : 'há ' + t.haDias + ' dias';
+  let f = 'Última vez em ' + comAno(t.ultima) + ', ' + quando + '.';
+  if (t.anterior) f += ' Antes disso, ' + comAno(t.anterior) + ': ' + quantosDias(t.entreUltimas) + ' entre uma e outra.';
+  if (t.media !== null) f += ' Em média, a cada ' + quantosDias(t.media) + '.';
+  return f;
+}
+
 function rotuloDoDia(data) {
   if (data === hoje()) return 'Hoje';
   if (data === dataMais(-1)) return 'Ontem';
@@ -442,6 +472,8 @@ function listaHtml() {
     for (const l of itens) { if (l.tipo === 'entrada') entrou += l.centavos; else saiu += l.centavos; }
     html += '<p class="soma-busca">' + itens.length + (itens.length === 1 ? ' lançamento' : ' lançamentos') +
       (saiu ? ' · saiu ' + dinheiro(saiu) : '') + (entrou ? ' · entrou ' + dinheiro(entrou) : '') + '</p>';
+    const tempo = tempoDasDatas(itens.map(function (l) { return l.data; }));
+    if (tempo) html += '<p class="tempo-busca">' + fraseDoTempo(tempo) + '</p>';
   }
   if (!itens.length) {
     return html + '<p class="vazio">' + (t ? 'Nada com "' + esc(buscaTexto.trim()) + '" em todo o histórico.'
@@ -467,6 +499,59 @@ function listaHtml() {
     });
   }
   return html;
+}
+
+/** O período anterior, para comparar. No período em curso compara só o mesmo trecho
+    (dia 1 a dia 10 contra dia 1 a dia 10): contra o mês inteiro, todo mês parecia melhor. */
+function comparacao(p, corrente) {
+  const ant = intervalo(periodoTipo, refAndada(-1));
+  let ate = ant.ate;
+  if (corrente) {
+    const x = dataDe(ant.de);
+    const cortado = iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + diasEntre(p.de, hoje())));
+    if (cortado < ate) ate = cortado;
+  }
+  // Se o histórico começa no meio do período anterior, a comparação enganaria.
+  if (ant.de < primeiroDia()) return null;
+  const antes = paraOndeEntre(ant.de, ate).total, agora = paraOndeEntre(p.de, corrente ? hoje() : p.ate).total;
+  if (!antes) return null;
+  return { antes: antes, agora: agora, diferenca: agora - antes, trecho: corrente };
+}
+function fraseComparacao(c) {
+  if (!c) return '';
+  const quando = c.trecho ? 'no mesmo trecho do período anterior' : 'no período anterior';
+  if (!c.diferenca) return '<p class="frase">Saiu o mesmo que ' + quando + '.</p>';
+  return '<p class="frase">Saiu ' + dinheiro(Math.abs(c.diferenca)) + (c.diferenca > 0 ? ' a mais' : ' a menos') + ' que ' + quando + ' (' + dinheiro(c.antes) + ').</p>';
+}
+
+/** Ano abre em meses e semana abre em dias. Tocar numa linha desce ao período menor. */
+function secaoDetalhe(p) {
+  if (periodoTipo !== 'ano' && periodoTipo !== 'semana') return '';
+  const passos = [];
+  if (periodoTipo === 'ano') {
+    for (let m = 1; m <= 12; m++) {
+      const mes = p.de.slice(0, 5) + p2(m);
+      passos.push({ de: mes + '-01', ate: mes + '-' + p2(diasNoMes(mes)), nome: MESES[m - 1], alvo: 'mes' });
+    }
+  } else {
+    for (let i = 0; i < 7; i++) {
+      const x = dataDe(p.de), d = iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + i));
+      passos.push({ de: d, ate: d, nome: rotuloDoDia(d), alvo: 'dia' });
+    }
+  }
+  let linhas = '';
+  for (const s of passos.reverse()) {
+    if (s.de > hoje()) continue;
+    const r = resumoEntre(s.de, s.ate);
+    if (!r.entradas && !r.saidas) continue;
+    linhas += linhaHtml({
+      marca: null, titulo: esc(s.nome), sub: r.entradas ? 'entrou ' + dinheiro(r.entradas) : '',
+      centavos: r.saidas, classes: 'compacta',
+      toque: { acao: 'descer-' + s.alvo, ref: s.de, rotulo: 'Abrir' }
+    });
+  }
+  if (!linhas) return '';
+  return '<section class="bloco"><h2 class="titulo-cartao">' + (periodoTipo === 'ano' ? 'Mês a mês' : 'Dia a dia') + '</h2>' + linhas + '</section>';
 }
 
 function telaGastos() {
@@ -506,10 +591,12 @@ function telaGastos() {
         : g.total ? 'Entrou ' + dinheiro(r.entradas) + ' neste período. O que saiu inclui as contas pagas e o que você emprestou.'
         : 'Nada saiu neste período ainda. Cada coisa que você lançar aparece aqui.') +
       '</p>' +
+      fraseComparacao(comparacao(p, corrente)) +
     '</section>' +
+    secaoDetalhe(p) +
     (linhas ? '<section class="bloco grupos">' + linhas + '</section>' : '') +
     '<section class="bloco lancamentos"><h2 class="titulo-cartao">Lançamentos</h2>' +
-      '<input type="search" id="busca" class="busca" value="' + esc(buscaTexto) + '" placeholder="Buscar: mercado, farmácia, 50…" autocomplete="off" aria-label="Buscar lançamentos">' +
+      '<input type="search" id="busca" class="busca" value="' + esc(buscaTexto) + '" placeholder="Buscar: pneu, farmácia, 50…" autocomplete="off" aria-label="Buscar lançamentos">' +
       '<div id="lista-lanc">' + listaHtml() + '</div>' +
     '</section></div>';
 }
@@ -560,11 +647,14 @@ function avisoCopia() {
   // pode dizer que o celular pode perder os dados.
   const ligado = window.veroLigado && window.veroLigado();
   const vencida = !ligado && (!ult || ult < dataMais(-7));
-  if (!S.lancamentos.length && !S.contas.length) return '';
+  const restaurar = '<button class="btn pequeno fraco" data-acao="restaurar">Restaurar cópia</button>';
+  if (!S.lancamentos.length && !S.contas.length) {
+    return '<div class="aviso sem-caixa">Trocou de celular? Traga a cópia que você baixou.' + restaurar + '</div>';
+  }
   return '<div class="aviso sem-caixa' + (vencida ? ' pesado' : '') + '">' +
     (ult ? 'Última cópia em ' + porExtensoData(ult) + '.' : 'Nenhuma cópia baixada ainda.') +
     (vencida ? ' O celular pode perder isto; a cópia é a sua posse.' : '') +
-    '<button class="btn pequeno" data-acao="copia">Baixar cópia</button></div>';
+    '<span class="botoes-aviso"><button class="btn pequeno" data-acao="copia">Baixar cópia</button>' + restaurar + '</span></div>';
 }
 
 // ── Início ───────────────────────────────────────────────────────────────────
@@ -858,7 +948,131 @@ function telaPessoas(n) {
 
 // ── folha de lançamento ──────────────────────────────────────────────────────
 
-let digitos = '', emEdicao = null, categoriaEscolhida = false;
+let digitos = '', emEdicao = null, categoriaEscolhida = false, valorDaFrase = false;
+
+/** "gastei 50 de gasolina ontem" -> { centavos: 5000, nota: 'Gasolina', data: ontem }.
+    Não tem IA e não custa nada: lançar precisa funcionar sem sinal.
+    ⚠️ Sem lookbehind na expressão: um iPhone antigo recusaria o ficheiro inteiro. */
+function lerFrase(texto) {
+  let t = String(texto || '').replace(/\s+/g, ' ').trim(), data = hoje();
+  if (/\banteontem\b/i.test(t)) { data = dataMais(-2); t = t.replace(/\banteontem\b/gi, ' '); }
+  else if (/\bontem\b/i.test(t)) { data = dataMais(-1); t = t.replace(/\bontem\b/gi, ' '); }
+  else t = t.replace(/\bhoje\b/gi, ' ');
+
+  const marcaDia = /\b(?:no )?dia (\d{1,2})\b/i.exec(t);
+  if (marcaDia) {
+    const d = Number(marcaDia[1]), agora = hoje();
+    const mes = d <= diaDe(agora) ? mesDe(agora) : mesSomado(mesDe(agora), -1);
+    if (d >= 1 && d <= diasNoMes(mes)) {
+      data = mes + '-' + p2(d);
+      t = t.replace(marcaDia[0], ' ');
+    }
+  }
+
+  const re = /(r\$\s*)?(\d{1,3}(?:\.\d{3})+|\d+)(?:[,.](\d{1,2})(?!\d))?(\s*mil\b)?(\s*(?:reais|real|contos?|pilas?)\b)?/gi;
+  let achado = null, m;
+  while ((m = re.exec(t))) {
+    const antes = t[m.index - 1], depois = t[m.index + m[0].length];
+    // "90/90" é medida de pneu, não dinheiro.
+    if (antes === '/' || depois === '/') continue;
+    if (!achado || m[1] || m[5] || !(achado[1] || achado[5])) achado = m;
+  }
+  let centavos = 0;
+  if (achado) {
+    const inteiro = Number(achado[2].replace(/\./g, '')) * (achado[4] ? 1000 : 1);
+    const v = inteiro * 100 + Number(((achado[3] || '') + '00').slice(0, 2));
+    if (v > 0 && v <= 99999999) {
+      centavos = v;
+      t = t.slice(0, achado.index) + ' ' + t.slice(achado.index + achado[0].length);
+    }
+  }
+
+  let nota = t.replace(/\s+/g, ' ').trim().replace(/^(gastei|paguei|comprei|saiu|entrou|recebi|ganhei|foi)\s+/i, '');
+  const solta = /^(de|do|da|dos|das|com|em|no|na|por|pra|para|o|a|os|as|um|uma)\s+/i;
+  while (solta.test(nota)) nota = nota.replace(solta, '');
+  nota = nota.replace(/\s+(de|do|da|com|em|no|na|por|pra|para)$/i, '').slice(0, 120);
+  return { centavos: centavos, nota: nota ? nota[0].toUpperCase() + nota.slice(1) : '', data: data };
+}
+
+function preencherDaFrase(texto) {
+  const f = lerFrase(texto);
+  if (f.centavos) { digitos = String(f.centavos); valorDaFrase = true; }
+  else if (valorDaFrase) { digitos = ''; valorDaFrase = false; }
+  document.getElementById('lancar-nota').value = f.nota;
+  document.getElementById('lancar-data').value = f.data;
+  if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaSugerida(f.nota);
+  pintarValor();
+}
+
+/** O que mais se repete, para repetir com um toque. Conta paga e empréstimo ficam de
+    fora: têm botão próprio e mexem noutras coisas. */
+function gastosFrequentes() {
+  const porNota = {};
+  const lista = S.lancamentos.filter(function (l) {
+    return l.tipo === 'saida' && String(l.nota || '').trim() && !l.conta && !l.emprestimo && !emprestimoDeOrigem(l);
+  }).sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
+  for (const l of lista) {
+    const k = sinNorm(l.nota.trim());
+    const g = porNota[k] || (porNota[k] = { vezes: 0 });
+    g.vezes++;
+    g.nota = l.nota.trim(); g.centavos = l.centavos; g.categoria = l.categoria || '';
+  }
+  return Object.keys(porNota).map(function (k) { return porNota[k]; })
+    .filter(function (g) { return g.vezes >= 2; })
+    .sort(function (a, b) { return b.vezes - a.vezes; })
+    .slice(0, 4);
+}
+
+function pintarAtalhos(novo) {
+  const caixa = document.getElementById('lancar-atalhos');
+  const lista = novo ? gastosFrequentes() : [];
+  caixa.hidden = !lista.length;
+  caixa.innerHTML = lista.map(function (g, i) {
+    return '<button class="atalho" data-acao="atalho" data-ref="' + i + '">' + esc(g.nota) + ' <b>' + dinheiro(g.centavos) + '</b></button>';
+  }).join('');
+}
+
+function usarAtalho(i) {
+  const g = gastosFrequentes()[Number(i)];
+  if (!g) return;
+  digitos = String(g.centavos);
+  valorDaFrase = false;
+  document.getElementById('lancar-nota').value = g.nota;
+  document.getElementById('lancar-categoria').value = g.categoria || categoriaSugerida(g.nota);
+  categoriaEscolhida = !!g.categoria;
+  pintarValor();
+}
+
+/** Falar em vez de digitar. Onde o navegador não ouve, o botão nem aparece. */
+let ouvindo = null;
+function reconhecedor() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+function ouvir() {
+  const R = reconhecedor(), dica = document.getElementById('frase-dica');
+  if (!R) return;
+  if (ouvindo) { ouvindo.stop(); return; }
+  const rec = new R();
+  rec.lang = 'pt-BR';
+  rec.interimResults = false;
+  rec.onresult = function (ev) {
+    const texto = ev.results[0][0].transcript;
+    document.getElementById('lancar-frase').value = texto;
+    preencherDaFrase(texto);
+    dica.textContent = 'Confira e toque em Saiu ou Entrou.';
+  };
+  rec.onerror = function (ev) {
+    dica.textContent = ev.error === 'not-allowed' || ev.error === 'service-not-allowed'
+      ? 'O microfone está bloqueado neste aparelho. Pode escrever a frase.'
+      : 'Não ouvi direito. Tente de novo ou escreva a frase.';
+  };
+  rec.onend = function () {
+    ouvindo = null;
+    document.getElementById('lancar-microfone').classList.remove('ouvindo');
+  };
+  ouvindo = rec;
+  document.getElementById('lancar-microfone').classList.add('ouvindo');
+  dica.textContent = 'Ouvindo…';
+  rec.start();
+}
 
 function opcoesCategoria() {
   function grupo(rotulo, lista) {
@@ -886,15 +1100,22 @@ function abrirFolha(l) {
   document.getElementById('campo-categoria').hidden = !!ligado;
   categoriaEscolhida = !!(l && l.categoria);
   const data = document.getElementById('lancar-data');
-  document.getElementById('campo-data').hidden = !l;
   document.getElementById('lancar-apagar').hidden = !l;
-  if (l) {
-    data.value = l.data;
-    data.max = hoje();
+  // Esquecer de lançar é normal: o gasto de ontem entra com a data de ontem.
+  data.value = l ? l.data : hoje();
+  data.max = hoje();
+  data.min = '';
+  if (l && l.conta) {
     // A conta paga pertence ao mês em que foi paga: mudá-la de mês desfazia o pagamento.
-    data.min = l.conta ? mesDe(l.data) + '-01' : '';
-    if (l.conta) data.max = [hoje(), mesDe(l.data) + '-' + p2(diasNoMes(mesDe(l.data)))].sort()[0];
+    data.min = mesDe(l.data) + '-01';
+    data.max = [hoje(), mesDe(l.data) + '-' + p2(diasNoMes(mesDe(l.data)))].sort()[0];
   }
+  valorDaFrase = false;
+  document.getElementById('campo-frase').hidden = !!l;
+  document.getElementById('lancar-frase').value = '';
+  document.getElementById('frase-dica').textContent = '';
+  document.getElementById('lancar-microfone').hidden = !reconhecedor();
+  pintarAtalhos(!l);
   document.querySelectorAll('[data-lancar]').forEach(function (b) {
     b.hidden = !!(ligado && b.dataset.lancar !== l.tipo);
   });
@@ -1016,8 +1237,10 @@ function lancar(tipo) {
   if (emEdicao) return corrigir(tipo);
   const centavos = Number(digitos || '0');
   if (!centavos) return;
+  const escolhida = document.getElementById('lancar-data').value;
+  const quando = /^\d{4}-\d{2}-\d{2}$/.test(escolhida) && escolhida <= hoje() ? escolhida : hoje();
   const l = {
-    id: id(), tipo: tipo, centavos: centavos, data: hoje(),
+    id: id(), tipo: tipo, centavos: centavos, data: quando,
     nota: document.getElementById('lancar-nota').value.trim(),
     categoria: categoriaDaFolha(),
     conta: null, emprestimo: null, em: Date.now()
@@ -1029,7 +1252,7 @@ function lancar(tipo) {
   refData = null;
   buscaTexto = '';
   desenhar();
-  oferecerDesfazer((tipo === 'saida' ? 'Saiu ' : 'Entrou ') + dinheiro(centavos), function () {
+  oferecerDesfazer((tipo === 'saida' ? 'Saiu ' : 'Entrou ') + dinheiro(centavos) + (quando === hoje() ? '' : ' em ' + porExtensoData(quando)), function () {
     S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== l.id; });
     guardar(); desenhar();
   });
@@ -1076,6 +1299,35 @@ function botaoApagar(acao, ref, texto) {
   return '<button class="btn fraco apagar" data-acao="' + acao + '" data-ref="' + ref + '">' + texto + '</button>';
 }
 
+/* Mecanismo do Vero de 11/09: o aviso nasce na agenda de quem toca, sem servidor de
+   notificações. O valor fica fora do título: a agenda aparece na tela bloqueada. */
+function dataAgenda(data) { return data.replace(/-/g, ''); }
+function diaSeguinte(data) {
+  const x = dataDe(data);
+  return iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + 1));
+}
+function linkAgenda(titulo, data, recorrencia) {
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(titulo) +
+    '&dates=' + dataAgenda(data) + '/' + dataAgenda(diaSeguinte(data)) +
+    '&details=' + encodeURIComponent('Lembrete criado pelo Vero.') +
+    (recorrencia ? '&recur=' + encodeURIComponent(recorrencia) : '');
+}
+/** Dia 29, 30 e 31 não existem em todo mês: o aviso cai no 28, antes de vencer, para
+    nenhum mês ficar sem lembrete. */
+function linkAgendaConta(c) {
+  const dia = Math.min(c.dia, 28), mes = mesDe(hoje());
+  const neste = mes + '-' + p2(dia);
+  const primeira = neste >= hoje() ? neste : mesSomado(mes, 1) + '-' + p2(dia);
+  return linkAgenda('Pagar ' + c.nome + ' (vence dia ' + c.dia + ')', primeira, 'RRULE:FREQ=MONTHLY;BYMONTHDAY=' + dia);
+}
+function linkAgendaEmprestimo(e) {
+  const titulo = e.direcao === 'emprestei' ? e.pessoa + ' prometeu devolver' : 'Devolver a ' + e.pessoa;
+  return linkAgenda(titulo, e.prometida, null);
+}
+function botaoAgenda(href) {
+  return '<a class="btn agenda" href="' + esc(href) + '" target="_blank" rel="noopener">' + icone('agenda') + 'Lembrar na agenda</a>';
+}
+
 /** Os pagamentos já feitos continuam nos lançamentos: o dinheiro saiu mesmo. */
 function removerConta(ref) {
   S.contas = S.contas.filter(function (c) { return c.id !== ref; });
@@ -1089,14 +1341,19 @@ function editarConta(ref) {
     campoTexto('c-nome', 'Qual conta', 'maxlength="40"') +
     campoValor('c-valor', 'Quanto costuma ser') +
     '<label class="campo"><span class="rotulo">Vence todo dia</span><input type="number" id="c-dia" min="1" max="31"></label>' +
+    botaoAgenda(linkAgendaConta(c)) +
     botaoApagar('apagar-conta', c.id, 'Apagar esta conta'),
     function () {
       const nome = document.getElementById('c-nome').value.trim();
       const centavos = lerValor('c-valor');
       const dia = Math.min(31, Math.max(1, Number(document.getElementById('c-dia').value || c.dia)));
       if (!nome || !centavos) return;
+      // ⚠️ Procurar de novo: se o outro celular lançou com a folha aberta, a sincronização
+      // trocou os objetos e esta correcção ia para um que já não existe.
+      const atual = S.contas.find(function (x) { return x.id === ref; });
+      if (!atual) { fecharFolhas(); desenhar(); return; }
       const antes = JSON.stringify(S);
-      c.nome = nome; c.centavos = centavos; c.dia = dia;
+      atual.nome = nome; atual.centavos = centavos; atual.dia = dia;
       guardar(); fecharFolhas(); desenhar();
       oferecerDesfazer('Conta corrigida', reporDe(antes));
     });
@@ -1136,6 +1393,7 @@ function editarEmprestimo(ref) {
     campoTexto('e-pessoa', 'Quem', 'maxlength="40"') +
     campoValor('e-valor', 'Quanto') +
     campoData('e-prometida', 'Data prometida', e.prometida || '') +
+    (e.prometida ? botaoAgenda(linkAgendaEmprestimo(e)) : '') +
     botaoApagar('apagar-emprestimo', e.id, 'Apagar este empréstimo'),
     function () {
       const pessoa = document.getElementById('e-pessoa').value.trim();
@@ -1211,9 +1469,18 @@ function devolucao(ref) {
         id: id(), tipo: eu ? 'entrada' : 'saida', centavos: centavos, data: hoje(),
         nota: (eu ? 'Recebi de ' : 'Devolvi a ') + e.pessoa, conta: null, emprestimo: e.id, em: Date.now()
       });
-      if (falta(e) === 0) e.estado = 'quitado';
+      reajustarEmprestimo(S.emprestimos.find(function (x) { return x.id === ref; }));
       guardar(); fecharFolhas(); desenhar();
     });
+}
+
+/* ⚠️ Desfazer dura 7 segundos e a sincronização troca os objetos nesse meio-tempo, logo
+   tudo aqui procura pelo id, nunca guarda o objeto. */
+function marcarPago(ref, mes, pago) {
+  const c = S.contas.find(function (x) { return x.id === ref; });
+  if (!c) return;
+  c.pagos = c.pagos || {};
+  if (pago) c.pagos[mes] = pago; else delete c.pagos[mes];
 }
 
 function pagarConta(ref) {
@@ -1230,11 +1497,10 @@ function pagarConta(ref) {
         nota: c.nome, conta: c.id, emprestimo: null, em: Date.now()
       };
       S.lancamentos.push(l);
-      c.pagos = c.pagos || {};
-      c.pagos[mes] = { data: hoje(), centavos: centavos, lanc: l.id };
+      marcarPago(ref, mes, { data: hoje(), centavos: centavos, lanc: l.id });
       guardar(); fecharFolhas(); desenhar();
       oferecerDesfazer(c.nome + ' pago', function () {
-        delete c.pagos[mes];
+        marcarPago(ref, mes, null);
         S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== l.id; });
         guardar(); desenhar();
       });
@@ -1247,12 +1513,16 @@ function despagar(ref) {
   const c = S.contas.find(function (x) { return x.id === ref; });
   const mes = mesDe(hoje());
   if (!c || !c.pagos || !c.pagos[mes]) return;
-  const lanc = c.pagos[mes].lanc, guardado = c.pagos[mes];
-  delete c.pagos[mes];
-  S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== lanc; });
+  const guardado = c.pagos[mes];
+  const linha = S.lancamentos.find(function (x) { return x.id === guardado.lanc; });
+  marcarPago(ref, mes, null);
+  S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== guardado.lanc; });
   guardar(); desenhar();
   oferecerDesfazer(c.nome + ' voltou a por pagar', function () {
-    c.pagos[mes] = guardado;
+    // ⚠️ O lançamento volta junto. Só o "pago" voltando, a conta aparecia paga com o
+    // dinheiro de fora do livro, e a sincronização desfazia o pagamento logo a seguir.
+    if (linha && !S.lancamentos.some(function (x) { return x.id === linha.id; })) S.lancamentos.push(linha);
+    marcarPago(ref, mes, guardado);
     guardar(); desenhar();
   });
 }
@@ -1265,7 +1535,9 @@ function perdoar(ref) {
   e.estado = 'perdoado';
   guardar(); desenhar();
   oferecerDesfazer('Deixou pra lá ' + dinheiro(e.centavos), function () {
-    e.estado = 'aberto'; guardar(); desenhar();
+    const atual = S.emprestimos.find(function (x) { return x.id === ref; });
+    if (atual) atual.estado = 'aberto';
+    guardar(); desenhar();
   });
 }
 
@@ -1302,6 +1574,51 @@ function guardarCopia() {
   guardar(); desenhar();
 }
 
+/** Restaurar só acrescenta o que falta, pelo id: nunca apaga nem troca o que está aqui.
+    O que não parecer um registro válido fica de fora em vez de chegar ao banco. */
+function juntarCopia(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.lancamentos)) return null;
+  const dia = /^\d{4}-\d{2}-\d{2}$/;
+  const inteiro = function (n) { return Number.isInteger(n) && n > 0 && n < 100000000; };
+  const tem = function (lista, x) { return lista.some(function (y) { return y.id === x.id; }); };
+  let n = 0;
+  for (const l of d.lancamentos) {
+    if (!l || !l.id || !dia.test(l.data) || !inteiro(l.centavos) || !['entrada', 'saida'].includes(l.tipo) || tem(S.lancamentos, l)) continue;
+    S.lancamentos.push(l); n++;
+  }
+  for (const c of Array.isArray(d.contas) ? d.contas : []) {
+    if (!c || !c.id || !c.nome || !inteiro(c.centavos) || !(c.dia >= 1 && c.dia <= 31) || tem(S.contas, c)) continue;
+    S.contas.push(c); n++;
+  }
+  for (const e of Array.isArray(d.emprestimos) ? d.emprestimos : []) {
+    if (!e || !e.id || !e.pessoa || !inteiro(e.centavos) || !dia.test(e.data) || !['emprestei', 'peguei'].includes(e.direcao) || tem(S.emprestimos, e)) continue;
+    S.emprestimos.push(e); n++;
+  }
+  for (const c of Array.isArray(d.categorias) ? d.categorias : []) {
+    if (typeof c === 'string' && c && !S.categorias.includes(c)) S.categorias.push(c);
+  }
+  return n;
+}
+
+function restaurarCopia() {
+  const campo = document.createElement('input');
+  campo.type = 'file';
+  campo.accept = '.json,application/json';
+  campo.addEventListener('change', function () {
+    const arquivo = campo.files[0];
+    if (!arquivo) return;
+    arquivo.text().then(function (texto) {
+      const antes = JSON.stringify(S);
+      let n = null;
+      try { n = juntarCopia(JSON.parse(texto)); } catch (e) { n = null; }
+      if (n === null) return oferecerDesfazer('Esse arquivo não é uma cópia do Vero. Use o .json.', function () {});
+      guardar(); desenhar();
+      oferecerDesfazer(n ? n + (n === 1 ? ' registro restaurado' : ' registros restaurados') : 'Tudo dessa cópia já estava aqui', reporDe(antes));
+    });
+  });
+  campo.click();
+}
+
 // ── ligações ─────────────────────────────────────────────────────────────────
 
 // Botao que passa o clique: sempre uma funcao que CHAMA, nunca a referencia
@@ -1336,6 +1653,15 @@ document.addEventListener('click', function (ev) {
     case 'perdoar':         return perdoar(ref);
     case 'lembrar':         return lembrar(ref);
     case 'copia':           return guardarCopia();
+    case 'restaurar':       return restaurarCopia();
+    case 'ouvir':           return ouvir();
+    case 'atalho':          return usarAtalho(ref);
+    case 'descer-mes':
+    case 'descer-dia':
+      periodoTipo = b.dataset.acao === 'descer-mes' ? 'mes' : 'dia';
+      refData = ref;
+      desenhar();
+      return window.scrollTo(0, 0);
     case 'conta':           return window.veroAbrirConta();
     case 'editar':          return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'apagar-lanc':     return apagarLancamento();
@@ -1370,6 +1696,8 @@ document.addEventListener('input', function (ev) {
   if (ev.target.id === 'busca') {
     buscaTexto = ev.target.value;
     document.getElementById('lista-lanc').innerHTML = listaHtml();
+  } else if (ev.target.id === 'lancar-frase') {
+    preencherDaFrase(ev.target.value);
   } else if (ev.target.id === 'lancar-nota' && !categoriaEscolhida) {
     document.getElementById('lancar-categoria').value = categoriaSugerida(ev.target.value);
   }
