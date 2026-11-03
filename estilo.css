@@ -205,6 +205,35 @@ section.bloco.he {
 .he .frase { margin-top: 8px; }
 .pode-gastar { display: inline-block; font-size: 14px; font-weight: 800; border-radius: 99px; padding: 7px 14px; background: var(--on-surface); color: var(--surface); }
 .he .medida { margin: 16px 0 6px; }
+/* Início de 03/11: Hoje · Mês · Escolher dia, e o bruto do período em destaque. */
+.periodos.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 18px; }
+.balao.na-ponta-esq { transform: translate(-14px, -4px); }
+.balao.na-ponta-dir { transform: translate(calc(-100% + 14px), -4px); }
+.periodo.escolher { position: relative; display: grid; place-items: center; cursor: pointer; }
+.periodo.escolher input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.periodo.escolher input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
+.saiu-ficou { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 15px; font-weight: 500; }
+.saiu-ficou span { display: inline-flex; align-items: center; gap: 6px; }
+.saiu-ficou i svg.traco { width: 17px; height: 17px; }
+.saiu-ficou b { font-weight: 800; }
+.barra-fina { height: 6px; margin: 16px 0 0; border-radius: 99px; background: rgba(242, 235, 210, 0.2); overflow: hidden; }
+.barra-fina i { display: block; height: 100%; border-radius: 99px; background: var(--on-surface); }
+.he .frase b { font-weight: 800; }
+
+.faixa-contas { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 12px 15px; }
+.faixa-nome { min-width: 0; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.faixa-nome small { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+.faixa-todas { grid-column: 2 / -1; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
+.periodos.tres > *, .periodo.escolher input { min-width: 0; }
+.faixa-contas.atrasada .faixa-nome small { color: var(--on-surface); font-weight: 800; }
+
+.fichas { grid-auto-columns: 140px; }
+.ficha { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 128px; padding: 13px; text-align: left; border: 0; border-radius: 18px; background: rgba(242, 235, 210, 0.07); color: inherit; }
+.ficha .ico { margin-bottom: 8px; }
+.ficha-nome { max-width: 100%; font-size: 13.5px; font-weight: 600; color: var(--on-surface-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ficha b { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.ficha small { font-size: 12px; color: var(--on-surface-muted); }
+.lanc-inicio .titulo-cartao { margin-bottom: 6px; }
 .legenda-dias { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 500; }
 
 .painel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -639,11 +668,15 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
      primeira tela, com os quatro números ao lado do principal. */
   .painel .he { order: 1; }
   .quatro { order: 2; }
-  .perguntar { order: 3; grid-column: 1 / -1; }
-  .para-onde { order: 4; }
-  .por-dia { order: 5; }
-  .vence { order: 6; }
-  .avisos { order: 7; }
+  .faixa-contas { order: 3; grid-column: 1 / -1; }
+  .perguntar { order: 4; grid-column: 1 / -1; }
+  .para-onde { order: 5; }
+  .lanc-inicio { order: 6; grid-column: span 5; align-self: start; }
+  .por-dia { order: 7; grid-column: 1 / -1 !important; }
+  .vence { order: 8; }
+  .avisos { order: 9; }
+  .faixa-contas { grid-template-columns: 36px minmax(0, 1fr) auto auto; }
+  .faixa-todas { grid-column: auto; grid-row: 1; grid-column-start: 3; }
   .painel .he { grid-column: span 7; padding: 28px 28px 22px; }
   .painel .he .numero-grande { font-size: 74px; }
   .quatro { grid-column: span 5; gap: 16px; }
@@ -654,7 +687,8 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .vence, .avisos { grid-column: 1 / -1; }
   .fila { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   /* Se a primeira ou a segunda fila ficar sem par, o cartão ocupa a largura toda. */
-  .painel:not(:has(.por-dia)) .para-onde { grid-column: 1 / -1; }
+  .painel:not(:has(.lanc-inicio)) .para-onde,
+  .painel:not(:has(.para-onde)) .lanc-inicio { grid-column: 1 / -1; }
   /* Gastos: os destinos e os lançamentos lado a lado, sem faixa vazia à direita. */
   .painel.gastos .he { grid-column: 1 / -1; }
   .painel.gastos .grupos { grid-column: span 5; order: 2; align-self: start; }

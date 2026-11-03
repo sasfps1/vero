@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 10;
+const VERSAO = 11;
 let soMemoria = false;
 
 const VAZIO = {
@@ -788,42 +788,133 @@ function botao(acao, ref, texto, fraco) {
    e cortar secções foi o que lhe tirou o ar de extracto. Se voltar esse ar, a
    causa é a repetição entre telas: "Vence" mostra só os próximos 7 dias e a
    rosca só os 5 maiores destinos, e o resto continua em Contas e Gastos. */
-function telaInicio(n) {
-  const dias = diasNoMes(n.mes), d = diaDe(hoje()), faltam = diasRestantes();
-  let medida = '';
-  for (let i = 1; i <= dias; i++) {
-    medida += '<i class="' + (i < d ? 'passado' : i === d ? 'hoje' : 'futuro') + '"></i>';
+/* ⭐ O topo mostra o BRUTO do período, pedido dele a 03/11: "se eu coloquei 90 e 90,
+   deve aparecer 180". Hoje, o mês ou um dia escolhido. As contas a pagar saíram do
+   número grande para uma faixa própria. Desenho a partir da referência que ele
+   escolheu no Pinterest: um número sozinho, a resposta numa linha, uma barra fina. */
+let inicioVista = 'hoje', inicioDia = null;
+
+function periodoInicio() {
+  if (inicioVista === 'mes') {
+    const mes = mesDe(hoje());
+    return { de: mes + '-01', ate: mes + '-' + p2(diasNoMes(mes)), quando: 'em ' + MESES[Number(mes.slice(5, 7)) - 1], curto: 'este mês' };
   }
+  const d = inicioVista === 'dia' && inicioDia ? inicioDia : hoje();
+  const r = rotuloDoDia(d);
+  return { de: d, ate: d, quando: r === 'Hoje' ? 'hoje' : r === 'Ontem' ? 'ontem' : 'em ' + porExtensoData(d), curto: r === 'Hoje' ? 'hoje' : r === 'Ontem' ? 'ontem' : 'neste dia' };
+}
+
+function telaInicio(n) {
+  const p = periodoInicio(), r = resumoEntre(p.de, p.ate);
+  const ficou = r.entradas - r.saidas;
+  const pct = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
+  const abas = [['hoje', 'Hoje'], ['mes', 'Mês']].map(function (a) {
+    return '<button class="periodo' + (inicioVista === a[0] ? ' activo' : '') + '" data-acao="inicio-vista" data-ref="' + a[0] + '" aria-pressed="' + (inicioVista === a[0]) + '">' + a[1] + '</button>';
+  }).join('') +
+    // O seletor de data do próprio aparelho, por baixo do botão: no celular abre o calendário.
+    '<label class="periodo escolher' + (inicioVista === 'dia' ? ' activo' : '') + '">' +
+      (inicioVista === 'dia' && inicioDia ? porExtensoData(inicioDia) : 'Escolher dia') +
+      '<input type="date" id="inicio-dia" max="' + hoje() + '" value="' + (inicioDia || hoje()) + '" aria-label="Escolher o dia"></label>';
 
   const sobra = Math.max(0, n.limite - n.gastoHoje);
-  const fraseLivre = 'O mês já está todo comprometido. O próximo dinheiro que entrar abre o limite.';
+  const fraseBarra = !r.entradas && !r.saidas ? 'Nada lançado ' + p.curto + ' ainda.'
+    : !r.entradas ? 'Só saiu dinheiro ' + p.curto + '.'
+    : 'Saiu ' + pct + '% do que entrou.';
 
   return '<div class="painel">' +
     '<section class="bloco he">' +
-      '<span class="rotulo">Sobrou este mês</span>' +
-      '<div class="numero-grande">' + numeroGrande(n.livre) + '</div>' +
-      (n.livre <= 0 ? '<p class="frase">' + fraseLivre + '</p>'
-        : n.limite === 0 ? '<p class="frase">Hoje sem folga. Assim que entrar dinheiro, o limite abre.</p>'
-        : '<p class="pode-gastar">Pode gastar ' + dinheiro(sobra) + ' hoje</p>' +
-          (n.gastoHoje ? '<p class="frase">De ' + dinheiro(n.limite) + ' do dia · já saiu ' + dinheiro(n.gastoHoje) + '</p>' : '')) +
-      '<div class="medida">' + medida + '</div>' +
-      '<p class="legenda-dias"><span>Dia ' + d + ' de ' + dias + '</span><span>' +
-        (faltam === 1 ? 'falta 1 dia' : 'faltam ' + faltam + ' dias') + '</span></p>' +
+      '<div class="periodos tres">' + abas + '</div>' +
+      '<span class="rotulo">Entrou ' + p.quando + '</span>' +
+      '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
+      '<div class="saiu-ficou">' +
+        '<span><i>' + icone('saiu') + '</i>Saiu <b>' + dinheiro(r.saidas) + '</b></span>' +
+        '<span>Ficou <b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></span>' +
+      '</div>' +
+      '<div class="barra-fina" role="img" aria-label="' + fraseBarra + '"><i style="width:' + pct + '%"></i></div>' +
+      '<p class="frase">' + fraseBarra +
+        (inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 ? ' Ainda pode gastar <b>' + dinheiro(sobra) + '</b> hoje.' : '') + '</p>' +
     '</section>' +
+    faixaContas(n) +
     (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar">Pergunte ao Vero: "quando troquei o pneu?"</button>' : '') +
-    // "Para onde foi" é a pergunta nº1 dele (26/10): logo a seguir ao número, ainda
-    // na primeira tela do celular. No computador a ordem vem do `order` no CSS.
-    secaoParaOnde(n) +
+    secaoParaOndeTiles(p) +
+    secaoLancInicio(p) +
+    // Os quatro são sempre do mês, seja qual for o período aberto no topo.
     '<div class="quatro">' +
-      cartaoNumero('entrou', 'Entrou', '+' + dinheiro(n.entradas), 'forte') +
-      cartaoNumero('saiu', 'Saiu', '−' + dinheiro(n.saidas), '') +
+      cartaoNumero('entrou', 'Entrou no mês', '+' + dinheiro(n.entradas), 'forte') +
+      cartaoNumero('saiu', 'Saiu no mês', '−' + dinheiro(n.saidas), '') +
       cartaoNumero('falta', 'Falta pagar', dinheiro(n.faltaPagar), '') +
       cartaoNumero('receber', 'A receber', dinheiro(n.aReceber), '') +
     '</div>' +
-    secaoPorDia(n) +
-    secaoVence() +
+    (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     avisos() +
   '</div>';
+}
+
+/** As contas numa faixa só, fora do número grande: quanto falta no mês e a próxima,
+    com o prazo dito como prazo ("faltam 4 dias"), não como data. A lista inteira
+    continua em Contas. */
+function faixaContas(n) {
+  const itens = itensProximos(), h = hoje();
+  if (!n.faltaPagar && !itens.length) return '';
+  const it = itens[0];
+  let prazo = '';
+  if (it) {
+    const dd = it.semData ? null : diasEntre(h, it.data);
+    prazo = dd === null ? 'sem data' : dd < 0 ? 'venceu há ' + quantosDias(-dd) : dd === 0 ? 'vence hoje' : dd === 1 ? 'vence amanhã' : 'faltam ' + quantosDias(dd);
+  }
+  // O total que falta já está no cartão "Falta pagar": aqui vai só a próxima conta.
+  if (!it) return '';
+  const mais = itens.length - 1;
+  return '<section class="bloco faixa-contas' + (it.data < h ? ' atrasada' : '') + '">' +
+    '<span class="ico">' + icone('agenda') + '</span>' +
+    '<span class="faixa-nome"><small>Próxima conta · ' + prazo + '</small>' + esc(it.nome) + ' · ' + dinheiro(it.centavos) + '</span>' +
+    botao(it.tipo === 'conta' ? 'pagar' : 'devolvi', it.ref, 'Paguei') +
+    '<a class="faixa-todas" href="#/contas">' + (mais > 0 ? '+' + mais + ' nos próximos 7 dias' : 'Ver contas') + '</a>' +
+  '</section>';
+}
+
+/** "Para onde foi" em fichas que rolam para o lado, do período aberto no topo. */
+function secaoParaOndeTiles(p) {
+  const g = paraOndeEntre(p.de, p.ate);
+  const cabeca = '<h2 class="titulo-cartao">Para onde foi ' + p.curto + '</h2>';
+  if (!g.total) return '';
+  const fichas = g.lista.map(function (it) {
+    return '<button class="ficha" data-acao="ver-destino" data-ref="' + esc(it.nome) + '"><span class="ico">' + icone(iconeDoGasto(it.nome)) + '</span>' +
+      '<span class="ficha-nome">' + esc(it.nome) + '</span>' +
+      '<b>' + dinheiro(it.centavos) + '</b><small>' + Math.round(it.centavos / g.total * 100) + '% · ' + it.vezes + (it.vezes === 1 ? ' vez' : ' vezes') + '</small></button>';
+  }).join('');
+  return '<section class="bloco para-onde">' + cabeca + '<div class="fila fichas">' + fichas + '</div></section>';
+}
+
+/** No dia: os lançamentos. No mês: um dia por linha, e tocar abre esse dia no topo. */
+function secaoLancInicio(p) {
+  let linhas = '';
+  if (p.de === p.ate) {
+    lancamentosVistos().filter(function (l) { return l.data === p.de; })
+      .sort(function (a, b) { return (b.em || 0) - (a.em || 0); })
+      .forEach(function (l) {
+        const cat = categoriaDe(l);
+        linhas += linhaHtml({
+          marca: l.emprestimo || emprestimoDeOrigem(l) ? 'transfer' : l.tipo === 'entrada' ? 'entrou' : 'saiu',
+          titulo: esc(String(l.nota || '').trim() || cat || 'Sem nome'),
+          sub: l.nota && cat && sinNorm(l.nota) !== sinNorm(cat) ? esc(cat) : '',
+          prefixo: l.tipo === 'entrada' ? '+' : '', centavos: l.centavos, classes: 'compacta',
+          toque: { acao: 'editar', ref: l.id, rotulo: 'Corrigir' }
+        });
+      });
+    return '<section class="bloco lanc-inicio"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' +
+      (linhas || '<p class="vazio">Nada lançado ' + p.curto + '. Toque no + para lançar.</p>') + '</section>';
+  }
+  for (let d = (p.ate < hoje() ? p.ate : hoje()); d >= p.de; d = iso(new Date(dataDe(d).getTime() - 86400000))) {
+    const r = resumoEntre(d, d);
+    if (!r.entradas && !r.saidas) continue;
+    linhas += linhaHtml({
+      marca: null, titulo: rotuloDoDia(d), sub: r.entradas ? 'entrou ' + dinheiro(r.entradas) : '',
+      prefixo: r.saidas ? '−' : '', centavos: r.saidas, classes: 'compacta',
+      toque: { acao: 'inicio-abrir-dia', ref: d, rotulo: 'Abrir' }
+    });
+  }
+  return linhas ? '<section class="bloco lanc-inicio"><h2 class="titulo-cartao">Dia a dia</h2>' + linhas + '</section>' : '';
 }
 
 function cartaoNumero(ic, rotulo, valor, classe) {
@@ -879,11 +970,13 @@ function secaoPorDia(n) {
     barras += '<i class="' + (i === iMaior ? 'maior' : '') + '" style="height:' + altura + '%"' +
       (futuro ? '' : ' title="Dia ' + (i + 1) + ': ' + dinheiro(v) + '"') + '></i>';
   });
-  // O balão não pode sair do cartão quando o maior dia está numa ponta do mês.
-  const x = Math.min(82, Math.max(18, (iMaior + 0.5) / dias.length * 100));
+  // O balão fica sempre em cima da barra. Nas pontas do mês muda de âncora em vez de
+  // escorregar: escorregado, apontava para o vazio ao lado (olho-da-pagina, 03/11).
+  const x = (iMaior + 0.5) / dias.length * 100;
+  const ponta = x < 15 ? ' na-ponta-esq' : x > 85 ? ' na-ponta-dir' : '';
   return '<section class="bloco por-dia"><h2 class="titulo-cartao">Gasto por dia</h2>' +
     '<p class="frase">O dia aceso foi o maior do mês</p>' +
-    '<div class="barras">' + barras + '<span class="balao" style="left:' + x.toFixed(1) + '%">Dia ' + (iMaior + 1) + ': ' + dinheiro(maior) + '</span></div>' +
+    '<div class="barras">' + barras + '<span class="balao' + ponta + '" style="left:' + x.toFixed(1) + '%">Dia ' + (iMaior + 1) + ': ' + dinheiro(maior) + '</span></div>' +
     // Nas pontas do mês o "Hoje" ocupa o lugar do dia 1 ou do último dia.
     '<div class="eixo"><span>' + (d > 3 ? 'Dia 1' : '') + '</span><span class="eixo-hoje" style="left:' + Math.min(95, Math.max(5, (d - 0.5) / dias.length * 100)).toFixed(1) + '%">Hoje</span><span>' + (d < dias.length - 2 ? dias.length : '') + '</span></div></section>';
 }
@@ -2045,6 +2138,19 @@ document.addEventListener('click', function (ev) {
         if (e) { e.estado = 'aberto'; reajustarEmprestimo(e); guardar(); }
       });
     case 'perguntar':       return window.veroAbrirIA();
+    case 'inicio-vista':
+      inicioVista = ref;
+      return desenhar();
+    case 'inicio-abrir-dia':
+      inicioVista = ref === hoje() ? 'hoje' : 'dia';
+      inicioDia = ref;
+      desenhar();
+      return window.scrollTo(0, 0);
+    // Do Início, a ficha leva a Gastos já filtrado por aquele destino.
+    case 'ver-destino':
+      buscaTexto = ref;
+      location.hash = '#/gastos';
+      return;
     case 'filtrar':
       buscaTexto = ref;
       desenhar();
@@ -2068,6 +2174,12 @@ document.addEventListener('input', function (ev) {
   }
 });
 document.addEventListener('change', function (ev) {
+  if (ev.target.id === 'inicio-dia') {
+    if (!ev.target.value) return;
+    inicioDia = ev.target.value;
+    inicioVista = inicioDia === hoje() ? 'hoje' : 'dia';
+    return desenhar();
+  }
   if (ev.target.id !== 'lancar-categoria') return;
   categoriaEscolhida = true;
   document.getElementById('campo-nova').hidden = ev.target.value !== '__nova';
