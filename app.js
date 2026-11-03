@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 9;
+const VERSAO = 10;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1101,7 +1101,9 @@ function ajustesCasa(c) {
     (c.codigo ? '<div class="ajuste"><div class="ajuste-texto">Código para a outra pessoa entrar<small class="codigo-casa">' + esc(c.codigo) + '</small></div>' +
       '<div class="ajuste-botoes">' + botao('copiar-codigo', '', 'Copiar') + botao('enviar-codigo', '', 'Enviar') + '</div></div>' : '') +
     pessoas +
-    (c.pessoas.length < 2 ? linhaAjuste('Segunda pessoa', 'Ainda não entrou. Ela cria a conta dela e usa este código.') : '') +
+    (c.pessoas.length < 2 ? linhaAjuste(esc(nomeDaVaga('ela')),
+      'Pode usar o seu mesmo login: troque os números para ela antes de lançar. Ou ela cria o login dela com este código.',
+      c.podeNomearSegunda ? botao('nomear-segunda', '', c.nomeSegunda ? 'Alterar' : 'Dar nome') : '') : '') +
     linhaAjuste('Números mostrados', esc(nomeDaVista()), botao('escolher-conta', '', 'Trocar')));
 }
 
@@ -2006,6 +2008,7 @@ document.addEventListener('click', function (ev) {
       return window.scrollTo(0, 0);
     case 'conta':           return window.veroAbrirConta();
     case 'alterar-nome':    return window.veroAlterarNome();
+    case 'nomear-segunda':  return window.veroNomearSegunda();
     case 'trocar-senha':    return window.veroAbrirSenha();
     case 'sincronizar':     return window.veroSincronizar();
     case 'sair':            return window.veroSair();

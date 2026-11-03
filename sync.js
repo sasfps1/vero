@@ -32,6 +32,9 @@
   let enviando = false, enviados = 0, recusados = 0, semRede = false, puxando = false, repuxar = false;
   let relerNoFim = false, relogioFila = null, relogioPuxar = null, canal = null, nomes = {}, codigo = eu ? eu.codigo : null;
   let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null, bancoTemDesde = false;
+  /* Nome da segunda pessoa quando ela usa o mesmo login (pedido de 03/11). Quem entra com login
+     próprio fica em membros e vence este. Sem a coluna casas.nome_segunda, fica vazio. */
+  let nomeSegunda = (eu && eu.nomeSegunda) || '', bancoTemSegunda = false;
 
   // ── do estado do app para as linhas do banco, e de volta ──────────────────
 
@@ -217,10 +220,15 @@
         eu.nomesVaga = nomesVaga;
         gravar(K_EU, eu);
       }
-      const casa = await sb.from('casas').select('codigo').eq('id', eu.casa);
+      let casa = await sb.from('casas').select('codigo,nome_segunda').eq('id', eu.casa);
+      // Sem a coluna no banco, o botão de dar nome falharia: só aparece quando o banco a tiver.
+      bancoTemSegunda = !casa.error;
+      if (casa.error) casa = await sb.from('casas').select('codigo').eq('id', eu.casa);
       if (!casa.error && casa.data[0]) {
         codigo = casa.data[0].codigo;
+        nomeSegunda = casa.data[0].nome_segunda || '';
         eu.codigo = codigo;
+        eu.nomeSegunda = nomeSegunda;
         gravar(K_EU, eu);
       }
       // Na primeira ligação, o que já estava neste aparelho sobe para o servidor.
@@ -280,7 +288,7 @@
   // ── conta e casa ──────────────────────────────────────────────────────────
 
   function esquecer() {
-    eu = null; espelho = null; fila = []; codigo = null; nomes = {}; nomesVaga = {}; conversa = [];
+    eu = null; espelho = null; fila = []; codigo = null; nomes = {}; nomesVaga = {}; nomeSegunda = ''; conversa = [];
     mudarVista('todos');
     gravar(K_EU, null); gravar(K_ESPELHO, null); gravar(K_FILA, []); gravar(K_CHAT, []);
     if (canal) { sb.removeChannel(canal); canal = null; }
@@ -308,6 +316,29 @@
   function campoConta(id, rotulo, tipo, extra) {
     return '<label class="campo"><span class="rotulo">' + rotulo + '</span><input type="' + tipo + '" id="' + id + '" ' + (extra || '') + '></label>';
   }
+  /* Senha com o olho (pedido de 03/11): quem digita no celular, com pressa, precisa de ver o
+     que escreveu antes de errar três vezes. */
+  const OLHO = '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>';
+  const OLHO_FECHADO = '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  function campoSenha(id, rotulo, completar) {
+    return '<label class="campo"><span class="rotulo">' + rotulo + '</span><span class="senha-caixa">' +
+      '<input type="password" id="' + id + '" autocomplete="' + completar + '" minlength="6">' +
+      '<button type="button" class="ver-senha" data-ver-senha="' + id + '" aria-label="Mostrar a senha" aria-pressed="false">' + OLHO + '</button>' +
+      '</span></label>';
+  }
+  document.addEventListener('click', function (ev) {
+    const b = ev.target.closest && ev.target.closest('[data-ver-senha]');
+    if (!b) return;
+    const campo = document.getElementById(b.getAttribute('data-ver-senha'));
+    if (!campo) return;
+    const mostrar = campo.type === 'password';
+    campo.type = mostrar ? 'text' : 'password';
+    b.innerHTML = mostrar ? OLHO_FECHADO : OLHO;
+    b.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+    b.setAttribute('aria-label', mostrar ? 'Esconder a senha' : 'Mostrar a senha');
+    campo.focus();
+  });
+
   function mostrarErro(texto) { document.getElementById('conta-erro').textContent = texto; }
 
   const ERROS = {
@@ -335,6 +366,153 @@
     const p = document.getElementById('portao');
     p.hidden = true;
     p.innerHTML = '';
+    rede = null;
+  }
+
+  /* A REDE DA ENTRADA (pedido de 03/11: "as conexões neurais do segundo cérebro, igual à
+     minha página"). É a mesma receita da página da SAS, que ele já aprovou:
+       · ao repouso há só um chão fraco de ligações, para não virar papel de parede;
+       · onde o dedo ou o rato passa, a rede acende num raio de 30% da tela;
+       · nada se mexe sozinho, e o ciclo de desenho pára quando assenta (PC de 4 GB);
+       · a rede nunca passa por baixo da caixa de entrar: lê-se o formulário, não a rede.
+     Uma tela só, do tamanho da janela: ~4 MB, contra os 71 MB que a página proibiu. */
+  let rede = null, redeCiclo = null, redeOuvindo = false;
+
+  function hashRede(i, j, sal) {
+    let x = (i * 374761393 + j * 668265263 + sal * 1274126177 + 20261103) | 0;
+    x = Math.imul(x ^ (x >>> 13), 1274126177);
+    return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+  }
+
+  function construirRede(p) {
+    const canvas = p.querySelector('canvas.rede');
+    const caixa = p.querySelector('.portao-caixa');
+    if (!canvas || !caixa) return null;
+    const larg = window.innerWidth, alt = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(larg * dpr);
+    canvas.height = Math.round(alt * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const cb = caixa.getBoundingClientRect();
+    const proibido = { x1: cb.left - 20, y1: cb.top - 20, x2: cb.right + 20, y2: cb.bottom + 20 };
+    const livre = function (x, y) { return !(x > proibido.x1 && x < proibido.x2 && y > proibido.y1 && y < proibido.y2); };
+    const segLivre = function (a, b) {
+      for (let t = 0; t <= 16; t++) {
+        const k = t / 16;
+        if (!livre(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k)) return false;
+      }
+      return true;
+    };
+
+    // Celular tem menos tela e menos fôlego: a célula cresce para o número de nós não explodir.
+    const passo = larg < 520 ? 96 : 136, nos = [];
+    for (let i = -1; i <= Math.ceil(larg / passo); i++) {
+      for (let j = -1; j <= Math.ceil(alt / passo); j++) {
+        const x = (i + 0.12 + hashRede(i, j, 1) * 0.76) * passo;
+        const y = (j + 0.12 + hashRede(i, j, 2) * 0.76) * passo;
+        if (!livre(x, y)) continue;
+        // A respiração: densidade igual em todo o lado lê-se gerada.
+        const onda = 0.70 + 0.30 * Math.sin(y / 1400 * Math.PI * 2 + x / 2600 * Math.PI * 2);
+        if (hashRede(i, j, 6) > onda) continue;
+        const forte = hashRede(i, j, 4) > 0.86;
+        nos.push({ x: x, y: y, r: (0.5 + hashRede(i, j, 3) * 0.75) * (forte ? 1.5 : 1) });
+      }
+    }
+    const limite = Math.min(larg, alt) * (larg < 520 ? 0.42 : 0.34), ligacoes = [];
+    for (let a = 0; a < nos.length; a++) {
+      for (let b = a + 1; b < nos.length; b++) {
+        const d = Math.hypot(nos[a].x - nos[b].x, nos[a].y - nos[b].y);
+        if (d >= limite || !segLivre(nos[a], nos[b])) continue;
+        const peso = hashRede(Math.round(nos[a].x + nos[b].x), Math.round(nos[a].y + nos[b].y), 5) > 0.80 ? 1.45 : 0.78;
+        ligacoes.push({ a: a, b: b, base: (0.17 * (1 - d / limite) + 0.045) * peso,
+          mx: (nos[a].x + nos[b].x) / 2, my: (nos[a].y + nos[b].y) / 2 });
+      }
+    }
+    return { ctx: ctx, larg: larg, alt: alt, nos: nos, ligacoes: ligacoes,
+      cru: { x: -9999, y: -9999 }, suave: { x: -9999, y: -9999 }, forca: 0, alvo: 0, pousado: false };
+  }
+
+  function pintarRede(R) {
+    const ctx = R.ctx, px = R.suave.x, py = R.suave.y, f = R.forca, raio = Math.min(R.larg, R.alt) * 0.30;
+    ctx.clearRect(0, 0, R.larg, R.alt);
+    for (const L of R.ligacoes) {
+      let boost = 0;
+      if (f > 0) {
+        const d = Math.hypot(L.mx - px, L.my - py);
+        if (d < raio) boost = (1 - d / raio) * f * 0.55;
+      }
+      ctx.strokeStyle = 'rgba(242,235,210,' + (L.base + boost).toFixed(3) + ')';
+      ctx.lineWidth = 1 + boost * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(R.nos[L.a].x, R.nos[L.a].y);
+      ctx.lineTo(R.nos[L.b].x, R.nos[L.b].y);
+      ctx.stroke();
+    }
+    for (const N of R.nos) {
+      let b2 = 0;
+      if (f > 0) {
+        const d = Math.hypot(N.x - px, N.y - py);
+        if (d < raio) b2 = (1 - d / raio) * f;
+      }
+      ctx.fillStyle = 'rgba(242,235,210,' + (0.34 + b2 * 0.5).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(N.x, N.y, N.r + b2 * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function baterRede() {
+    redeCiclo = null;
+    const R = rede;
+    if (!R) return;
+    // Movimento reduzido corta o deslizar, não a resposta: a rede salta para onde o dedo está.
+    const salta = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const k = salta ? 1 : 0.14, kf = salta ? 1 : 0.10;
+    R.suave.x += (R.cru.x - R.suave.x) * k;
+    R.suave.y += (R.cru.y - R.suave.y) * k;
+    R.forca += (R.alvo - R.forca) * kf;
+    pintarRede(R);
+    const quieto = Math.abs(R.alvo - R.forca) < 0.01 && Math.abs(R.cru.x - R.suave.x) < 0.6 && Math.abs(R.cru.y - R.suave.y) < 0.6;
+    if (!quieto) redeCiclo = requestAnimationFrame(baterRede);
+  }
+  function acordarRede() { if (rede && redeCiclo === null) redeCiclo = requestAnimationFrame(baterRede); }
+
+  // Enfeite nunca derruba a porta: se a rede falhar, entrar continua a funcionar.
+  function ligarRede(p) {
+    try { ligarRedeJa(p); } catch (e) { rede = null; }
+  }
+  function ligarRedeJa(p) {
+    if (!p.querySelector('canvas.rede')) {
+      const c = document.createElement('canvas');
+      c.className = 'rede';
+      c.setAttribute('aria-hidden', 'true');
+      p.insertBefore(c, p.firstChild);
+    }
+    rede = construirRede(p);
+    if (rede) pintarRede(rede);
+    if (redeOuvindo) return;
+    redeOuvindo = true;
+    const focar = function (e) {
+      if (!rede) return;
+      rede.cru.x = e.clientX; rede.cru.y = e.clientY;
+      if (!rede.pousado) { rede.suave.x = e.clientX; rede.suave.y = e.clientY; rede.pousado = true; }
+      rede.alvo = 1;
+      acordarRede();
+    };
+    const soltar = function () { if (rede) { rede.alvo = 0; acordarRede(); } };
+    p.addEventListener('pointermove', focar, { passive: true });
+    p.addEventListener('pointerdown', focar, { passive: true });
+    p.addEventListener('pointerup', soltar, { passive: true });
+    p.addEventListener('pointercancel', soltar, { passive: true });
+    p.addEventListener('pointerleave', soltar, { passive: true });
+    window.addEventListener('resize', function () {
+      if (p.hidden) return;
+      rede = construirRede(p);
+      if (rede) pintarRede(rede);
+    });
   }
 
   async function entrou(user) {
@@ -349,13 +527,14 @@
     p.innerHTML = '<form class="portao-caixa" id="portao-form" novalidate>' + MARCA +
       '<p class="frase">Entre para ver a sua conta em qualquer aparelho.</p>' +
       campoConta('c-email', 'E-mail', 'email', 'autocomplete="username" inputmode="email"') +
-      campoConta('c-senha', 'Senha', 'password', 'autocomplete="current-password"') +
+      campoSenha('c-senha', 'Senha', 'current-password') +
       '<p class="frase portao-erro" id="conta-erro" role="alert"></p>' +
       '<button type="submit" class="btn primario" id="conta-entrar">Entrar</button>' +
       '<button type="button" class="btn" id="conta-criar">Criar uma conta</button>' +
       '<button type="button" class="portao-sem-conta" id="conta-sem">' + (podeVoltar ? 'Voltar' : 'Usar sem conta, só neste aparelho') + '</button>' +
       '</form>';
     p.hidden = false;
+    ligarRede(p);
 
     const ocupar = function (sim) {
       document.getElementById('conta-entrar').disabled = sim;
@@ -416,6 +595,7 @@
         '<p class="frase" style="margin-top:14px">Juntar coloca tudo na conta, e a outra pessoa da casa também vê. Deixar de fora tira do aparelho, e a cópia baixada pode ser restaurada depois.</p>' +
         '</div>';
       p.hidden = false;
+      ligarRede(p);
       decidirLocal = function (junta) {
         decidirLocal = null;
         if (!junta) guardarCopia();
@@ -469,7 +649,7 @@
 
   window.veroAbrirSenha = function () {
     abrirForm('Trocar a senha',
-      campoConta('c-nova-senha', 'Nova senha', 'password', 'autocomplete="new-password" minlength="6"') +
+      campoSenha('c-nova-senha', 'Nova senha', 'new-password') +
       '<p class="frase" id="conta-erro" role="alert"></p>',
       async function () {
         const senha = document.getElementById('c-nova-senha').value;
@@ -499,6 +679,29 @@
     document.getElementById('c-nome').value = nomesVaga[eu.vaga] || '';
   };
 
+  /** A segunda pessoa sem login próprio: o nome fica na casa e serve aos dois aparelhos. */
+  window.veroNomearSegunda = function () {
+    abrirForm('Nome da segunda pessoa',
+      campoConta('c-nome', 'Como aparece no app', 'text', 'maxlength="20"') +
+      '<p class="frase" id="conta-erro" role="alert"></p>',
+      async function () {
+        const nome = document.getElementById('c-nome').value.trim();
+        if (!nome) return;
+        const r = await sb.rpc('nomear_segunda', { p_nome: nome });
+        if (r.error) {
+          return mostrarErro(/nomear_segunda|function|schema cache/i.test(r.error.message)
+            ? 'O banco ainda não guarda este nome. Falta uma atualização no servidor.'
+            : textoDoErro(r.error));
+        }
+        nomeSegunda = nome;
+        eu.nomeSegunda = nome;
+        gravar(K_EU, eu);
+        fecharFolhas();
+        redesenhar();
+      });
+    document.getElementById('c-nome').value = nomeSegunda;
+  };
+
   window.veroSincronizar = async function () {
     semRede = false;
     // A recusa já voltou ao que o banco tem: depois de visto, o aviso não fica para sempre.
@@ -520,7 +723,8 @@
       disponivel: !!sb, entrou: !!sessao, ligado: !!(sessao && eu),
       email: sessao && sessao.email, vaga: eu && eu.vaga, nome: eu ? window.veroNomeDaVaga(eu.vaga) : '',
       codigo: codigo, estado: textoDoEstado(), conversa: conversa.length,
-      pessoas: ['sas', 'ela'].filter(function (v) { return nomesVaga[v]; }).map(function (v) { return { vaga: v, nome: nomesVaga[v] }; })
+      pessoas: ['sas', 'ela'].filter(function (v) { return nomesVaga[v]; }).map(function (v) { return { vaga: v, nome: nomesVaga[v] }; }),
+      nomeSegunda: nomeSegunda, podeNomearSegunda: bancoTemSegunda
     };
   };
 
@@ -635,7 +839,7 @@
   window.veroVagaOcupada = function (v) { return !!nomesVaga[v]; };
   /** A segunda vaga existe antes de a pessoa entrar: dá para lançar para ela desde já. */
   window.veroNomeDaVaga = function (v) {
-    return nomesVaga[v] || (v === 'ela' ? 'Segunda pessoa' : 'Primeira pessoa');
+    return nomesVaga[v] || (v === 'ela' ? (nomeSegunda || 'Segunda pessoa') : 'Primeira pessoa');
   };
   /** De quem é a linha só se diz no Total: dentro de uma conta, já se sabe. */
   window.veroDono = function (l, vista) {

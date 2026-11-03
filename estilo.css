@@ -159,7 +159,22 @@ nav.barra a.so-rail { display: none; }
   background: var(--surface);
 }
 .portao[hidden] { display: none; }
-.portao-caixa { width: 100%; max-width: 380px; margin: auto; }
+/* A rede fica presa à janela e por baixo de tudo; a máscara apaga as bordas para ela
+   respirar em vez de terminar num corte. */
+.portao > canvas.rede {
+  position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;
+  -webkit-mask-image: radial-gradient(88% 80% at 50% 50%, #000 0%, rgba(0,0,0,.55) 62%, transparent 94%);
+  mask-image: radial-gradient(88% 80% at 50% 50%, #000 0%, rgba(0,0,0,.55) 62%, transparent 94%);
+}
+.portao-caixa { position: relative; z-index: 1; width: 100%; max-width: 380px; margin: auto; }
+.senha-caixa { position: relative; display: block; }
+.senha-caixa input { padding-right: 48px; }
+.ver-senha {
+  position: absolute; top: 0; right: 0; width: 46px; height: 100%; min-height: 42px;
+  display: grid; place-items: center; background: none; border: 0; color: var(--on-surface-muted);
+}
+.ver-senha[aria-pressed="true"] { color: var(--on-surface); }
+.ver-senha svg { width: 20px; height: 20px; }
 .portao-marca { display: flex; align-items: center; gap: 10px; font-family: "Playfair Display", Georgia, serif; font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
 .portao-caixa > .frase { margin: 10px 0 20px; font-size: 14px; }
 .portao-caixa .btn { width: 100%; min-height: 48px; margin-top: 10px; white-space: normal; }
