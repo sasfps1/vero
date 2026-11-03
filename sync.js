@@ -19,7 +19,7 @@
   const K_FILA = 'vero.fila', K_ESPELHO = 'vero.espelho', K_EU = 'vero.eu', K_SEM_CONTA = 'vero.semConta';
   const CAMPOS = {
     lancamentos: ['id', 'data', 'tipo', 'valor', 'categoria', 'conta', 'nota', 'fixa', 'emprestimo', 'origem', 'em'],
-    fixas: ['id', 'nome', 'valor', 'conta', 'dia', 'ativa'],
+    fixas: ['id', 'nome', 'valor', 'conta', 'dia', 'ativa', 'desde'],
     emprestimos: ['id', 'direcao', 'pessoa', 'valor', 'data', 'prometido', 'conta', 'nota', 'estado'],
     categorias: ['tipo', 'nome']
   };
@@ -31,7 +31,7 @@
   let sb = null, sessao = null, eu = ler(K_EU), espelho = ler(K_ESPELHO), fila = ler(K_FILA) || [];
   let enviando = false, enviados = 0, recusados = 0, semRede = false, puxando = false, repuxar = false;
   let relerNoFim = false, relogioFila = null, relogioPuxar = null, canal = null, nomes = {}, codigo = eu ? eu.codigo : null;
-  let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null;
+  let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null, bancoTemDesde = false;
 
   // ── do estado do app para as linhas do banco, e de volta ──────────────────
 
@@ -54,7 +54,7 @@
       });
     }
     for (const c of s.contas) {
-      d.fixas[c.id] = canon('fixas', { id: c.id, nome: String(c.nome).slice(0, 40), valor: c.centavos, conta: c.vaga || vaga, dia: c.dia, ativa: c.ativa !== false });
+      d.fixas[c.id] = canon('fixas', { id: c.id, nome: String(c.nome).slice(0, 40), valor: c.centavos, conta: c.vaga || vaga, dia: c.dia, ativa: c.ativa !== false, desde: c.desde || null });
     }
     for (const e of s.emprestimos) {
       d.emprestimos[e.id] = canon('emprestimos', {
@@ -80,9 +80,9 @@
     const contas = Object.values(d.fixas).map(function (r) {
       const pagos = {};
       lancamentos.forEach(function (l) {
-        if (l.conta === r.id) pagos[l.data.slice(0, 7)] = { data: l.data, centavos: l.centavos, lanc: l.id };
+        if (l.conta === r.id) pagos[mesDoPagamento(l)] = { data: l.data, centavos: l.centavos, lanc: l.id };
       });
-      return { id: r.id, nome: r.nome, centavos: r.valor, dia: r.dia, ativa: r.ativa, pagos: pagos, vaga: r.conta };
+      return { id: r.id, nome: r.nome, centavos: r.valor, dia: r.dia, ativa: r.ativa, pagos: pagos, vaga: r.conta, desde: r.desde };
     });
     const emprestimos = Object.values(d.emprestimos).map(function (r) {
       return { id: r.id, direcao: r.direcao, pessoa: r.pessoa, centavos: r.valor, data: r.data, prometida: r.prometido, estado: r.estado, nota: r.nota, vaga: r.conta };
@@ -128,7 +128,11 @@
 
   function enviar(op) {
     if (op.op === 'poe') {
-      return sb.from(op.t).upsert(Object.assign({}, op.linha, { casa_id: eu.casa }),
+      const linha = Object.assign({}, op.linha, { casa_id: eu.casa });
+      // ⚠️ Aparelho que ainda não leu o `desde` não pode apagar o que o banco já sabe, e
+      // banco sem a coluna recusaria a linha inteira: a conta nova se perdia.
+      if (op.t === 'fixas' && (!linha.desde || !bancoTemDesde)) delete linha.desde;
+      return sb.from(op.t).upsert(linha,
         op.t === 'categorias' ? { onConflict: 'casa_id,tipo,nome' } : undefined);
     }
     const q = sb.from(op.t).delete().eq('casa_id', eu.casa);
@@ -184,6 +188,7 @@
     const d = { lancamentos: {}, fixas: {}, emprestimos: {}, categorias: {} }, autores = {};
     for (const t of TABELAS) {
       for (const r of await lerTabela(t)) {
+        if (t === 'fixas') bancoTemDesde = 'desde' in r;
         const k = t === 'categorias' ? r.tipo + '|' + r.nome : r.id;
         d[t][k] = canon(t, r);
         if (t === 'lancamentos') autores[r.id] = r.criado_por;
@@ -440,36 +445,87 @@
       }, 'Continuar');
   }
 
-  function abrirDados() {
-    abrirForm('Sua conta',
-      (codigo ? '<span class="rotulo" style="margin-top:18px">Código para a outra pessoa entrar</span>' +
-        '<div class="numero-medio" style="margin:6px 0 14px">' + esc(codigo) + '</div>' : '') +
-      '<p class="frase" id="conta-erro">' + textoDoEstado() + '</p>' +
-      campoConta('c-nova-senha', 'Nova senha (só se quiser trocar)', 'password', 'autocomplete="new-password" minlength="6"') +
-      '<button class="btn" id="conta-senha" style="width:100%">Trocar a senha</button>' +
-      (fila.length ? '<p class="frase" style="margin-top:8px">Se sair agora, o que ainda não foi enviado se perde.</p>' : ''),
-      async function () {
-        await sb.auth.signOut();
-        esquecer();
-        sessao = null;
-        S = estrutura({ config: S.config });
-        guardar();
-        fecharFolhas();
-        desenhar();
-        gravar(K_SEM_CONTA, null);
-        mostrarPortao(false);
-      }, fila.length ? 'Sair mesmo assim' : 'Sair desta conta');
-    document.getElementById('conta-senha').addEventListener('click', async function () {
-      const campo = document.getElementById('c-nova-senha'), senha = campo.value;
-      if (senha.length < 6) return mostrarErro(ERROS.senha_curta);
-      const r = await sb.auth.updateUser({ password: senha });
-      if (r.error) return mostrarErro(/same/i.test(r.error.message) ? 'Essa já é a sua senha.' : textoDoErro(r.error));
-      campo.value = '';
-      mostrarErro('Senha trocada.');
-    });
+  /* ⚠️ Só neste aparelho. O padrão do Supabase encerra TODAS as sessões: sair no PC
+     derrubava o celular, e sem "esqueci a senha" isso trancava o dono para fora. */
+  async function sair() {
+    await sb.auth.signOut({ scope: 'local' });
+    esquecer();
+    sessao = null;
+    S = estrutura({ config: S.config });
+    guardar();
+    fecharFolhas();
+    location.hash = '#/inicio';
+    desenhar();
+    gravar(K_SEM_CONTA, null);
+    mostrarPortao(false);
   }
 
+  window.veroSair = function () {
+    if (!fila.length) return sair();
+    abrirForm('Sair da conta',
+      '<p class="frase" style="margin:14px 0">' + fila.length + (fila.length === 1 ? ' registro ainda não foi enviado e se perde' : ' registros ainda não foram enviados e se perdem') + ' ao sair. Com internet, eles vão sozinhos.</p>',
+      sair, 'Sair mesmo assim');
+  };
+
+  window.veroAbrirSenha = function () {
+    abrirForm('Trocar a senha',
+      campoConta('c-nova-senha', 'Nova senha', 'password', 'autocomplete="new-password" minlength="6"') +
+      '<p class="frase" id="conta-erro" role="alert"></p>',
+      async function () {
+        const senha = document.getElementById('c-nova-senha').value;
+        if (senha.length < 6) return mostrarErro(ERROS.senha_curta);
+        const r = await sb.auth.updateUser({ password: senha });
+        if (r.error) return mostrarErro(/same/i.test(r.error.message) ? 'Essa já é a sua senha.' : textoDoErro(r.error));
+        fecharFolhas();
+        oferecerDesfazer('Senha trocada', null);
+      }, 'Trocar a senha');
+  };
+
+  window.veroAlterarNome = function () {
+    abrirForm('Seu nome',
+      campoConta('c-nome', 'Como aparece no app', 'text', 'maxlength="20" autocomplete="given-name"') +
+      '<p class="frase" id="conta-erro" role="alert"></p>',
+      async function () {
+        const nome = document.getElementById('c-nome').value.trim();
+        if (!nome) return;
+        const r = await sb.from('membros').update({ nome: nome }).eq('user_id', eu.uid);
+        if (r.error) return mostrarErro(textoDoErro(r.error));
+        nomesVaga[eu.vaga] = nome;
+        nomes[eu.uid] = nome;
+        fecharFolhas();
+        redesenhar();
+        agendarPuxar();
+      });
+    document.getElementById('c-nome').value = nomesVaga[eu.vaga] || '';
+  };
+
+  window.veroSincronizar = async function () {
+    semRede = false;
+    // A recusa já voltou ao que o banco tem: depois de visto, o aviso não fica para sempre.
+    recusados = 0;
+    await drenar();
+    await puxar();
+    oferecerDesfazer(semRede ? 'Sem internet agora. Fica salvo aqui.' : 'Sincronizado', null);
+  };
+
+  window.veroLimparConversa = function () {
+    conversa = [];
+    gravar(K_CHAT, conversa);
+    redesenhar();
+    oferecerDesfazer('Conversa apagada neste aparelho', null);
+  };
+
+  window.veroConta = function () {
+    return {
+      disponivel: !!sb, entrou: !!sessao, ligado: !!(sessao && eu),
+      email: sessao && sessao.email, vaga: eu && eu.vaga, nome: eu ? window.veroNomeDaVaga(eu.vaga) : '',
+      codigo: codigo, estado: textoDoEstado(), conversa: conversa.length,
+      pessoas: ['sas', 'ela'].filter(function (v) { return nomesVaga[v]; }).map(function (v) { return { vaga: v, nome: nomesVaga[v] }; })
+    };
+  };
+
   function textoDoEstado() {
+    if (eu && !sessao) return 'Sua sessão terminou. Entre de novo para enviar o que está aqui.';
     if (recusados) return recusados + (recusados === 1 ? ' registro não foi aceito' : ' registros não foram aceitos') + ' pelo servidor e voltou ao que estava.';
     if (fila.length) return fila.length + (fila.length === 1 ? ' registro espera' : ' registros esperam') + ' internet. Está salvo neste aparelho.';
     if (semRede) return 'Sem internet agora. O que lançar fica salvo aqui.';
@@ -537,8 +593,10 @@
     pintarConversa();
   }
 
+  function semServidor() { oferecerDesfazer('Sem internet agora. Tente de novo quando houver sinal.', null); }
+
   window.veroAbrirIA = function () {
-    if (!sb) return;
+    if (!sb) return semServidor();
     if (!sessao) return abrirEntrar();
     if (!eu) return abrirCasa();
     abrirForm('Pergunte ao Vero',
@@ -558,17 +616,19 @@
   window.veroLigado = function () { return !!eu; };
 
   window.veroAbrirConta = function () {
-    if (!sb) return;
+    if (!sb) return semServidor();
     if (!sessao) return abrirEntrar();
     if (!eu) return abrirCasa();
-    abrirDados();
+    location.hash = '#/ajustes';
   };
 
+  /** Com tudo sincronizado o Início não diz nada: o estado está em Configurações. */
   window.veroAviso = function () {
     if (!sb) return '';
+    if (eu && sessao && !fila.length && !recusados && !semRede) return '';
     return '<div class="aviso sem-caixa">' +
-      (eu ? textoDoEstado() : 'Só neste aparelho. Entre para ver os lançamentos nos dois celulares.') +
-      '<button class="btn pequeno" data-acao="conta">' + (eu ? 'Conta' : 'Entrar') + '</button></div>';
+      (eu ? textoDoEstado() : 'Só neste aparelho. Entre para ver os lançamentos em todos os aparelhos.') +
+      '<button class="btn pequeno" data-acao="conta">' + (eu && sessao ? 'Ver' : 'Entrar') + '</button></div>';
   };
 
   window.veroMinhaVaga = function () { return eu ? eu.vaga : 'sas'; };
@@ -598,7 +658,11 @@
     if (r.data && r.data.session) {
       esconderPortao();
       await ligar(r.data.session.user);
-    } else redesenhar();
+    } else {
+      redesenhar();
+      // Sessão vencida com sinal: sem isto, a fila tentava para sempre e dizia "sem internet".
+      if (eu && navigator.onLine !== false) mostrarPortao(true);
+    }
   }
 
   window.veroSync = { pronto: iniciar(), puxar: puxar, drenar: drenar, fila: function () { return fila; }, recusados: function () { return recusados; }, decidir: function (junta) { if (decidirLocal) decidirLocal(junta); } };

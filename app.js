@@ -22,6 +22,8 @@
 // ── armazenamento ────────────────────────────────────────────────────────────
 
 const CHAVE = 'casa.v1';
+// Sobe junto com CACHE em sw.js; a prova confere os dois.
+const VERSAO = 9;
 let soMemoria = false;
 
 const VAZIO = {
@@ -197,6 +199,34 @@ function contasPorPagar(mes) {
   });
 }
 
+function mesSeguinte(mes) {
+  const a = Number(mes.slice(0, 4)), m = Number(mes.slice(5, 7));
+  return m === 12 ? (a + 1) + '-01' : a + '-' + p2(m + 1);
+}
+function nomeDoMes(mes) { return MESES[Number(mes.slice(5, 7)) - 1]; }
+function vencimentoEm(c, mes) { return mes + '-' + p2(Math.min(c.dia, diasNoMes(mes))); }
+
+/** A que mês um pagamento pertence. A conta de outubro paga em novembro saiu do dinheiro
+    de novembro, mas quita outubro: sem isto, novembro aparecia pago e outubro não. */
+function mesDoPagamento(l) {
+  const m = /^mes:(\d{4}-\d{2})$/.exec(l.origem || '');
+  return m ? m[1] : mesDe(l.data);
+}
+
+/** Contas de meses passados que ninguém pagou nem dispensou, a mais antiga primeiro.
+    `desde` é o primeiro mês que a conta cobra: quem o não tem nunca aparece atrasado,
+    porque um alarme falso sobre dinheiro é pior do que nenhum. */
+function contasAtrasadas() {
+  const atual = mesDe(hoje()), lista = [];
+  contasVistas().forEach(function (c) {
+    if (c.ativa === false || !/^\d{4}-\d{2}$/.test(c.desde || '')) return;
+    for (let m = c.desde; m < atual; m = mesSeguinte(m)) {
+      if (!(c.pagos && c.pagos[m])) lista.push({ conta: c, mes: m, venc: vencimentoEm(c, m) });
+    }
+  });
+  return lista.sort(function (a, b) { return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
+}
+
 function abertos(direcao) {
   return emprestimosVistos().filter(function (e) {
     return e.direcao === direcao && e.estado === 'aberto' && falta(e) > 0;
@@ -258,7 +288,9 @@ function resumoDoMes(mes) {
 function calc() {
   const mes = mesDe(hoje());
   const { entradas, saidas } = resumoDoMes(mes);
-  const contasFalta = contasPorPagar(mes).reduce(function (a, c) { return a + c.centavos; }, 0);
+  // A conta atrasada ainda vai sair: sem ela aqui, o limite do dia prometia esse dinheiro.
+  const contasFalta = contasPorPagar(mes).reduce(function (a, c) { return a + c.centavos; }, 0) +
+    contasAtrasadas().reduce(function (a, x) { return a + x.conta.centavos; }, 0);
   const euDevo = euDevoNoMes(mes);
   const livre = entradas - saidas - contasFalta - euDevo;
   return {
@@ -293,6 +325,8 @@ let ultimoDesfazer = null, relogioDesfazer = null;
 
 function oferecerDesfazer(texto, repor) {
   ultimoDesfazer = repor;
+  // Sem nada para repor é só um aviso: um "Desfazer" que não faz nada engana.
+  document.getElementById('desfazer-btn').hidden = !repor;
   document.getElementById('desfazer-texto').textContent = texto;
   document.getElementById('desfazer').hidden = false;
   clearTimeout(relogioDesfazer);
@@ -310,7 +344,7 @@ const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julh
 
 function rota() {
   const r = (location.hash || '#/inicio').replace('#/', '');
-  return ['inicio', 'gastos', 'contas', 'pessoas'].includes(r) ? r : 'inicio';
+  return ['inicio', 'gastos', 'contas', 'pessoas', 'ajustes'].includes(r) ? r : 'inicio';
 }
 
 /* PARA ONDE FOI O DINHEIRO.
@@ -662,9 +696,10 @@ function desenhar() {
     b.setAttribute('aria-pressed', S.config.oculto ? 'true' : 'false');
     b.setAttribute('aria-label', S.config.oculto ? 'Mostrar os valores' : 'Esconder os valores');
   });
-  document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() : r[0].toUpperCase() + r.slice(1);
+  document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() : r === 'ajustes' ? 'Configurações' : r[0].toUpperCase() + r.slice(1);
   document.getElementById('topo-mes').textContent = 'Dia ' + diaDe(hoje()) + ' de ' + MESES[Number(n.mes.slice(5, 7)) - 1];
-  document.getElementById('seletor-conta').hidden = !haContas();
+  // Configurações não mudam de uma conta para a outra: lá o botão só confundiria.
+  document.getElementById('seletor-conta').hidden = !haContas() || r === 'ajustes';
   document.getElementById('seletor-nome').textContent = nomeDaVista();
   document.querySelectorAll('nav.barra a').forEach(function (a) {
     a.classList.toggle('activo', a.dataset.rota === r);
@@ -674,6 +709,7 @@ function desenhar() {
   tela.innerHTML = r === 'gastos' ? telaGastos(n)
     : r === 'contas' ? telaContas(n)
     : r === 'pessoas' ? telaPessoas(n)
+    : r === 'ajustes' ? telaAjustes(n)
     : telaInicio(n);
   // Só volta ao topo ao mudar de tela: corrigir um lançamento no meio da lista
   // não pode atirá-lo para o início.
@@ -702,11 +738,14 @@ function avisoCopia() {
   const vencida = !ligado && (!ult || ult < dataMais(-7));
   const restaurar = '<button class="btn pequeno fraco" data-acao="restaurar">Restaurar cópia</button>';
   if (!S.lancamentos.length && !S.contas.length) {
+    if (ligado) return '';
     return '<div class="aviso sem-caixa">Trocou de celular? Traga a cópia que você baixou.' + restaurar + '</div>';
   }
-  return '<div class="aviso sem-caixa' + (vencida ? ' pesado' : '') + '">' +
+  // O Início só avisa quando há o que fazer: o caminho de sempre está em Configurações.
+  if (!vencida) return '';
+  return '<div class="aviso sem-caixa pesado">' +
     (ult ? 'Última cópia em ' + porExtensoData(ult) + '.' : 'Nenhuma cópia baixada ainda.') +
-    (vencida ? ' O celular pode perder isto; a cópia é a sua posse.' : '') +
+    ' O celular pode perder isto; a cópia é a sua posse.' +
     '<span class="botoes-aviso"><button class="btn pequeno" data-acao="copia">Baixar cópia</button>' + restaurar + '</span></div>';
 }
 
@@ -882,6 +921,13 @@ function itensProximos() {
   const h = hoje(), limite = dataMais(7), mes = mesDe(h);
   const itens = [];
 
+  contasAtrasadas().forEach(function (x) {
+    itens.push({
+      data: x.venc, nome: x.conta.nome, centavos: x.conta.centavos, tipo: 'conta',
+      ref: x.conta.id + '|' + x.mes, marca: 'vencida'
+    });
+  });
+
   contasPorPagar(mes).forEach(function (c) {
     const venc = mes + '-' + p2(Math.min(c.dia, diasNoMes(mes)));
     if (venc > limite) return;
@@ -931,11 +977,30 @@ function telaContas(n) {
     });
   }
 
+  const atrasadas = contasAtrasadas(), jaTemBotao = {};
+  // Só a mais antiga de cada conta pode ser dispensada: dispensar move o `desde`, e numa
+  // mais nova levaria junto as anteriores sem ninguém ter pedido.
+  const linhasAtrasadas = atrasadas.map(function (x) {
+    const primeira = !jaTemBotao[x.conta.id];
+    jaTemBotao[x.conta.id] = true;
+    return linhaHtml({
+      marca: 'vencida',
+      titulo: tituloEditavel('editar-conta', x.conta.id, esc(x.conta.nome)),
+      sub: 'de ' + nomeDoMes(x.mes) + ' · venceu ' + porExtensoData(x.venc),
+      botoes: botao('pagar', x.conta.id + '|' + x.mes, 'Paguei') +
+        (primeira ? botao('dispensar-conta', x.conta.id + '|' + x.mes, 'Não devo', true) : ''),
+      centavos: x.conta.centavos,
+      classes: 'atrasada '
+    });
+  }).join('');
+
   return '<section class="bloco he">' +
-      '<span class="rotulo">Falta pagar este mês</span>' +
+      '<span class="rotulo">Falta pagar</span>' +
       '<div class="numero-grande">' + numeroGrande(n.contasFalta) + '</div>' +
-      '<p class="frase">' + contasPorPagar(mes).length + ' de ' + vistas.length + ' contas por pagar.</p>' +
+      '<p class="frase">' + contasPorPagar(mes).length + ' de ' + vistas.length + ' contas por pagar este mês.' +
+        (atrasadas.length === 1 ? ' E 1 de mês passado.' : atrasadas.length ? ' E ' + atrasadas.length + ' de meses passados.' : '') + '</p>' +
     '</section>' +
+    (linhasAtrasadas ? '<section class="bloco"><h2 class="secao"><span class="rotulo">De meses passados</span></h2>' + linhasAtrasadas + '</section>' : '') +
     '<section class="bloco"><h2 class="secao"><span class="rotulo">Todas as contas</span>' +
       '<button class="btn pequeno" data-acao="nova-conta">Nova conta</button></h2>' +
       (linhas || '<p class="vazio">Nenhuma conta fixa cadastrada. Comece pelas que se repetem todo mês: aluguel, luz, água, internet.</p>') +
@@ -998,6 +1063,158 @@ function telaPessoas(n) {
         '<button class="btn" style="flex:1" data-acao="novo-emprestimo" data-ref="peguei">Peguei com alguém</button>' +
       '</div></section>' +
     (corpo || '<section class="bloco"><p class="vazio">Nenhum empréstimo anotado.</p></section>');
+}
+
+// ── Configurações ────────────────────────────────────────────────────────────
+
+function linhaAjuste(titulo, sub, botoes) {
+  return '<div class="ajuste"><div class="ajuste-texto">' + titulo + (sub ? '<small>' + sub + '</small>' : '') + '</div>' +
+    (botoes ? '<div class="ajuste-botoes">' + botoes + '</div>' : '') + '</div>';
+}
+function blocoAjuste(titulo, html) {
+  return '<section class="bloco"><h2 class="titulo-cartao">' + titulo + '</h2>' + html + '</section>';
+}
+
+function ajustesConta(c) {
+  if (!c.disponivel) return blocoAjuste('Conta', '<p class="frase">Sem ligação com o servidor agora. Tudo o que lançar fica guardado neste aparelho.</p>');
+  if (!c.entrou) {
+    return blocoAjuste('Conta', linhaAjuste('Você está sem conta', 'Os dados ficam só neste aparelho. Com a conta, aparecem em todos os seus aparelhos.', botao('conta', '', 'Entrar')));
+  }
+  if (!c.ligado) {
+    return blocoAjuste('Conta', linhaAjuste('Falta a sua casa', esc(c.email || ''), botao('conta', '', 'Continuar')) +
+      '<button class="btn fraco sair" data-acao="sair">Sair da conta</button>');
+  }
+  return blocoAjuste('Conta',
+    linhaAjuste('E-mail', esc(c.email || 'Não informado')) +
+    linhaAjuste('Seu nome', esc(c.nome), botao('alterar-nome', '', 'Alterar')) +
+    linhaAjuste('Senha', 'Não precisa da senha antiga enquanto estiver conectado aqui.', botao('trocar-senha', '', 'Trocar')) +
+    linhaAjuste('Sincronização', esc(c.estado), botao('sincronizar', '', 'Sincronizar')) +
+    '<button class="btn fraco sair" data-acao="sair">Sair da conta neste aparelho</button>');
+}
+
+function ajustesCasa(c) {
+  if (!c.ligado) return '';
+  const pessoas = c.pessoas.map(function (p) {
+    return linhaAjuste(esc(p.nome), p.vaga === c.vaga ? 'Você' : '');
+  }).join('');
+  return blocoAjuste('Sua casa',
+    (c.codigo ? '<div class="ajuste"><div class="ajuste-texto">Código para a outra pessoa entrar<small class="codigo-casa">' + esc(c.codigo) + '</small></div>' +
+      '<div class="ajuste-botoes">' + botao('copiar-codigo', '', 'Copiar') + botao('enviar-codigo', '', 'Enviar') + '</div></div>' : '') +
+    pessoas +
+    (c.pessoas.length < 2 ? linhaAjuste('Segunda pessoa', 'Ainda não entrou. Ela cria a conta dela e usa este código.') : '') +
+    linhaAjuste('Números mostrados', esc(nomeDaVista()), botao('escolher-conta', '', 'Trocar')));
+}
+
+function ajustesLimite(n) {
+  const botoes = [0, 5, 10, 15, 20].map(function (p) {
+    const ativo = Math.round(S.config.folga * 100) === p;
+    return '<button class="periodo' + (ativo ? ' activo' : '') + '" data-acao="folga" data-ref="' + p + '" aria-pressed="' + ativo + '">' + p + '%</button>';
+  }).join('');
+  return blocoAjuste('Limite do dia',
+    '<p class="frase">Antes de dividir o que sobrou pelos dias que faltam, o Vero guarda esta parte como folga. Vale neste aparelho.</p>' +
+    '<div class="periodos cinco">' + botoes + '</div>' +
+    '<p class="frase" style="margin-top:10px">Com esta folga, o limite de hoje é ' + dinheiro(n.limite) + '.</p>');
+}
+
+function ajustesCategorias() {
+  const linhas = S.categorias.slice().sort().map(function (c) {
+    return linhaAjuste(esc(c), '', botao('editar-categoria', esc(c), 'Editar'));
+  }).join('');
+  return blocoAjuste('Suas categorias',
+    (linhas || '<p class="frase">Nenhuma ainda. As categorias padrão, como Mercado e Moradia, estão sempre disponíveis.</p>') +
+    '<div style="margin-top:10px">' + botao('nova-categoria', '', 'Nova categoria') + '</div>');
+}
+
+function ajustesDados() {
+  const ult = S.config.copia;
+  return blocoAjuste('Seus dados',
+    linhaAjuste('Baixar uma cópia', (ult ? 'Última em ' + comAno(ult) + '. ' : 'Nenhuma ainda. ') + 'Um arquivo para restaurar e uma planilha.', botao('copia', '', 'Baixar')) +
+    linhaAjuste('Restaurar uma cópia', 'Só acrescenta o que falta. Nada é apagado nem trocado.', botao('restaurar', '', 'Restaurar')));
+}
+
+let pedidoInstalar = null;
+function jaInstalado() {
+  return !!((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone);
+}
+function ajustesAparelho() {
+  const iphone = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+  const instalar = jaInstalado() ? linhaAjuste('Instalado neste aparelho', 'Abrindo pelo ícone, sem a barra do navegador.')
+    : pedidoInstalar ? linhaAjuste('Instalar o Vero', 'Abre pelo ícone, como um aplicativo.', botao('instalar', '', 'Instalar'))
+    : iphone ? linhaAjuste('Instalar o Vero', 'No Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".')
+    : linhaAjuste('Instalar o Vero', 'No menu do navegador, procure "Instalar" ou "Adicionar à tela inicial".');
+  return blocoAjuste('Este aparelho',
+    linhaAjuste('Esconder os valores', 'Para abrir o app na rua. Tocar no anel do Vero faz o mesmo.', botao('ocultar', '', S.config.oculto ? 'Mostrar' : 'Esconder')) +
+    instalar +
+    linhaAjuste('Versão ' + VERSAO, 'A versão nova costuma chegar sozinha.', botao('atualizar', '', 'Atualizar')));
+}
+
+function telaAjustes(n) {
+  const c = window.veroConta ? window.veroConta() : { disponivel: false };
+  return ajustesConta(c) + ajustesCasa(c) + ajustesLimite(n) + ajustesCategorias() + ajustesDados() +
+    (c.ligado && c.conversa ? blocoAjuste('Conversa com a IA', linhaAjuste('Mensagens guardadas neste aparelho', String(c.conversa), botao('apagar-conversa', '', 'Apagar'))) : '') +
+    ajustesAparelho() +
+    '<section class="bloco"><div class="sobre-vero">Vero</div><p class="frase">Feito pela SAS. O app calcula e os números são seus.</p></section>';
+}
+
+/** A folga muda o limite na hora: o congelado do dia foi feito com a folga antiga. */
+function definirFolga(p) {
+  S.config.folga = Math.min(0.5, Math.max(0, Number(p) / 100));
+  Object.keys(S.config).forEach(function (k) { if (k === 'limite' || k.indexOf('limite_') === 0) S.config[k] = null; });
+  guardar();
+}
+
+/** Renomear leva junto o que já foi lançado: o histórico não pode ficar com o nome velho. */
+function renomearCategoria(antigo, novo) {
+  S.categorias = S.categorias.filter(function (c) { return c !== antigo; });
+  if (!CAT_SAIDA.concat(CAT_ENTRADA, S.categorias).includes(novo)) S.categorias.push(novo);
+  S.lancamentos.forEach(function (l) { if (l.categoria === antigo) l.categoria = novo; });
+  guardar();
+}
+/** Apagar tira da lista. O lançamento continua com o nome que tinha: o gasto existiu. */
+function removerCategoria(nome) {
+  S.categorias = S.categorias.filter(function (c) { return c !== nome; });
+  guardar();
+}
+function novaCategoria() {
+  abrirForm('Nova categoria', campoTexto('cat-nome', 'Nome', 'maxlength="28"'), function () {
+    const nome = document.getElementById('cat-nome').value.trim();
+    if (!nome) return;
+    if (!CAT_SAIDA.concat(CAT_ENTRADA, S.categorias).includes(nome)) S.categorias.push(nome);
+    guardar(); fecharFolhas(); desenhar();
+  });
+}
+function editarCategoria(nome) {
+  abrirForm('Editar categoria', campoTexto('cat-nome', 'Nome', 'maxlength="28"') +
+    botaoApagar('apagar-categoria', esc(nome), 'Apagar esta categoria'), function () {
+    const novo = document.getElementById('cat-nome').value.trim();
+    if (!novo || novo === nome) return fecharFolhas();
+    comDesfazer('Categoria renomeada', function () { renomearCategoria(nome, novo); });
+  });
+  document.getElementById('cat-nome').value = nome;
+}
+
+function copiarCodigo(codigo) {
+  const pronto = function () { oferecerDesfazer('Código copiado', null); };
+  const falhou = function () { oferecerDesfazer('Não deu para copiar. O código é ' + codigo, null); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(codigo).then(pronto, falhou);
+  else falhou();
+}
+function enviarCodigo(codigo) {
+  const texto = 'Entre comigo no Vero: ' + location.origin + location.pathname + ' . Crie a sua conta e use o código ' + codigo + '.';
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+}
+function instalarApp() {
+  if (!pedidoInstalar) return;
+  const p = pedidoInstalar;
+  pedidoInstalar = null;
+  p.prompt();
+  desenhar();
+}
+function atualizarApp() {
+  const recarregar = function () { location.reload(); };
+  if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+    navigator.serviceWorker.getRegistration().then(function (r) { return r && r.update(); }).then(recarregar, recarregar);
+  } else recarregar();
 }
 
 // ── folha de lançamento ──────────────────────────────────────────────────────
@@ -1258,8 +1475,26 @@ function removerLancamento(ref) {
   guardar();
 }
 
+/** ⚠️ Desfazer devolve só o que esta acção mudou. Voltar a fotografia inteira apagava do
+    banco o que a outra pessoa lançou nos 7 segundos do aviso. */
 function reporDe(antes) {
-  return function () { S = estrutura(JSON.parse(antes)); guardar(); desenhar(); };
+  const depois = JSON.stringify(S);
+  return function () { reverter(JSON.parse(antes), JSON.parse(depois)); guardar(); desenhar(); };
+}
+function reverter(a, d) {
+  for (const t of ['lancamentos', 'contas', 'emprestimos']) {
+    const A = {}, D = {};
+    a[t].forEach(function (x) { A[x.id] = x; });
+    d[t].forEach(function (x) { D[x.id] = x; });
+    Object.keys(Object.assign({}, A, D)).forEach(function (k) {
+      if (JSON.stringify(A[k]) === JSON.stringify(D[k])) return;
+      S[t] = S[t].filter(function (x) { return x.id !== k; });
+      if (A[k]) S[t].push(A[k]);
+    });
+  }
+  const criadas = d.categorias.filter(function (c) { return !a.categorias.includes(c); });
+  S.categorias = S.categorias.filter(function (c) { return !criadas.includes(c); });
+  a.categorias.forEach(function (c) { if (!S.categorias.includes(c)) S.categorias.push(c); });
 }
 
 function corrigir(tipo) {
@@ -1365,7 +1600,9 @@ function campoData(nome, rotulo, valor) {
 }
 function lerValor(nome) {
   const v = document.getElementById(nome).value.replace(',', '.');
-  return Math.round(Number(v || 0) * 100);
+  const c = Math.round(Number(v || 0) * 100);
+  // Valor negativo ou de R$ 1.000.000 para cima o banco recusa, e a linha sumia da tela.
+  return c > 0 && c <= 99999999 ? c : 0;
 }
 
 // ── corrigir contas fixas e empréstimos ─────────────────────────────────────
@@ -1512,7 +1749,11 @@ function novaConta() {
       const centavos = lerValor('c-valor');
       const dia = Math.min(31, Math.max(1, Number(document.getElementById('c-dia').value || 1)));
       if (!nome || !centavos) return;
-      S.contas.push({ id: id(), nome: nome, centavos: centavos, dia: dia, ativa: true, pagos: {}, vaga: lerDono('c-dono') });
+      // Conta criada depois do vencimento deste mês só cobra a partir do próximo: a de agora
+      // provavelmente já foi paga antes de existir aqui, e viraria atrasada na virada do mês.
+      const mes = mesDe(hoje());
+      S.contas.push({ id: id(), nome: nome, centavos: centavos, dia: dia, ativa: true, pagos: {}, vaga: lerDono('c-dono'),
+        desde: dia >= diaDe(hoje()) ? mes : mesSeguinte(mes) });
       guardar(); fecharFolhas(); desenhar();
     });
 }
@@ -1571,19 +1812,22 @@ function marcarPago(ref, mes, pago) {
   if (pago) c.pagos[mes] = pago; else delete c.pagos[mes];
 }
 
-function pagarConta(ref) {
+/** A ref traz o mês quando a conta é de um mês passado: "id|2026-10". */
+function pagarConta(alvo) {
+  const ref = alvo.split('|')[0], mesAtrasado = alvo.split('|')[1] || null;
   const c = S.contas.find(function (x) { return x.id === ref; });
   if (!c) return;
-  abrirForm('Paguei ' + c.nome,
+  abrirForm('Paguei ' + c.nome + (mesAtrasado ? ' de ' + nomeDoMes(mesAtrasado) : ''),
     campoValor('p-valor', 'Quanto saiu') +
     '<p class="frase">Deixe como está se foi ' + dinheiro(c.centavos) + '.</p>',
     function () {
       const centavos = lerValor('p-valor') || c.centavos;
-      const mes = mesDe(hoje());
+      const mes = mesAtrasado || mesDe(hoje());
       const l = {
         id: id(), tipo: 'saida', centavos: centavos, data: hoje(),
         nota: c.nome, conta: c.id, emprestimo: null, em: Date.now(), vaga: c.vaga
       };
+      if (mesAtrasado) l.origem = 'mes:' + mesAtrasado;
       S.lancamentos.push(l);
       marcarPago(ref, mes, { data: hoje(), centavos: centavos, lanc: l.id });
       guardar(); fecharFolhas(); desenhar();
@@ -1595,6 +1839,14 @@ function pagarConta(ref) {
     });
   // o campo abre com o valor habitual, para "Paguei" ser mesmo um toque
   document.getElementById('p-valor').value = (c.centavos / 100).toFixed(2);
+}
+
+/** Já foi resolvida fora do app, ou não era devida: some sem mexer no dinheiro. */
+function dispensarConta(alvo) {
+  const c = S.contas.find(function (x) { return x.id === alvo.split('|')[0]; });
+  const mes = alvo.split('|')[1];
+  if (!c || !mes) return;
+  comDesfazer(c.nome + ' de ' + nomeDoMes(mes) + ' dispensada', function () { c.desde = mesSeguinte(mes); guardar(); });
 }
 
 function despagar(ref) {
@@ -1651,11 +1903,12 @@ function baixar(nome, texto, tipo) {
 function guardarCopia() {
   const h = hoje();
   baixar('vero-' + h + '.json', JSON.stringify(S, null, 1), 'application/json');
-  const linhas = ['data;tipo;valor;categoria;no que foi'];
+  const linhas = ['data;tipo;valor;categoria;no que foi;de quem'];
   for (const l of S.lancamentos.slice().sort(function (a, b) { return a.data < b.data ? -1 : 1; })) {
     linhas.push([l.data, l.tipo, (l.centavos / 100).toFixed(2).replace('.', ','),
       String(categoriaDe(l) || '').replace(/[;\n]/g, ' '),
-      String(l.nota || '').replace(/[;\n]/g, ' ')].join(';'));
+      String(l.nota || '').replace(/[;\n]/g, ' '),
+      haContas() ? String(nomeDaVaga(l.vaga || minhaVaga())).replace(/[;\n]/g, ' ') : ''].join(';'));
   }
   baixar('vero-' + h + '.csv', '﻿' + linhas.join('\r\n'), 'text/csv');
   S.config.copia = h;
@@ -1699,7 +1952,7 @@ function restaurarCopia() {
       const antes = JSON.stringify(S);
       let n = null;
       try { n = juntarCopia(JSON.parse(texto)); } catch (e) { n = null; }
-      if (n === null) return oferecerDesfazer('Esse arquivo não é uma cópia do Vero. Use o .json.', function () {});
+      if (n === null) return oferecerDesfazer('Esse arquivo não é uma cópia do Vero. Use o .json.', null);
       guardar(); desenhar();
       oferecerDesfazer(n ? n + (n === 1 ? ' registro restaurado' : ' registros restaurados') : 'Tudo dessa cópia já estava aqui', reporDe(antes));
     });
@@ -1737,6 +1990,7 @@ document.addEventListener('click', function (ev) {
     case 'novo-emprestimo': return novoEmprestimo(ref);
     case 'pagar':           return pagarConta(ref);
     case 'despagar':        return despagar(ref);
+    case 'dispensar-conta': return dispensarConta(ref);
     case 'devolvi':         return devolucao(ref);
     case 'perdoar':         return perdoar(ref);
     case 'lembrar':         return lembrar(ref);
@@ -1751,6 +2005,21 @@ document.addEventListener('click', function (ev) {
       desenhar();
       return window.scrollTo(0, 0);
     case 'conta':           return window.veroAbrirConta();
+    case 'alterar-nome':    return window.veroAlterarNome();
+    case 'trocar-senha':    return window.veroAbrirSenha();
+    case 'sincronizar':     return window.veroSincronizar();
+    case 'sair':            return window.veroSair();
+    case 'apagar-conversa': return window.veroLimparConversa();
+    case 'copiar-codigo':   return copiarCodigo(window.veroConta().codigo);
+    case 'enviar-codigo':   return enviarCodigo(window.veroConta().codigo);
+    case 'folga':
+      definirFolga(ref);
+      return desenhar();
+    case 'nova-categoria':  return novaCategoria();
+    case 'editar-categoria': return editarCategoria(ref);
+    case 'apagar-categoria': return comDesfazer('Categoria apagada', function () { removerCategoria(ref); });
+    case 'instalar':        return instalarApp();
+    case 'atualizar':       return atualizarApp();
     case 'escolher-conta':  return escolherConta();
     case 'ver-conta':
       mudarVista(ref);
@@ -1802,6 +2071,22 @@ document.addEventListener('change', function (ev) {
 });
 
 window.addEventListener('hashchange', function () { desenhar(); });
+
+// No computador, Esc fecha a folha aberta.
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape') fecharFolhas();
+});
+
+// O navegador só deixa pedir a instalação depois deste aviso, e só uma vez.
+window.addEventListener('beforeinstallprompt', function (ev) {
+  ev.preventDefault();
+  pedidoInstalar = ev;
+  if (rota() === 'ajustes') desenhar();
+});
+window.addEventListener('appinstalled', function () {
+  pedidoInstalar = null;
+  if (rota() === 'ajustes') desenhar();
+});
 
 // O dia pode mudar com o app aberto (ele opera das 00h as 03h): ao voltar ao
 // app, recalcular, senao o limite de ontem fica na tela.
