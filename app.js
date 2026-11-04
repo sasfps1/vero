@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 15;
+const VERSAO = 16;
 let soMemoria = false;
 
 const VAZIO = {
@@ -813,7 +813,7 @@ function botao(acao, ref, texto, fraco) {
    deve aparecer 180". Hoje, o mês ou um dia escolhido. As contas a pagar saíram do
    número grande para uma faixa própria. Desenho a partir da referência que ele
    escolheu no Pinterest: um número sozinho, a resposta numa linha, uma barra fina. */
-let inicioVista = 'hoje', inicioDia = null, inicioSel = null, inicioFiltro = 'todos';
+let inicioVista = 'hoje', inicioDia = null, inicioFiltro = 'todos';
 
 function periodoInicio() {
   if (inicioVista === 'mes') {
@@ -832,24 +832,19 @@ function jaTemSaidas() {
   return S.contas.length > 0 || S.lancamentos.some(function (l) { return l.tipo === 'saida'; });
 }
 
-/* ── Início v15 (04/11): a casca inteira refeita pela referência dele ──────────
-   "Você só mexeu em umas coisinhas." O pedido era mudar a ESTRUTURA, não o
-   acabamento. A referência (painel de faturas em pílulas) tem quatro peças, e o
-   Início passa a ter as mesmas quatro, com o que o Vero mostra:
-     1. a faixa de números do período, finos e grandes, cada um com a sua barra;
-     2. o cartão do que falta pagar, com as próximas contas em fichas e a mais
-        próxima acesa (o "Stripe" verde dele);
-     3. os filtros numa linha só, em pílulas, com a pergunta ao Vero à direita
-        no lugar da busca;
-     4. o painel claro: a lista à esquerda e, no computador, o lançamento
-        escolhido aberto à direita, num cartão escuro dentro do creme.
-   O gelo deixa de aparecer "uma vez por tela" e passa a ser a cor do que está
-   ATIVO (aba, ficha, botão principal): um papel só, como o verde na referência. */
+/* ── Início v16 (04/11, noite): o herói da v14 volta, a casca da v15 fica ──────────
+   Ele abriu a v15 no PC: "não estou gostando, antes estava mais interessante". Dois
+   revisores (lente dos mestres + teste dos 5 segundos como ele e a Ana Clara) deram o
+   mesmo diagnóstico: a v14 tinha UM ponto de luz e UM número rei; a v15 tinha três
+   números iguais, um painel creme a roubar o olho e gráficos vazios no 2.º dia.
+   Receita: o cartão-herói com o degradê e o "Entrou" em negrito manda; Saiu/Ficou e o
+   mês servem por baixo, dentro dele; a rosca ao lado (pedido dele, Zarss); a conversa
+   com o Vero em largura toda, com cara de conversa (antes parecia busca); depois a
+   lista e as contas. Gráfico só aparece quando há o que mostrar. */
 function telaInicio(n) {
   const p = periodoInicio(), r = resumoEntre(p.de, p.ate);
-  const semContaAinda = window.veroLigado && !window.veroLigado() && window.veroAviso && !!window.veroAviso();
   const ficou = r.entradas - r.saidas;
-  const pctSaiu = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
+  const pct = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
   const pctFicou = r.entradas > 0 ? Math.max(0, Math.round(ficou / r.entradas * 100)) : 0;
 
   const abas = [['hoje', 'Hoje'], ['mes', 'Mês']].map(function (a) {
@@ -859,137 +854,75 @@ function telaInicio(n) {
       (inicioVista === 'dia' && inicioDia ? porExtensoData(inicioDia) : 'Outro dia') +
       '<input type="date" id="inicio-dia" max="' + hoje() + '" value="' + (inicioDia || hoje()) + '" aria-label="Escolher o dia"></label>';
 
-  const noMes = inicioVista !== 'mes';
   const sobra = Math.max(0, n.limite - n.gastoHoje);
-  const kpis = '<section class="bloco kpis">' +
-    kpiHtml('Entrou ' + p.quando, r.entradas, '', 100, noMes ? 'No mês +' + dinheiro(n.entradas) : '', noMes ? '' : seloMes('entradas', n.entradas)) +
-    kpiHtml('Saiu ' + p.quando, r.saidas, '−', pctSaiu, r.entradas ? pctSaiu + '% do que entrou' : (r.saidas ? 'Só saiu dinheiro' : 'Nada saiu'), noMes ? '' : seloMes('saidas', n.saidas)) +
-    kpiHtml('Ficou', Math.abs(ficou), ficou < 0 ? '−' : '', pctFicou,
-      inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas() ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : (r.entradas ? pctFicou + '% guardado' : ''), '') +
-    (p.de === p.ate ? semanaHtml(p.de) : '') +
+  const podeGastar = inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas();
+  const heroi = '<section class="bloco he heroi">' +
+    '<span class="rotulo">Entrou ' + p.quando + '</span>' +
+    '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
+    '<div class="heroi-dois">' +
+      '<div><span>' + icone('saiu') + 'Saiu</span><b>' + dinheiro(r.saidas) + '</b>' +
+        '<div class="barra-fina" role="img" aria-label="Saiu ' + pct + '% do que entrou"><i style="width:' + pct + '%"></i></div>' +
+        '<small>' + (r.entradas ? pct + '% do que entrou' : r.saidas ? 'Só saiu dinheiro' : 'Nada saiu') + '</small></div>' +
+      '<div><span>Sobrou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b><small>' +
+        (podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—') + '</small></div>' +
+    '</div>' +
+    (inicioVista !== 'mes' ? '<p class="heroi-mes">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
   '</section>';
 
   return '<div class="painel inicio">' +
-    '<div class="filtros">' +
-      '<nav class="abas" aria-label="Período">' + abas + '</nav>' +
-      (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar">' + icone('conversa') + '<span>Pergunte ao Vero: <i>"quando troquei o pneu?"</i></span></button>' : '') +
-    '</div>' +
-    kpis +
-    cartaoContas(n) +
-    (semContaAinda ? avisos() : '') +
-    painelClaro(p) +
+    '<nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
+    heroi +
     secaoParaOndeTiles(p) +
+    conversaCartao() +
+    listaInicio(p) +
+    cartaoContas(n) +
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
-    (semContaAinda ? '' : avisos()) +
+    avisos() +
   '</div>';
-}
-
-/** Um número da faixa: rótulo, o valor fino e grande, a barra fina e uma linha de nota. */
-function kpiHtml(rotulo, centavos, sinal, pct, nota, selo) {
-  const p = partes(centavos);
-  const valor = S.config.oculto ? '<span class="moeda">R$</span>••••'
-    : sinal + '<span class="moeda">R$</span>' + p.inteiro + '<span class="cent">,' + p.cent + '</span>';
-  return '<div class="kpi"><div class="kpi-topo"><span class="rotulo">' + rotulo + '</span>' + (selo || '') + '</div>' +
-    '<div class="kpi-valor">' + valor + '</div>' +
-    '<div class="kpi-barra" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
-    (nota ? '<small class="kpi-nota">' + nota + '</small>' : '') + '</div>';
 }
 
 /** O que falta pagar no mês, com as próximas em fichas e a primeira acesa. */
 function cartaoContas(n) {
   const itens = itensProximos(), h = hoje();
-  const fichas = itens.slice(0, 3).map(function (it, i) {
+  if (!n.faltaPagar && !itens.length) return '';
+  const fichas = itens.slice(0, 2).map(function (it, i) {
     const dd = it.semData ? null : diasEntre(h, it.data);
     const prazo = dd === null ? 'Sem data' : dd < 0 ? 'Venceu' : dd === 0 ? 'Hoje' : dd === 1 ? 'Amanhã' : 'Em ' + quantosDias(dd);
     return '<div class="conta-ficha' + (i === 0 ? ' acesa' : '') + '"><small>' + prazo + '</small><b>' + esc(it.nome) + '</b><span>' + dinheiro(it.centavos) + '</span></div>';
   }).join('');
   const primeira = itens[0];
   return '<section class="bloco contas-cartao">' +
-    '<div class="kpi-topo"><span class="rotulo">Falta pagar no mês</span><a class="ver-todos" href="#/contas">Contas</a></div>' +
-    '<div class="kpi-valor">' + numeroGrande(n.faltaPagar) + '</div>' +
-    (n.aReceber ? '<small class="kpi-nota">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
-    (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="kpi-nota">Nada vence nos próximos 7 dias.</p>') +
-    (primeira ? '<button class="btn contorno" data-acao="' + (primeira.tipo === 'conta' ? 'pagar' : 'devolvi') + '" data-ref="' + esc(primeira.ref) + '">' + (primeira.tipo === 'conta' ? 'Paguei ' + esc(primeira.nome) : 'Já devolvi') + '</button>' : '') +
+    '<div class="cabeca-linha"><span class="rotulo">Falta pagar no mês</span><a class="ver-todos" href="#/contas">Contas</a></div>' +
+    '<div class="numero-grande valor-medio">' + numeroGrande(n.faltaPagar) + '</div>' +
+    (n.aReceber ? '<small class="nota">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
+    (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="nota">Nada vence nos próximos 7 dias.</p>') +
+    (primeira ? '<button class="btn contorno" data-acao="' + (primeira.tipo === 'conta' ? 'pagar' : 'devolvi') + '" data-ref="' + esc(primeira.ref) + '">' +
+      (primeira.tipo === 'conta' ? 'Paguei ' + esc(primeira.nome) : esc(primeira.nome.replace(/^Devolver/, 'Já devolvi'))) + '</button>' : '') +
   '</section>';
 }
 
-/** O painel claro: pílulas de filtro, a lista e, no computador, o escolhido aberto. */
-function painelClaro(p) {
+/** Os lançamentos do período, em navy, com os filtros em pílula. Tocar abre a folha. */
+function listaInicio(p) {
   const todos = lancamentosVistos().filter(function (l) { return l.data >= p.de && l.data <= p.ate; })
     .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.em || 0) - (a.em || 0); });
   const ent = todos.filter(function (l) { return l.tipo === 'entrada'; }).length;
   const filtros = [['todos', 'Todos', todos.length], ['entrada', 'Entrou', ent], ['saida', 'Saiu', todos.length - ent]];
   const lista = inicioFiltro === 'todos' ? todos : todos.filter(function (l) { return l.tipo === inicioFiltro; });
-  let sel = lista.find(function (l) { return l.id === inicioSel; }) || lista[0] || null;
-
-  const pilulas = '<div class="pilulas" role="group" aria-label="Mostrar">' + filtros.map(function (f) {
+  const pilulas = todos.length ? '<div class="pilulas" role="group" aria-label="Mostrar">' + filtros.map(function (f) {
     return '<button class="pilula' + (inicioFiltro === f[0] ? ' activo' : '') + '" data-acao="inicio-filtro" data-ref="' + f[0] + '">' + f[1] + ' <span>' + f[2] + '</span></button>';
-  }).join('') + '</div>';
-
+  }).join('') + '</div>' : '';
   const linhas = lista.map(function (l) {
-    const cat = categoriaDe(l), ent = l.tipo === 'entrada';
-    const quando = p.de === p.ate ? (cat || (ent ? 'Entrada' : 'Saída')) : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
-    return '<button class="item' + (sel && l.id === sel.id ? ' escolhido' : '') + '" data-acao="inicio-sel" data-ref="' + l.id + '">' +
-      '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : ent ? 'entrou' : 'saiu') + '</span>' +
-      '<span class="item-nome">' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '<small>' + esc(quando) + '</small></span>' +
-      '<span class="item-tipo">' + (ent ? 'Entrou' : 'Saiu') + '</span>' +
-      '<b class="item-valor">' + (ent ? '+' : '−') + dinheiro(l.centavos) + '</b></button>';
+    const cat = categoriaDe(l), e = l.tipo === 'entrada';
+    const sub = p.de === p.ate ? (cat || (e ? 'Entrada' : 'Saída')) : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
+    return '<button class="item" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + esc(String(l.nota || cat || '')) + '">' +
+      '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
+      '<span class="item-nome">' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '<small>' + esc(sub) + '</small></span>' +
+      '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>';
   }).join('');
-
-  return '<section class="bloco claro">' +
-    '<div class="claro-cabeca"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' + pilulas +
-      '<a class="ver-todos" href="#/gastos">Ver todos</a></div>' +
-    (lista.length ? '<div class="mestre"><div class="lista-itens">' + linhas + '</div>' + detalheHtml(sel) + '</div>'
-      : '<p class="vazio">Nada lançado ' + p.curto + '. Toque em + Novo lançamento.</p>') +
+  return '<section class="bloco lista-inicio">' +
+    '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' + pilulas + '</div>' +
+    (linhas ? '<div class="lista-itens">' + linhas + '</div>' : '<p class="vazio">Nada lançado ' + p.curto + '. Toque em + Novo lançamento.</p>') +
   '</section>';
-}
-
-/** O lançamento escolhido, aberto: o cartão escuro dentro do creme. */
-function detalheHtml(l) {
-  if (!l) return '';
-  const cat = categoriaDe(l), ent = l.tipo === 'entrada';
-  const peca = function (rot, val) { return '<div class="peca"><small>' + rot + '</small><b>' + val + '</b></div>'; };
-  return '<div class="detalhe">' +
-    '<div class="detalhe-topo"><div><small>Lançamento</small><h3>' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '</h3></div>' +
-      '<span class="item-tipo">' + (ent ? 'Entrou' : 'Saiu') + '</span></div>' +
-    '<div class="pecas">' + peca('Categoria', esc(cat || '—')) + peca('Quando', esc(rotuloDoDia(l.data) === 'Hoje' || rotuloDoDia(l.data) === 'Ontem' ? rotuloDoDia(l.data) : porExtensoData(l.data))) +
-      peca('Tipo', ent ? 'Entrada' : 'Saída') + '</div>' +
-    '<div class="detalhe-rodape"><div><small>Valor</small><div class="kpi-valor">' + (ent ? '+' : '−') + dinheiro(l.centavos).replace('R$ ', '<span class="moeda">R$</span>') + '</div></div>' +
-      '<button class="btn contorno" data-acao="editar" data-ref="' + l.id + '">Corrigir</button></div>' +
-  '</div>';
-}
-
-/** Os sete dias até ao dia aberto, em barras: o dia aberto aceso, os outros apagados
-    (04/11, das referências dele: "a barra de hoje acesa, as outras em cinza"). Mostra o
-    que ENTROU, porque é disso que o cartão fala. Só aparece no computador. */
-function semanaHtml(ate) {
-  const dias = [], fim = dataDe(ate);
-  for (let i = 6; i >= 0; i--) {
-    const d = iso(new Date(fim.getFullYear(), fim.getMonth(), fim.getDate() - i));
-    dias.push({ d: d, v: resumoEntre(d, d).entradas });
-  }
-  const max = Math.max.apply(null, dias.map(function (x) { return x.v; }));
-  if (!max) return '';
-  const SEM = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-  return '<div class="semana" role="img" aria-label="O que entrou nos últimos sete dias">' +
-    '<span class="semana-rotulo">Últimos 7 dias</span><div class="semana-barras">' +
-    dias.map(function (x) {
-      const h = x.v ? Math.max(8, Math.round(x.v / max * 100)) : 4;
-      return '<div class="semana-dia' + (x.d === ate ? ' aceso' : '') + '"><i style="height:' + h + '%"></i><small>' + SEM[dataDe(x.d).getDay()] + '</small></div>';
-    }).join('') + '</div></div>';
-}
-
-/** O selo dos gémeos: o mês até hoje contra o mês passado ATÉ O MESMO DIA. Comparar
-    com o mês passado inteiro dizia "−90%" todo início de mês, e era mentira. */
-function seloMes(campo, agora) {
-  const h = hoje(), mes = mesDe(h), dia = Number(h.slice(8, 10));
-  const ant = iso(new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 2, 1)).slice(0, 7);
-  const antes = resumoEntre(ant + '-01', ant + '-' + p2(Math.min(dia, diasNoMes(ant))))[campo];
-  if (!antes) return '';
-  const pct = Math.round((agora - antes) / antes * 100);
-  const curto = nomeDoMes(ant).slice(0, 3).toLowerCase();
-  return '<span class="selo" title="Comparado com ' + nomeDoMes(ant).toLowerCase() + ' até o dia ' + dia + '">' +
-    (pct > 0 ? '↑ ' : pct < 0 ? '↓ ' : '') + Math.abs(pct) + '% vs ' + curto + '</span>';
 }
 
 /** "Para onde foi" na linguagem da faixa de cima (v15, revisão de 04/11): cada destino
@@ -997,7 +930,8 @@ function seloMes(campo, agora) {
     em negrito, eram o primeiro sítio onde se via que "não mudou nada". */
 function secaoParaOndeTiles(p) {
   const g = paraOndeEntre(p.de, p.ate);
-  if (!g.total) return '';
+  // Com um destino só, a rosca é um anel inteiro que não diz nada: espera haver dois.
+  if (!g.total || g.lista.length < 2) return '';
   // 04/11, pedido dele: "falta um gráfico de pizza para ver para onde vai MAIS o dinheiro".
   const fatias = g.lista.slice(0, 5);
   const resto = g.lista.slice(5).reduce(function (a, it) { return a + it.centavos; }, 0);
@@ -1006,7 +940,7 @@ function secaoParaOndeTiles(p) {
     const pct = Math.round(it.centavos / g.total * 100), tom = ['um', 'dois'][i] || 'resto';
     return '<button class="destino-c ' + tom + '" data-acao="ver-destino" data-ref="' + esc(it.nome) + '">' +
       '<span class="destino-c-topo"><span class="item-ico">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span><span class="destino-c-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '</span><small>' + pct + '%</small></span>' +
-      '<span class="kpi-valor">' + numeroGrande(it.centavos) + '</span>' +
+      '<span class="kpi-valor">' + dinheiro(it.centavos) + '</span>' +
       '<span class="kpi-barra"><i style="width:' + pct + '%"></i></span>' +
       '<small class="kpi-nota">' + (it.vezes ? it.vezes + (it.vezes === 1 ? ' vez' : ' vezes') : 'Somadas') + '</small></button>';
   }).join('');
@@ -1563,6 +1497,52 @@ function ouvir() {
   ouvindo = rec;
   document.getElementById('lancar-microfone').classList.add('ouvindo');
   dica.textContent = 'Ouvindo…';
+  rec.start();
+}
+
+/** "Fale com o Vero" no Início (04/11): ele nem reparou que a conversa existia, porque
+    na v15 era uma pílula fina com cara de busca. Agora é um cartão de conversa, com o
+    microfone (ele opera por ditado) e três perguntas prontas para um toque. */
+function conversaCartao() {
+  // Sempre desenhado: o sync.js pode chegar depois do primeiro desenho, e o cartão sumia.
+  const prontas = ['Quanto gastei de gasolina este mês?', 'Quando troquei o pneu?', 'Quanto entrou esta semana?'];
+  // O revisor: "tem campo, microfone e chips: é cara de buscador". Conversa tem fala.
+  let fala = 'Oi! Pergunte o que quiser sobre o que você lançou. Eu procuro nas datas e respondo.';
+  try {
+    const hist = JSON.parse(localStorage.getItem('vero.chat') || '[]');
+    const ultima = hist.filter(function (m) { return m.role === 'assistant'; }).pop();
+    if (ultima && ultima.content) fala = ultima.content.length > 180 ? ultima.content.slice(0, 177) + '…' : ultima.content;
+  } catch (e) {}
+  return '<section class="bloco conversa-vero">' +
+    '<div class="conversa-cabeca"><span class="ico">' + icone('conversa') + '</span>' +
+      '<div><h2 class="titulo-cartao">Fale com o Vero</h2><small>Pergunte qualquer coisa sobre o que você lançou.</small></div></div>' +
+    '<p class="fala-vero" data-acao="perguntar">' + esc(fala) + '</p>' +
+    '<div class="conversa-campo">' +
+      '<input type="text" id="ia-inicio" maxlength="500" autocomplete="off" placeholder="Escreva ou fale a pergunta" aria-label="Sua pergunta ao Vero">' +
+      (reconhecedor() ? '<button class="btn microfone" data-acao="ia-ouvir" aria-label="Falar a pergunta"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>' : '') +
+      '<button class="btn acento" data-acao="ia-enviar">Perguntar</button>' +
+    '</div>' +
+    '<div class="conversa-prontas">' + prontas.map(function (q) {
+      return '<button class="ficha-op" data-acao="ia-pronta" data-ref="' + esc(q) + '">' + esc(q) + '</button>';
+    }).join('') + '</div>' +
+  '</section>';
+}
+
+function enviarPerguntaInicio(t) {
+  const c = document.getElementById('ia-inicio');
+  t = (t || (c && c.value) || '').trim();
+  if (!t) { if (c) c.focus(); return; }
+  if (c) c.value = '';
+  if (window.veroPerguntarJa) window.veroPerguntarJa(t);
+}
+
+function ouvirPergunta() {
+  const R = reconhecedor();
+  if (!R) return;
+  const rec = new R();
+  rec.lang = 'pt-BR';
+  rec.interimResults = false;
+  rec.onresult = function (ev) { enviarPerguntaInicio(ev.results[0][0].transcript); };
   rec.start();
 }
 
@@ -2349,16 +2329,15 @@ document.addEventListener('click', function (ev) {
         if (e) { e.estado = 'aberto'; reajustarEmprestimo(e); guardar(); }
       });
     case 'perguntar':       return window.veroAbrirIA();
+    case 'ia-enviar':       return enviarPerguntaInicio();
+    case 'ia-pronta':       return enviarPerguntaInicio(ref);
+    case 'ia-ouvir':        return ouvirPergunta();
     case 'inicio-vista':
       inicioVista = ref;
       return desenhar();
     case 'inicio-filtro':
       inicioFiltro = ref;
       return desenhar();
-    // No computador escolher abre o lançamento ao lado; no celular não há lado, abre a folha.
-    case 'inicio-sel':
-      if (window.matchMedia('(min-width: 1180px)').matches) { inicioSel = ref; return desenhar(); }
-      return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'inicio-abrir-dia':
       inicioVista = ref === hoje() ? 'hoje' : 'dia';
       inicioDia = ref;
@@ -2410,6 +2389,7 @@ window.addEventListener('hashchange', function () { desenhar(); });
 // No computador, Esc fecha a folha aberta.
 document.addEventListener('keydown', function (ev) {
   if (ev.key === 'Escape') fecharFolhas();
+  if (ev.key === 'Enter' && ev.target && ev.target.id === 'ia-inicio') enviarPerguntaInicio();
 });
 
 // O navegador só deixa pedir a instalação depois deste aviso, e só uma vez.

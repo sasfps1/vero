@@ -992,6 +992,12 @@
     pintarConversa();
   };
 
+  /** Perguntar direto do Início (04/11): abre a conversa e já manda a pergunta. */
+  window.veroPerguntarJa = function (t) {
+    window.veroAbrirIA();
+    if (sb && sessao && eu && t) perguntar(t);
+  };
+
   // ── o que o app pergunta a este ficheiro ──────────────────────────────────
 
   window.veroLigado = function () { return !!eu; };
