@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 14;
+const VERSAO = 15;
 let soMemoria = false;
 
 const VAZIO = {
@@ -813,7 +813,7 @@ function botao(acao, ref, texto, fraco) {
    deve aparecer 180". Hoje, o mês ou um dia escolhido. As contas a pagar saíram do
    número grande para uma faixa própria. Desenho a partir da referência que ele
    escolheu no Pinterest: um número sozinho, a resposta numa linha, uma barra fina. */
-let inicioVista = 'hoje', inicioDia = null;
+let inicioVista = 'hoje', inicioDia = null, inicioSel = null, inicioFiltro = 'todos';
 
 function periodoInicio() {
   if (inicioVista === 'mes') {
@@ -832,128 +832,186 @@ function jaTemSaidas() {
   return S.contas.length > 0 || S.lancamentos.some(function (l) { return l.tipo === 'saida'; });
 }
 
+/* ── Início v15 (04/11): a casca inteira refeita pela referência dele ──────────
+   "Você só mexeu em umas coisinhas." O pedido era mudar a ESTRUTURA, não o
+   acabamento. A referência (painel de faturas em pílulas) tem quatro peças, e o
+   Início passa a ter as mesmas quatro, com o que o Vero mostra:
+     1. a faixa de números do período, finos e grandes, cada um com a sua barra;
+     2. o cartão do que falta pagar, com as próximas contas em fichas e a mais
+        próxima acesa (o "Stripe" verde dele);
+     3. os filtros numa linha só, em pílulas, com a pergunta ao Vero à direita
+        no lugar da busca;
+     4. o painel claro: a lista à esquerda e, no computador, o lançamento
+        escolhido aberto à direita, num cartão escuro dentro do creme.
+   O gelo deixa de aparecer "uma vez por tela" e passa a ser a cor do que está
+   ATIVO (aba, ficha, botão principal): um papel só, como o verde na referência. */
 function telaInicio(n) {
   const p = periodoInicio(), r = resumoEntre(p.de, p.ate);
-  // Sem conta, o aviso de guardar é o que protege o que ele lançou: sobe para junto do número.
   const semContaAinda = window.veroLigado && !window.veroLigado() && window.veroAviso && !!window.veroAviso();
   const ficou = r.entradas - r.saidas;
-  const pct = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
-  /* 04/11, pedido dele: o seletor dentro do cartão disputava o lugar com o número. O
-     período é navegação, e navegação fica FORA do dado: abas simples por cima do cartão,
-     como nos bancos, e o cartão fica só com o que aconteceu. */
+  const pctSaiu = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
+  const pctFicou = r.entradas > 0 ? Math.max(0, Math.round(ficou / r.entradas * 100)) : 0;
+
   const abas = [['hoje', 'Hoje'], ['mes', 'Mês']].map(function (a) {
     return '<button class="aba' + (inicioVista === a[0] ? ' activo' : '') + '" data-acao="inicio-vista" data-ref="' + a[0] + '" aria-pressed="' + (inicioVista === a[0]) + '">' + a[1] + '</button>';
   }).join('') +
-    // O seletor de data do próprio aparelho, por baixo do botão: no celular abre o calendário.
     '<label class="aba escolher' + (inicioVista === 'dia' ? ' activo' : '') + '">' + icone('agenda') +
       (inicioVista === 'dia' && inicioDia ? porExtensoData(inicioDia) : 'Outro dia') +
       '<input type="date" id="inicio-dia" max="' + hoje() + '" value="' + (inicioDia || hoje()) + '" aria-label="Escolher o dia"></label>';
 
+  const noMes = inicioVista !== 'mes';
   const sobra = Math.max(0, n.limite - n.gastoHoje);
-  const fraseBarra = !r.entradas && !r.saidas ? 'Nada lançado ' + p.curto + ' ainda.'
-    : !r.entradas ? 'Só saiu dinheiro ' + p.curto + '.'
-    : 'Saiu ' + pct + '% do que entrou.';
+  const kpis = '<section class="bloco kpis">' +
+    kpiHtml('Entrou ' + p.quando, r.entradas, '', 100, noMes ? 'No mês +' + dinheiro(n.entradas) : '', noMes ? '' : seloMes('entradas', n.entradas)) +
+    kpiHtml('Saiu ' + p.quando, r.saidas, '−', pctSaiu, r.entradas ? pctSaiu + '% do que entrou' : (r.saidas ? 'Só saiu dinheiro' : 'Nada saiu'), noMes ? '' : seloMes('saidas', n.saidas)) +
+    kpiHtml('Ficou', Math.abs(ficou), ficou < 0 ? '−' : '', pctFicou,
+      inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas() ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : (r.entradas ? pctFicou + '% guardado' : ''), '') +
+    (p.de === p.ate ? semanaHtml(p.de) : '') +
+  '</section>';
 
-  return '<div class="painel">' +
-    '<nav class="abas" aria-label="Período">' + abas + '</nav>' +
-    '<section class="bloco he">' +
-      '<span class="rotulo">Entrou ' + p.quando + '</span>' +
-      '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
-      '<div class="barra-fina" role="img" aria-label="' + fraseBarra + '"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="saiu-ficou">' +
-        '<div><span>' + icone('saiu') + 'Saiu</span><b>' + dinheiro(r.saidas) + '</b></div>' +
-        '<div><span>Ficou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></div>' +
-      '</div>' +
-      '<p class="frase">' + fraseBarra +
-        (inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas() ? ' Ainda pode gastar <b>' + dinheiro(sobra) + '</b> hoje.' : '') + '</p>' +
-    '</section>' +
-    (semContaAinda ? avisos() : '') +
-    faixaContas(n) +
-    (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar"><span class="ico">' + icone('conversa') + '</span><span>Pergunte ao Vero<small>"Quando troquei o pneu?"</small></span>' + icone('avancar') + '</button>' : '') +
-    secaoParaOndeTiles(p) +
-    secaoLancInicio(p) +
-    // Os quatro são sempre do mês, seja qual for o período aberto no topo.
-    '<div class="quatro">' +
-      cartaoNumero('entrou', 'Entrou no mês', '+' + dinheiro(n.entradas), 'forte') +
-      cartaoNumero('saiu', 'Saiu no mês', '−' + dinheiro(n.saidas), '') +
-      cartaoNumero('falta', 'Falta pagar', dinheiro(n.faltaPagar), '') +
-      cartaoNumero('receber', 'A receber', dinheiro(n.aReceber), '') +
+  return '<div class="painel inicio">' +
+    '<div class="filtros">' +
+      '<nav class="abas" aria-label="Período">' + abas + '</nav>' +
+      (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar">' + icone('conversa') + '<span>Pergunte ao Vero: <i>"quando troquei o pneu?"</i></span></button>' : '') +
     '</div>' +
+    kpis +
+    cartaoContas(n) +
+    (semContaAinda ? avisos() : '') +
+    painelClaro(p) +
+    secaoParaOndeTiles(p) +
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     (semContaAinda ? '' : avisos()) +
   '</div>';
 }
 
-/** As contas numa faixa só, fora do número grande: quanto falta no mês e a próxima,
-    com o prazo dito como prazo ("faltam 4 dias"), não como data. A lista inteira
-    continua em Contas. */
-function faixaContas(n) {
+/** Um número da faixa: rótulo, o valor fino e grande, a barra fina e uma linha de nota. */
+function kpiHtml(rotulo, centavos, sinal, pct, nota, selo) {
+  const p = partes(centavos);
+  const valor = S.config.oculto ? '<span class="moeda">R$</span>••••'
+    : sinal + '<span class="moeda">R$</span>' + p.inteiro + '<span class="cent">,' + p.cent + '</span>';
+  return '<div class="kpi"><div class="kpi-topo"><span class="rotulo">' + rotulo + '</span>' + (selo || '') + '</div>' +
+    '<div class="kpi-valor">' + valor + '</div>' +
+    '<div class="kpi-barra" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+    (nota ? '<small class="kpi-nota">' + nota + '</small>' : '') + '</div>';
+}
+
+/** O que falta pagar no mês, com as próximas em fichas e a primeira acesa. */
+function cartaoContas(n) {
   const itens = itensProximos(), h = hoje();
-  if (!n.faltaPagar && !itens.length) return '';
-  const it = itens[0];
-  let prazo = '';
-  if (it) {
+  const fichas = itens.slice(0, 3).map(function (it, i) {
     const dd = it.semData ? null : diasEntre(h, it.data);
-    prazo = dd === null ? 'sem data' : dd < 0 ? 'venceu há ' + quantosDias(-dd) : dd === 0 ? 'vence hoje' : dd === 1 ? 'vence amanhã' : 'faltam ' + quantosDias(dd);
-  }
-  // O total que falta já está no cartão "Falta pagar": aqui vai só a próxima conta.
-  if (!it) return '';
-  const mais = itens.length - 1;
-  return '<section class="bloco faixa-contas' + (it.data < h ? ' atrasada' : '') + '">' +
-    '<span class="ico">' + icone('agenda') + '</span>' +
-    '<span class="faixa-nome"><small>Próxima conta · ' + prazo + '</small>' + esc(it.nome) + ' · ' + dinheiro(it.centavos) + '</span>' +
-    botao(it.tipo === 'conta' ? 'pagar' : 'devolvi', it.ref, 'Paguei') +
-    '<a class="faixa-todas" href="#/contas">' + (mais > 0 ? '+' + mais + ' nos próximos 7 dias' : 'Ver contas') + '</a>' +
+    const prazo = dd === null ? 'Sem data' : dd < 0 ? 'Venceu' : dd === 0 ? 'Hoje' : dd === 1 ? 'Amanhã' : 'Em ' + quantosDias(dd);
+    return '<div class="conta-ficha' + (i === 0 ? ' acesa' : '') + '"><small>' + prazo + '</small><b>' + esc(it.nome) + '</b><span>' + dinheiro(it.centavos) + '</span></div>';
+  }).join('');
+  const primeira = itens[0];
+  return '<section class="bloco contas-cartao">' +
+    '<div class="kpi-topo"><span class="rotulo">Falta pagar no mês</span><a class="ver-todos" href="#/contas">Contas</a></div>' +
+    '<div class="kpi-valor">' + numeroGrande(n.faltaPagar) + '</div>' +
+    (n.aReceber ? '<small class="kpi-nota">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
+    (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="kpi-nota">Nada vence nos próximos 7 dias.</p>') +
+    (primeira ? '<button class="btn contorno" data-acao="' + (primeira.tipo === 'conta' ? 'pagar' : 'devolvi') + '" data-ref="' + esc(primeira.ref) + '">' + (primeira.tipo === 'conta' ? 'Paguei ' + esc(primeira.nome) : 'Já devolvi') + '</button>' : '') +
   '</section>';
 }
 
-/** "Para onde foi" em fichas que rolam para o lado, do período aberto no topo. */
+/** O painel claro: pílulas de filtro, a lista e, no computador, o escolhido aberto. */
+function painelClaro(p) {
+  const todos = lancamentosVistos().filter(function (l) { return l.data >= p.de && l.data <= p.ate; })
+    .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.em || 0) - (a.em || 0); });
+  const ent = todos.filter(function (l) { return l.tipo === 'entrada'; }).length;
+  const filtros = [['todos', 'Todos', todos.length], ['entrada', 'Entrou', ent], ['saida', 'Saiu', todos.length - ent]];
+  const lista = inicioFiltro === 'todos' ? todos : todos.filter(function (l) { return l.tipo === inicioFiltro; });
+  let sel = lista.find(function (l) { return l.id === inicioSel; }) || lista[0] || null;
+
+  const pilulas = '<div class="pilulas" role="group" aria-label="Mostrar">' + filtros.map(function (f) {
+    return '<button class="pilula' + (inicioFiltro === f[0] ? ' activo' : '') + '" data-acao="inicio-filtro" data-ref="' + f[0] + '">' + f[1] + ' <span>' + f[2] + '</span></button>';
+  }).join('') + '</div>';
+
+  const linhas = lista.map(function (l) {
+    const cat = categoriaDe(l), ent = l.tipo === 'entrada';
+    const quando = p.de === p.ate ? (cat || (ent ? 'Entrada' : 'Saída')) : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
+    return '<button class="item' + (sel && l.id === sel.id ? ' escolhido' : '') + '" data-acao="inicio-sel" data-ref="' + l.id + '">' +
+      '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : ent ? 'entrou' : 'saiu') + '</span>' +
+      '<span class="item-nome">' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '<small>' + esc(quando) + '</small></span>' +
+      '<span class="item-tipo">' + (ent ? 'Entrou' : 'Saiu') + '</span>' +
+      '<b class="item-valor">' + (ent ? '+' : '−') + dinheiro(l.centavos) + '</b></button>';
+  }).join('');
+
+  return '<section class="bloco claro">' +
+    '<div class="claro-cabeca"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' + pilulas +
+      '<a class="ver-todos" href="#/gastos">Ver todos</a></div>' +
+    (lista.length ? '<div class="mestre"><div class="lista-itens">' + linhas + '</div>' + detalheHtml(sel) + '</div>'
+      : '<p class="vazio">Nada lançado ' + p.curto + '. Toque em + Novo lançamento.</p>') +
+  '</section>';
+}
+
+/** O lançamento escolhido, aberto: o cartão escuro dentro do creme. */
+function detalheHtml(l) {
+  if (!l) return '';
+  const cat = categoriaDe(l), ent = l.tipo === 'entrada';
+  const peca = function (rot, val) { return '<div class="peca"><small>' + rot + '</small><b>' + val + '</b></div>'; };
+  return '<div class="detalhe">' +
+    '<div class="detalhe-topo"><div><small>Lançamento</small><h3>' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '</h3></div>' +
+      '<span class="item-tipo">' + (ent ? 'Entrou' : 'Saiu') + '</span></div>' +
+    '<div class="pecas">' + peca('Categoria', esc(cat || '—')) + peca('Quando', esc(rotuloDoDia(l.data) === 'Hoje' || rotuloDoDia(l.data) === 'Ontem' ? rotuloDoDia(l.data) : porExtensoData(l.data))) +
+      peca('Tipo', ent ? 'Entrada' : 'Saída') + '</div>' +
+    '<div class="detalhe-rodape"><div><small>Valor</small><div class="kpi-valor">' + (ent ? '+' : '−') + dinheiro(l.centavos).replace('R$ ', '<span class="moeda">R$</span>') + '</div></div>' +
+      '<button class="btn contorno" data-acao="editar" data-ref="' + l.id + '">Corrigir</button></div>' +
+  '</div>';
+}
+
+/** Os sete dias até ao dia aberto, em barras: o dia aberto aceso, os outros apagados
+    (04/11, das referências dele: "a barra de hoje acesa, as outras em cinza"). Mostra o
+    que ENTROU, porque é disso que o cartão fala. Só aparece no computador. */
+function semanaHtml(ate) {
+  const dias = [], fim = dataDe(ate);
+  for (let i = 6; i >= 0; i--) {
+    const d = iso(new Date(fim.getFullYear(), fim.getMonth(), fim.getDate() - i));
+    dias.push({ d: d, v: resumoEntre(d, d).entradas });
+  }
+  const max = Math.max.apply(null, dias.map(function (x) { return x.v; }));
+  if (!max) return '';
+  const SEM = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+  return '<div class="semana" role="img" aria-label="O que entrou nos últimos sete dias">' +
+    '<span class="semana-rotulo">Últimos 7 dias</span><div class="semana-barras">' +
+    dias.map(function (x) {
+      const h = x.v ? Math.max(8, Math.round(x.v / max * 100)) : 4;
+      return '<div class="semana-dia' + (x.d === ate ? ' aceso' : '') + '"><i style="height:' + h + '%"></i><small>' + SEM[dataDe(x.d).getDay()] + '</small></div>';
+    }).join('') + '</div></div>';
+}
+
+/** O selo dos gémeos: o mês até hoje contra o mês passado ATÉ O MESMO DIA. Comparar
+    com o mês passado inteiro dizia "−90%" todo início de mês, e era mentira. */
+function seloMes(campo, agora) {
+  const h = hoje(), mes = mesDe(h), dia = Number(h.slice(8, 10));
+  const ant = iso(new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 2, 1)).slice(0, 7);
+  const antes = resumoEntre(ant + '-01', ant + '-' + p2(Math.min(dia, diasNoMes(ant))))[campo];
+  if (!antes) return '';
+  const pct = Math.round((agora - antes) / antes * 100);
+  const curto = nomeDoMes(ant).slice(0, 3).toLowerCase();
+  return '<span class="selo" title="Comparado com ' + nomeDoMes(ant).toLowerCase() + ' até o dia ' + dia + '">' +
+    (pct > 0 ? '↑ ' : pct < 0 ? '↓ ' : '') + Math.abs(pct) + '% vs ' + curto + '</span>';
+}
+
+/** "Para onde foi" na linguagem da faixa de cima (v15, revisão de 04/11): cada destino
+    com o valor fino e grande e a barra gelo da sua parte. As fichas antigas, quadradas e
+    em negrito, eram o primeiro sítio onde se via que "não mudou nada". */
 function secaoParaOndeTiles(p) {
   const g = paraOndeEntre(p.de, p.ate);
-  const cabeca = '<h2 class="titulo-cartao">Para onde foi ' + p.curto + '</h2>';
   if (!g.total) return '';
-  const fichas = g.lista.map(function (it) {
-    return '<button class="ficha" data-acao="ver-destino" data-ref="' + esc(it.nome) + '"><span class="ico">' + icone(iconeDoGasto(it.nome)) + '</span>' +
-      '<span class="ficha-nome">' + esc(it.nome) + '</span>' +
-      '<b>' + dinheiro(it.centavos) + '</b><small>' + Math.round(it.centavos / g.total * 100) + '% · ' + it.vezes + (it.vezes === 1 ? ' vez' : ' vezes') + '</small></button>';
+  // 04/11, pedido dele: "falta um gráfico de pizza para ver para onde vai MAIS o dinheiro".
+  const fatias = g.lista.slice(0, 5);
+  const resto = g.lista.slice(5).reduce(function (a, it) { return a + it.centavos; }, 0);
+  if (resto) fatias.push({ nome: 'Outras ' + (g.lista.length - 5), centavos: resto, resto: true });
+  const cartoes = fatias.map(function (it, i) {
+    const pct = Math.round(it.centavos / g.total * 100), tom = ['um', 'dois'][i] || 'resto';
+    return '<button class="destino-c ' + tom + '" data-acao="ver-destino" data-ref="' + esc(it.nome) + '">' +
+      '<span class="destino-c-topo"><span class="item-ico">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span><span class="destino-c-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '</span><small>' + pct + '%</small></span>' +
+      '<span class="kpi-valor">' + numeroGrande(it.centavos) + '</span>' +
+      '<span class="kpi-barra"><i style="width:' + pct + '%"></i></span>' +
+      '<small class="kpi-nota">' + (it.vezes ? it.vezes + (it.vezes === 1 ? ' vez' : ' vezes') : 'Somadas') + '</small></button>';
   }).join('');
-  return '<section class="bloco para-onde">' + cabeca + '<div class="fila fichas">' + fichas + '</div></section>';
-}
-
-/** No dia: os lançamentos. No mês: um dia por linha, e tocar abre esse dia no topo. */
-function secaoLancInicio(p) {
-  let linhas = '';
-  if (p.de === p.ate) {
-    lancamentosVistos().filter(function (l) { return l.data === p.de; })
-      .sort(function (a, b) { return (b.em || 0) - (a.em || 0); })
-      .forEach(function (l) {
-        const cat = categoriaDe(l);
-        linhas += linhaHtml({
-          marca: l.emprestimo || emprestimoDeOrigem(l) ? 'transfer' : l.tipo === 'entrada' ? 'entrou' : 'saiu',
-          titulo: esc(String(l.nota || '').trim() || cat || 'Sem nome'),
-          sub: l.nota && cat && sinNorm(l.nota) !== sinNorm(cat) ? esc(cat) : '',
-          prefixo: l.tipo === 'entrada' ? '+' : '−', centavos: l.centavos, classes: 'compacta',
-          toque: { acao: 'editar', ref: l.id, rotulo: 'Corrigir' }
-        });
-      });
-    return '<section class="bloco lanc-inicio"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' +
-      (linhas || '<p class="vazio">Nada lançado ' + p.curto + '. Toque no + para lançar.</p>') + '</section>';
-  }
-  for (let d = (p.ate < hoje() ? p.ate : hoje()); d >= p.de; d = iso(new Date(dataDe(d).getTime() - 86400000))) {
-    const r = resumoEntre(d, d);
-    if (!r.entradas && !r.saidas) continue;
-    linhas += linhaHtml({
-      marca: null, titulo: rotuloDoDia(d), sub: r.entradas ? 'entrou ' + dinheiro(r.entradas) : '',
-      prefixo: r.saidas ? '−' : '', centavos: r.saidas, classes: 'compacta',
-      toque: { acao: 'inicio-abrir-dia', ref: d, rotulo: 'Abrir' }
-    });
-  }
-  return linhas ? '<section class="bloco lanc-inicio"><h2 class="titulo-cartao">Dia a dia</h2>' + linhas + '</section>' : '';
-}
-
-function cartaoNumero(ic, rotulo, valor, classe) {
-  return '<div class="cartao ' + classe + '"><span class="ico">' + icone(ic) + '</span>' +
-    '<div><span class="cartao-rotulo">' + rotulo + '</span><strong>' + valor + '</strong></div></div>';
+  return '<section class="bloco para-onde"><h2 class="titulo-cartao">Para onde foi ' + p.curto + '</h2><div class="rosca-destinos">' + roscaHtml(fatias, g.total, 'Para onde foi o dinheiro. Os valores estão nos cartões ao lado.') +
+    '<div class="destinos">' + cartoes + '</div></div></section>';
 }
 
 /** A rosca responde "para onde foi": no centro vai o maior destino, não o total.
@@ -973,23 +1031,33 @@ function secaoParaOnde(n) {
   const resto = g.lista.slice(cabem).reduce(function (a, it) { return a + it.centavos; }, 0);
   if (resto) fatias.push({ nome: 'Outras ' + (g.lista.length - cabem), centavos: resto, resto: true });
 
-  const r = 42, volta = 2 * Math.PI * r, vao = fatias.length > 1 ? 13.5 : 0;
-  let andado = 0, arcos = '', linhas = '';
+  let linhas = '';
   fatias.forEach(function (it, i) {
-    const f = it.centavos / g.total, pct = Math.round(f * 100), tom = ['um', 'dois'][i] || 'resto';
-    const traco = Math.max(0.01, f * volta - vao);
-    arcos += '<circle class="arco ' + tom + '" cx="50" cy="50" r="' + r + '" stroke-dasharray="' + traco.toFixed(2) + ' ' + volta.toFixed(2) +
-      '" stroke-dashoffset="' + (-(andado * volta + vao / 2)).toFixed(2) + '" transform="rotate(-90 50 50)"><title>' + esc(it.nome) + ': ' + dinheiro(it.centavos) + '</title></circle>';
-    andado += f;
+    const pct = Math.round(it.centavos / g.total * 100), tom = ['um', 'dois'][i] || 'resto';
     linhas += '<div class="destino"><span class="ico">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span>' +
       '<span class="destino-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '<small>' + pct + '%</small></span>' +
       '<b>' + dinheiro(it.centavos) + '</b></div>';
   });
-  const maior = fatias[0];
   return '<section class="bloco para-onde">' + cabeca + '<p class="frase">' + dinheiro(g.total) + ' este mês</p>' +
-    '<div class="rosca-e-lista"><div class="rosca"><svg viewBox="0 0 100 100" role="img" aria-label="Divisão do que saiu este mês. Os valores estão na lista.">' + arcos + '</svg>' +
-    '<div class="rosca-centro"><span>' + esc(maior.nome) + '</span><b>' + Math.round(maior.centavos / g.total * 100) + '%</b></div></div>' +
+    '<div class="rosca-e-lista">' + roscaHtml(fatias, g.total, 'Divisão do que saiu este mês. Os valores estão na lista.') +
     '<div>' + linhas + '</div></div></section>';
+}
+
+/** A rosca em si: os dois maiores com tom próprio, o resto num azul só (ver acima).
+    No centro, o maior destino e a parte dele. */
+function roscaHtml(fatias, total, aria) {
+  const r = 42, volta = 2 * Math.PI * r, vao = fatias.length > 1 ? 13.5 : 0;
+  let andado = 0, arcos = '';
+  fatias.forEach(function (it, i) {
+    const f = it.centavos / total, tom = ['um', 'dois'][i] || 'resto';
+    const traco = Math.max(0.01, f * volta - vao);
+    arcos += '<circle class="arco ' + tom + '" cx="50" cy="50" r="' + r + '" stroke-dasharray="' + traco.toFixed(2) + ' ' + volta.toFixed(2) +
+      '" stroke-dashoffset="' + (-(andado * volta + vao / 2)).toFixed(2) + '" transform="rotate(-90 50 50)"><title>' + esc(it.nome) + ': ' + dinheiro(it.centavos) + '</title></circle>';
+    andado += f;
+  });
+  const maior = fatias[0];
+  return '<div class="rosca"><svg viewBox="0 0 100 100" role="img" aria-label="' + aria + '">' + arcos + '</svg>' +
+    '<div class="rosca-centro"><span>' + esc(maior.nome) + '</span><b>' + Math.round(maior.centavos / total * 100) + '%</b></div></div>';
 }
 
 function secaoPorDia(n) {
@@ -2284,6 +2352,13 @@ document.addEventListener('click', function (ev) {
     case 'inicio-vista':
       inicioVista = ref;
       return desenhar();
+    case 'inicio-filtro':
+      inicioFiltro = ref;
+      return desenhar();
+    // No computador escolher abre o lançamento ao lado; no celular não há lado, abre a folha.
+    case 'inicio-sel':
+      if (window.matchMedia('(min-width: 1180px)').matches) { inicioSel = ref; return desenhar(); }
+      return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'inicio-abrir-dia':
       inicioVista = ref === hoje() ? 'hoje' : 'dia';
       inicioDia = ref;

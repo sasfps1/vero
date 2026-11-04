@@ -10,7 +10,9 @@
   --on-surface:         #F2EBD2;
   /* 0,74 e não 0,62 (04/11): o creme a 62% sobre o navy mistura-se num cinza neutro
      (152,152,152, medido pelo revisor), a zona morta da marca. A 74% ainda puxa ao creme. */
-  --on-surface-muted:   rgba(242, 235, 210, 0.74);
+  /* 0,82 (04/11, v15): a 0,74 os rótulos sobre o cartão elevado ainda mediam 176,176,171,
+     cinzento puro (R−B=5). A 82% o creme volta a ler-se como creme. */
+  --on-surface-muted:   rgba(242, 235, 210, 0.82);
   --on-surface-faint:   rgba(242, 235, 210, 0.38);
   --outline:            rgba(242, 235, 210, 0.14);
   --outline-strong:     rgba(242, 235, 210, 0.24);
@@ -225,7 +227,6 @@ section.bloco.he {
 .he .rotulo { font-size: 13.5px; font-weight: 600; text-transform: none; letter-spacing: 0; }
 .he .numero-grande { margin: 4px 0 12px; }
 .he .frase { margin-top: 8px; }
-.pode-gastar { display: inline-block; font-size: 14px; font-weight: 800; border-radius: 99px; padding: 7px 14px; background: var(--on-surface); color: var(--surface); }
 .he .medida { margin: 16px 0 6px; }
 /* Início de 03/11: Hoje · Mês · Escolher dia, e o bruto do período em destaque. */
 /* As abas de período, fora do cartão (04/11). Texto com um traço por baixo da escolhida,
@@ -243,39 +244,18 @@ section.bloco.he {
 .balao.na-ponta-dir { transform: translate(calc(-100% + 14px), -4px); }
 /* Saiu e Ficou em duas colunas de instrumento: rótulo pequeno em cima, valor em baixo,
    um fio entre elas. Antes iam numa frase corrida e o olho não sabia onde parar. */
-.saiu-ficou { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
-.saiu-ficou > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.saiu-ficou > div + div { padding-left: 16px; border-left: 1px solid rgba(242, 235, 210, 0.22); }
-.saiu-ficou span { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; opacity: 0.78; }
-.saiu-ficou span svg.traco { width: 15px; height: 15px; }
-.saiu-ficou b { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-.barra-fina { height: 6px; margin: 4px 0 0; border-radius: 99px; background: rgba(242, 235, 210, 0.2); overflow: hidden; }
-.barra-fina i { display: block; height: 100%; border-radius: 99px; background: var(--on-surface); }
 .he .frase b { font-weight: 800; }
 
-.faixa-contas { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 12px 15px; }
-.faixa-nome { min-width: 0; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.faixa-nome small { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
-.faixa-todas { grid-column: 2 / -1; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
-.faixa-contas.atrasada .faixa-nome small { color: var(--on-surface); font-weight: 800; }
 
-.fichas { grid-auto-columns: 140px; }
-.ficha { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 128px; padding: 13px; text-align: left; border: 0; border-radius: 18px; background: rgba(242, 235, 210, 0.07); color: inherit; }
-.ficha .ico { margin-bottom: 8px; }
-.ficha-nome { max-width: 100%; font-size: 13.5px; font-weight: 600; color: var(--on-surface-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.ficha b { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
-.ficha small { font-size: 12px; color: var(--on-surface-muted); }
-.lanc-inicio .titulo-cartao { margin-bottom: 6px; }
 .legenda-dias { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 500; }
 
 .painel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .painel section.bloco { margin-bottom: 0; }
 
-.quatro { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.cartao { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; background: var(--surface-raised); border-radius: 22px; padding: 15px; }
-.cartao-rotulo { display: block; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
-.cartao strong { display: block; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-top: 1px; white-space: nowrap; }
-.cartao.forte strong { font-weight: 800; }
+/* Bento (04/11): o ícone e o selo na mesma linha, por cima do número. */
+.selo { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 12px; font-weight: 700; color: var(--on-surface); white-space: nowrap; }
+.ver-todos { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 12.5px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
+.semana { display: none; }
 
 .titulo-cartao { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
 
@@ -390,9 +370,6 @@ h2.secao {
 .periodo.activo { background: var(--on-surface); color: var(--surface); font-weight: 800; }
 
 /* A pergunta à IA. */
-.perguntar { width: 100%; min-height: 60px; padding: 10px 14px; display: grid; grid-template-columns: 36px minmax(0, 1fr) 20px; align-items: center; gap: 12px; text-align: left; background: var(--surface-raised); border: 0; border-radius: 18px; font-size: 14.5px; font-weight: 700; color: var(--on-surface); cursor: pointer; }
-.perguntar small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
-.perguntar > svg.traco { color: var(--on-surface-muted); }
 .ia-conversa { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 6px; }
 .fala { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .fala.minha { align-self: flex-end; background: var(--on-surface); color: var(--surface); font-weight: 600; }
@@ -738,7 +715,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .seletor-conta { max-width: 240px; min-height: 44px; font-size: 14px; }
   .icone-topo { display: none; }
   nav.barra a.so-rail { display: flex; }
-  .btn.lancar-topo { display: inline-flex; min-height: 44px; padding: 0 20px; font-size: 14px; font-weight: 800; }
+  .btn.lancar-topo { background: var(--signal); border-color: var(--signal); color: var(--surface); display: inline-flex; min-height: 44px; padding: 0 20px; font-size: 14px; font-weight: 800; }
   nav.barra {
     grid-area: rail;
     position: static;
@@ -756,40 +733,207 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   main { grid-area: obra; max-width: 1188px; width: 100%; margin: 0; padding: 0 28px 28px; overflow-y: auto; height: 100%; }
   main > section.bloco { max-width: 760px; }
   .painel { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
-  /* No celular "Para onde foi" vem logo a seguir ao número; aqui cabem os dois na
-     primeira tela, com os quatro números ao lado do principal. */
-  .painel .he { order: 1; }
   .painel > .abas, .painel > .seletor-mes { order: 0; grid-column: 1 / -1; }
-  .quatro { order: 2; }
-  .faixa-contas { order: 3; grid-column: 1 / -1; }
-  .perguntar { order: 4; grid-column: 1 / -1; }
-  .para-onde { order: 5; }
-  .lanc-inicio { order: 6; grid-column: span 5; align-self: start; }
   .por-dia { order: 7; grid-column: 1 / -1 !important; }
   .vence { order: 8; }
   .avisos { order: 9; }
-  /* Sem conta, o aviso de guardar vem logo abaixo da fila do número e dos quatro. */
-  .he + .avisos { order: 3; grid-column: 1 / -1; }
-  .faixa-contas { grid-template-columns: 36px minmax(0, 1fr) auto auto; }
-  .faixa-todas { grid-column: auto; grid-row: 1; grid-column-start: 3; }
-  .painel .he { grid-column: span 7; padding: 28px 28px 22px; }
-  .painel .he .numero-grande { font-size: 74px; }
-  .quatro { grid-column: span 5; gap: 16px; }
-  .cartao strong { font-size: 22px; }
-  .para-onde { grid-column: span 7; }
   .por-dia { grid-column: span 5; display: flex; flex-direction: column; }
   .por-dia .barras { flex: 1 1 auto; min-height: 150px; }
   .vence, .avisos { grid-column: 1 / -1; }
   .fila { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  /* Se a primeira ou a segunda fila ficar sem par, o cartão ocupa a largura toda. */
-  .painel:not(:has(.lanc-inicio)) .para-onde,
-  .painel:not(:has(.para-onde)) .lanc-inicio { grid-column: 1 / -1; }
   /* Gastos: os destinos e os lançamentos lado a lado, sem faixa vazia à direita. */
   .painel.gastos .he { grid-column: 1 / -1; }
   .painel.gastos .grupos { grid-column: span 5; order: 2; align-self: start; }
   .painel.gastos .lancamentos { grid-column: span 7; order: 3; }
   .painel.gastos:not(:has(.grupos)) .lancamentos { grid-column: 1 / -1; }
   .desfazer { left: auto; right: 28px; bottom: 28px; max-width: 420px; }
+}
+
+/* ══ v15, 04/11: a casca refeita pela referência dele (painel de faturas em pílulas) ══
+   Quatro peças no Início: filtros em pílula, faixa de números finos, o cartão do que
+   falta pagar, e o painel CLARO com a lista e o escolhido aberto. O gelo é a cor do
+   que está ATIVO (aba, ficha acesa, botão principal, barras), e só disso.
+   Só cores da paleta: navy #05113B, creme #F2EBD2, gelo #9EC5E8. */
+
+.nav-pilulas { display: contents; }
+
+/* números finos: o peso vem do TAMANHO, não da tinta (as referências todas) */
+.numero-grande { font-weight: 300; letter-spacing: -0.04em; }
+.numero-grande .moeda, .numero-grande .cent { font-weight: 400; }
+
+.filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.filtros .abas { border-bottom: 0; gap: 4px; padding: 4px; border-radius: 99px; background: var(--surface-raised); }
+.filtros .aba { min-height: 38px; padding: 0 16px; border-radius: 99px; }
+.filtros .aba.activo { background: var(--signal); color: var(--surface); }
+.filtros .aba.activo::after { display: none; }
+.filtros .aba.escolher { margin-left: 0; }
+.perguntar { flex: 1 1 260px; display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 18px; border: 1px solid var(--outline-strong); border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.perguntar span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.perguntar i { font-style: normal; color: var(--on-surface); }
+
+.kpi-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+.kpi-valor { font-size: 34px; font-weight: 300; letter-spacing: -0.04em; line-height: 1.05; margin: 8px 0 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kpi-valor .moeda { font-size: 0.48em; font-weight: 400; margin-right: 0.18em; color: var(--on-surface-muted); letter-spacing: 0; }
+.kpi-valor .cent { font-size: 0.55em; font-weight: 400; color: var(--on-surface-muted); }
+.kpi-barra { height: 6px; border-radius: 99px; background: rgba(242, 235, 210, 0.12); overflow: hidden; }
+.kpi-barra i { display: block; height: 100%; border-radius: 99px; background: var(--signal); }
+.kpi-nota { display: block; margin-top: 8px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+
+/* minmax(0, …) e min-width 0: sem isto o número que não quebra empurrava a tela para o lado no celular. */
+.painel > * { min-width: 0; }
+section.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; padding: 20px; }
+.kpis .kpi:first-child { grid-column: 1 / -1; }
+.kpis .kpi:first-child .kpi-valor { font-size: clamp(46px, 13vw, 64px); }
+.kpis .semana { display: none; }
+
+.contas-cartao { display: flex; flex-direction: column; padding: 20px; }
+.contas-cartao .kpi-valor .numero-grande { font-size: inherit; margin: 0; }
+.contas-cartao .kpi-valor { font-size: 34px; }
+.contas-fichas { min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(120px, 1fr); gap: 8px; margin: 16px 0 14px; overflow-x: auto; scrollbar-width: none; }
+.conta-ficha { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px; border-radius: 16px; background: rgba(242, 235, 210, 0.06); }
+.conta-ficha small { font-size: 12px; font-weight: 600; color: var(--on-surface-muted); }
+.conta-ficha b { font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.conta-ficha span { font-size: 13px; font-weight: 500; }
+.conta-ficha.acesa { background: var(--signal); color: var(--surface); }
+.conta-ficha.acesa small { color: var(--surface); opacity: 0.75; }
+.btn.acento { background: var(--signal); border-color: var(--signal); color: var(--surface); font-weight: 800; min-height: 46px; padding: 0 20px; }
+.btn.contorno { background: none; border: 1px solid var(--signal); color: var(--signal); font-weight: 800; min-height: 46px; padding: 0 20px; }
+.contas-cartao .btn.contorno { width: 100%; margin-top: auto; }
+.rosca-destinos { display: grid; gap: 16px; margin-top: 14px; align-items: center; }
+.rosca-destinos .destinos { margin-top: 0; }
+.rosca-destinos .rosca { width: 180px; height: 180px; }
+@media (min-width: 900px) { .rosca-destinos { grid-template-columns: 220px minmax(0, 1fr); gap: 24px; } .rosca-destinos .rosca { width: 210px; height: 210px; } }
+.destino-c-nome .ponto { margin-right: 7px; }
+/* A barra de cada cartão na cor da sua fatia: o olho liga o cartão à rosca sem legenda. */
+.destino-c.um .kpi-barra i { background: var(--on-surface); }
+.destino-c.resto .kpi-barra i { background: var(--azul-rosca); }
+.rosca-destinos .rosca-centro b { font-weight: 300; font-size: 42px; }
+.destinos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; }
+.destino-c { display: flex; flex-direction: column; min-width: 0; padding: 16px; border: 0; border-radius: 18px; background: rgba(242, 235, 210, 0.05); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.destino-c-topo { display: flex; align-items: center; gap: 10px; }
+.destino-c-topo .item-ico { background: rgba(242, 235, 210, 0.08); }
+.destino-c-nome { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.destino-c-topo small { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); }
+.destino-c .kpi-valor { font-size: 30px; margin: 14px 0 10px; }
+.destino-c .numero-grande { font-size: inherit; margin: 0; }
+
+/* O painel claro: creme, com os tokens trocados para o texto virar navy de uma vez. */
+.painel section.claro {
+  --on-surface: #05113B; --on-surface-muted: rgba(5, 17, 59, 0.68); --outline: rgba(5, 17, 59, 0.12); --outline-strong: rgba(5, 17, 59, 0.3);
+  background: #F2EBD2; color: #05113B; padding: 20px; border-radius: 26px;
+}
+.claro-cabeca { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; }
+.claro-cabeca .titulo-cartao { margin-right: auto; }
+@media (max-width: 599px) { .claro-cabeca .ver-todos { display: none; } }
+.topo-texto h1 { font-weight: 300; font-size: 28px; letter-spacing: -0.03em; }
+.pilulas { display: inline-flex; gap: 2px; padding: 4px; border-radius: 99px; background: #05113B; }
+.pilula { min-height: 34px; padding: 0 14px; border: 0; border-radius: 99px; background: none; color: rgba(242, 235, 210, 0.78); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pilula span { margin-left: 4px; font-weight: 800; }
+.pilula.activo { background: var(--signal); color: #05113B; }
+.ver-todos { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 13px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
+.mestre { display: grid; gap: 16px; }
+.lista-itens { display: flex; flex-direction: column; gap: 2px; }
+.item { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 8px 14px 8px 8px; border: 0; border-radius: 99px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.item { position: relative; }
+.item + .item::before { content: ""; position: absolute; left: 56px; right: 14px; top: 0; height: 1px; background: var(--outline); }
+.item-ico { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(5, 17, 59, 0.08); }
+.item-ico svg.traco { width: 17px; height: 17px; }
+.item-nome { min-width: 0; font-size: 14.5px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.item-nome small { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+.item-tipo { display: none; align-items: center; min-height: 26px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 12px; font-weight: 700; }
+.item-valor { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.detalhe { display: none; }
+
+/* "Para onde foi" e o resto do Início vestem o mesmo raio das peças novas */
+.inicio section.bloco { border-radius: 24px; }
+
+@media (min-width: 1180px) {
+  /* ── a casca: o menu sai da lateral e vai para o topo, em pílulas ── */
+  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "rail" "topo" "obra"; }
+  nav.barra {
+    display: flex; flex-direction: row; align-items: center; gap: 12px;
+    height: auto; padding: 18px max(28px, calc(50% - 612px)) 4px; background: transparent; border: 0;
+  }
+  .logo-rail { padding: 0; margin-right: auto; }
+  .nav-pilulas { display: flex; gap: 2px; padding: 5px; border-radius: 99px; background: var(--surface-raised); }
+  .nav-pilulas a { min-height: 40px; padding: 0 18px; border-radius: 99px; font-size: 14px; font-weight: 600; color: var(--on-surface-muted); }
+  nav.barra .nav-pilulas a.activo { background: var(--signal); color: var(--surface); font-weight: 800; }
+  .nav-pilulas a svg.traco { width: 17px; height: 17px; }
+  nav.barra a.so-rail { margin-left: auto; width: 46px; min-height: 46px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--outline-strong); font-size: 0; gap: 0; }
+  nav.barra a.so-rail.activo { background: var(--surface-raised); }
+  header.topo { max-width: 1280px; margin: 0 auto; padding: 18px 28px 18px; }
+  .topo-texto h1 { font-size: 46px; font-weight: 300; letter-spacing: -0.035em; line-height: 1.1; }
+  .topo-texto span { font-size: 14px; margin-top: 4px; }
+  main { max-width: 1280px; margin: 0 auto; }
+
+  /* ── o Início em quatro peças ── */
+  /* 04/11, pedido dele com a referência "Zarss": a rosca vai para o canto de cima à
+     direita, numa coluna própria, e o que falta pagar desce por baixo dela. À esquerda
+     ficam os números e o painel claro. Áreas com nome: a ordem do ficheiro não manda. */
+  .painel.inicio {
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: 16px; align-items: start;
+    grid-template-areas: "filtros filtros" "kpis onde" "claro contas" "pordia pordia" "avisos avisos";
+  }
+  .inicio .filtros { grid-area: filtros; }
+  .inicio .perguntar { flex: 0 1 420px; margin-left: auto; }
+  .inicio .kpis { grid-area: kpis; align-self: stretch; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 24px 0; }
+  .inicio .para-onde { grid-area: onde; align-self: stretch; }
+  .inicio .claro { grid-area: claro; padding: 24px; }
+  .inicio .contas-cartao { grid-area: contas; padding: 24px; }
+  .inicio .por-dia { grid-area: pordia; }
+  .inicio .avisos { grid-area: avisos; }
+  .painel.inicio:not(:has(.para-onde)) .kpis { grid-column: 1 / -1; }
+
+  /* a rosca na coluna estreita: em cima e ao centro; cada destino numa linha só,
+     nome à esquerda, valor à direita, a barra da cor da fatia por baixo */
+  .inicio .para-onde .rosca-destinos { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .inicio .para-onde .rosca { width: 176px; height: 176px; }
+  .inicio .para-onde .rosca-centro b { font-size: 36px; }
+  .inicio .para-onde .destinos { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .inicio .para-onde .destino-c { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 10px 12px; border-radius: 14px; }
+  .inicio .para-onde .destino-c .kpi-valor { margin: 0; font-size: 18px; }
+  .inicio .para-onde .destino-c .kpi-barra { grid-column: 1 / -1; height: 4px; margin-top: 8px; }
+  .inicio .para-onde .destino-c .kpi-nota { display: none; }
+  .inicio .para-onde .destino-c-topo .item-ico { width: 30px; height: 30px; }
+
+  .kpis .kpi { padding: 0 24px; display: flex; flex-direction: column; }
+  .kpis .kpi .kpi-valor { margin: 14px 0 0; }
+  .kpis .kpi .kpi-barra { margin-top: 16px; }
+  .kpis .kpi:first-child { grid-column: auto; }
+  .kpis .kpi + .kpi { border-left: 1px solid var(--outline); }
+  .kpis .kpi .kpi-valor, .kpis .kpi:first-child .kpi-valor { font-size: 44px; }
+  /* A semana atravessa a faixa por baixo dos três números: enche a altura que o cartão
+     ao lado pede, em vez de deixar os números a boiar num vazio (revisão de 04/11). */
+  .kpis .semana { grid-column: 1 / -1; display: flex; flex-direction: column; margin: 22px 24px 0; padding-top: 18px; border-top: 1px solid var(--outline); }
+  .semana-rotulo { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); margin-bottom: 10px; }
+  .semana-barras { flex: 1 1 auto; min-height: 84px; max-height: 120px; column-gap: 18px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; }
+  .semana-dia { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; }
+  .semana-dia i { display: block; width: min(34px, 70%); border-radius: 8px; background: rgba(242, 235, 210, 0.16); }
+  .semana-dia.aceso i { background: var(--signal); }
+  .semana-dia small { font-size: 11px; font-weight: 700; color: var(--on-surface-muted); }
+  .semana-dia.aceso small { color: var(--on-surface); }
+  .contas-cartao .kpi-valor { font-size: 38px; }
+
+  /* o painel claro: a lista à esquerda, o escolhido aberto à direita */
+  .mestre { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+  .lista-itens { max-height: 460px; overflow-y: auto; scrollbar-width: thin; }
+  .item { grid-template-columns: 36px minmax(0, 1fr) auto auto; }
+  .item-tipo { display: inline-flex; }
+  .item.escolhido::before, .item.escolhido + .item::before { display: none; }
+  .item.escolhido { background: #05113B; color: #F2EBD2; --on-surface-muted: rgba(242, 235, 210, 0.74); --outline-strong: rgba(242, 235, 210, 0.3); }
+  .item.escolhido .item-ico { background: var(--signal); color: #05113B; }
+  .detalhe {
+    --on-surface: #F2EBD2; --on-surface-muted: rgba(242, 235, 210, 0.74); --outline-strong: rgba(242, 235, 210, 0.3);
+    display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 22px; background: #05113B; color: #F2EBD2;
+  }
+  .detalhe small { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+  .detalhe-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .detalhe h3 { font-size: 30px; font-weight: 300; letter-spacing: -0.03em; line-height: 1.15; margin-top: 2px; }
+  .pecas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .peca { padding: 14px; border-radius: 16px; background: var(--surface-raised); min-width: 0; }
+  .peca b { display: block; margin-top: 4px; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .detalhe-rodape { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 18px; border-radius: 18px; background: var(--surface-raised); }
+  .detalhe-rodape .kpi-valor { margin: 2px 0 0; font-size: 36px; }
 }
 
 /* Pessoas: a linha tem botões em baixo, então a seta e o valor ficam no topo dela. */
