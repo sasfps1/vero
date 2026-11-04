@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 18;
+const VERSAO = 19;
 let soMemoria = false;
 
 const VAZIO = {
@@ -591,7 +591,8 @@ function listaHtml() {
       prefixo: l.tipo === 'entrada' ? '+' : '−',
       centavos: l.centavos,
       classes: 'compacta',
-      toque: { acao: 'editar', ref: l.id, rotulo: 'Corrigir' }
+      toque: { acao: 'editar', ref: l.id, rotulo: 'Corrigir' },
+      apagar: l.id
     });
   }
   return html;
@@ -783,7 +784,7 @@ function linhaHtml(o) {
   const semMarca = o.marca === null || o.marca === undefined;
   const tag = o.toque ? 'button' : 'div';
   const toque = o.toque ? ' data-acao="' + o.toque.acao + '" data-ref="' + esc(o.toque.ref) + '"' : '';
-  return '<' + tag + toque + ' class="linha dupla' + (semMarca ? ' sem-marca' : '') + (o.icone ? ' com-icone' : '') +
+  const linha = '<' + tag + toque + ' class="linha dupla' + (semMarca ? ' sem-marca' : '') + (o.icone ? ' com-icone' : '') +
       (o.toque ? ' tocavel' : '') + (o.classes ? ' ' + o.classes : '') + '">' +
     (o.icone ? '<span class="ico">' + icone(o.icone) + '</span>' : '') +
     (semMarca ? '' : '<span class="marca ' + o.marca + '"></span>') +
@@ -798,6 +799,11 @@ function linhaHtml(o) {
     '<span class="valor">' + (o.centavos === null ? '' : (o.prefixo || '') + dinheiro(o.centavos)) +
       (o.acaoDireita ? '<span class="acao-direita">' + o.acaoDireita + '</span>' : '') + '</span>' +
   '</' + tag + '>';
+  // A lixeira (04/11): botão não pode ir dentro de botão, por isso fica FORA da
+  // linha tocável, num invólucro.
+  if (!o.apagar) return linha;
+  return '<div class="linha-com-apagar">' + linha +
+    '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + esc(o.apagar) + '" aria-label="Apagar">' + icone('lixo') + '</button></div>';
 }
 
 function botao(acao, ref, texto, fraco) {

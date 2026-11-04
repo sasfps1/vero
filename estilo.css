@@ -822,6 +822,10 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 .item-linha { position: relative; display: flex; align-items: center; gap: 4px; }
 .item-linha .item { flex: 1; min-width: 0; }
 .item-linha + .item-linha::before { content: ""; position: absolute; left: 52px; right: 4px; top: 0; height: 1px; background: var(--outline); }
+.linha-com-apagar { display: flex; align-items: center; gap: 2px; }
+.linha-com-apagar > .linha { flex: 1; min-width: 0; }
+/* o fio entre linhas passa para o invólucro: dentro dele cada linha é a "primeira" */
+.linha-com-apagar + .linha-com-apagar { border-top: 1px solid var(--outline); }
 .item-apagar { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--on-surface-muted); cursor: pointer; }
 .item-apagar svg.traco { width: 18px; height: 18px; }
 .item-apagar:hover, .item-apagar:focus-visible { background: rgba(242, 235, 210, 0.08); color: var(--on-surface); }
