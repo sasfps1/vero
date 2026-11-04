@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 17;
+const VERSAO = 18;
 let soMemoria = false;
 
 const VAZIO = {
@@ -431,7 +431,8 @@ const ICONES = {
   agenda: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4',
   certo: 'M5 12l5 5 9-10',
   conversa: 'M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM8 10h8M8 13h5',
-  fechar: 'M6 6l12 12M18 6L6 18'
+  fechar: 'M6 6l12 12M18 6L6 18',
+  lixo: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'
 };
 function icone(n) {
   return '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONES[n] + '"/></svg>';
@@ -918,10 +919,16 @@ function listaInicio(p) {
   const linhas = lista.map(function (l) {
     const cat = categoriaDe(l), e = l.tipo === 'entrada';
     const sub = p.de === p.ate ? (cat || (e ? 'Entrada' : 'Saída')) : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
-    return '<button class="item ' + (e ? 'e-entrada' : 'e-saida') + '" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + esc(String(l.nota || cat || '')) + '">' +
+    const nome = esc(String(l.nota || '').trim() || cat || 'Sem nome');
+    // 04/11, pedido dele: "tem que ter a opção de apagar, caso eu lance errado". O
+    // apagar já existia, mas escondido dentro da folha de corrigir. Agora fica na linha,
+    // e o "Desfazer" que aparece em baixo salva o toque errado.
+    return '<div class="item-linha">' +
+      '<button class="item ' + (e ? 'e-entrada' : 'e-saida') + '" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' +
       '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
-      '<span class="item-nome">' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '<small>' + esc(sub) + '</small></span>' +
-      '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>';
+      '<span class="item-nome">' + nome + '<small>' + esc(sub) + '</small></span>' +
+      '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>' +
+      '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '">' + icone('lixo') + '</button></div>';
   }).join('');
   return '<section class="bloco lista-inicio">' +
     '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' + pilulas + '</div>' +
@@ -2318,6 +2325,7 @@ document.addEventListener('click', function (ev) {
       return desenhar();
     case 'editar':          return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'apagar-lanc':     return apagarLancamento();
+    case 'apagar-direto':   return comDesfazer('Lançamento apagado', function () { removerLancamento(ref); });
     case 'andar':           return mudarPeriodo(Number(ref));
     case 'periodo':
       periodoTipo = ref;
