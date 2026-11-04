@@ -856,6 +856,11 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 .painel > * { min-width: 0; }
 .inicio section.bloco { border-radius: 24px; }
 
+/* A rede neural da página, por trás de tudo (rede.js). z-index -1: fica acima do
+   fundo navy do body e abaixo de qualquer cartão, sem mexer no posicionamento de
+   nada (a barra de baixo do celular é fixa e não pode ganhar position nova). */
+.rede-neural { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
 /* ── CORES COM CARGO (04/11, "as cores que fazem sentido", decidido por ele) ─────────
    Nenhuma cor nova: a marca é navy, creme e gelo, e o impacto vem de dar a cada uma
    um TRABALHO que o cérebro aprende depressa.
