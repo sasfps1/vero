@@ -190,6 +190,16 @@ nav.barra a.so-rail { display: none; }
 .portao-caixa .btn { width: 100%; min-height: 48px; margin-top: 10px; white-space: normal; }
 .portao-erro:empty { display: none; }
 .portao-erro { margin-top: 6px; color: var(--on-surface); }
+/* A primeira vez: a pergunta é o título e o número dele é o maior objeto da tela. */
+.bv-pergunta { margin: 26px 0 0; font-family: "Playfair Display", Georgia, serif; font-size: 30px; font-weight: 800; line-height: 1.12; letter-spacing: -0.01em; }
+.boas-vindas > .frase { margin: 8px 0 18px; color: var(--on-surface); opacity: 0.8; }
+.bv-valor { position: relative; display: block; padding: 14px 0 16px; border-bottom: 2px solid var(--outline); margin-bottom: 10px; cursor: text; }
+.bv-valor:focus-within { border-bottom-color: var(--on-surface); }
+.bv-valor .numero-grande { display: block; }
+.bv-valor .numero-grande { margin: 0; }
+.bv-valor .numero-grande.zero { opacity: 0.4; }
+.bv-valor input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; font-size: 16px; }
+.boas-vindas .portao-sem-conta { color: var(--on-surface); opacity: 0.8; }
 .portao-sem-conta { display: block; width: 100%; min-height: 44px; margin-top: 12px; background: none; border: 0; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); text-decoration: underline; }
 
 main { padding: 0 var(--gutter); max-width: 720px; margin: 0 auto; }
@@ -685,6 +695,8 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .por-dia { order: 7; grid-column: 1 / -1 !important; }
   .vence { order: 8; }
   .avisos { order: 9; }
+  /* Sem conta, o aviso de guardar vem logo abaixo da fila do número e dos quatro. */
+  .he + .avisos { order: 3; grid-column: 1 / -1; }
   .faixa-contas { grid-template-columns: 36px minmax(0, 1fr) auto auto; }
   .faixa-todas { grid-column: auto; grid-row: 1; grid-column-start: 3; }
   .painel .he { grid-column: span 7; padding: 28px 28px 22px; }

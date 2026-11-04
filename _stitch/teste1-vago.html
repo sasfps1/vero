@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"tertiary":"#000000","primary-fixed":"#dae2fd","on-error-container":"#93000a","secondary":"#006c49","surface-container":"#e5eeff","on-error":"#ffffff","secondary-container":"#6cf8bb","tertiary-container":"#40000d","secondary-fixed-dim":"#4edea3","error":"#ba1a1a","tertiary-fixed-dim":"#ffb2b7","inverse-on-surface":"#eaf1ff","surface-container-highest":"#d3e4fe","error-container":"#ffdad6","secondary-fixed":"#6ffbbe","on-secondary-fixed":"#002113","on-primary-fixed-variant":"#3f465c","surface-container-lowest":"#ffffff","primary-fixed-dim":"#bec6e0","on-tertiary-fixed-variant":"#92002a","on-tertiary":"#ffffff","surface":"#f8f9ff","surface-dim":"#cbdbf5","on-tertiary-fixed":"#40000d","on-background":"#0b1c30","on-primary-container":"#7c839b","surface-tint":"#565e74","surface-variant":"#d3e4fe","outline-variant":"#c6c6cd","on-secondary":"#ffffff","primary":"#000000","surface-bright":"#f8f9ff","inverse-surface":"#213145","on-primary":"#ffffff","on-surface-variant":"#45464d","on-primary-fixed":"#131b2e","on-surface":"#0b1c30","tertiary-fixed":"#ffdadb","inverse-primary":"#bec6e0","background":"#f8f9ff","primary-container":"#131b2e","on-tertiary-container":"#f23d5c","on-secondary-container":"#00714d","outline":"#76777d","surface-container-low":"#eff4ff","surface-container-high":"#dce9ff","on-secondary-fixed-variant":"#005236"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"margin":"2rem","space-xl":"2.25rem","margin-mobile":"1rem","space-md":"1rem","gutter-mobile":"0.75rem","space-sm":"0.5rem","gutter":"1.25rem","space-lg":"1.5rem","space-xs":"0.25rem"},fontFamily:{"display-currency":["Manrope"],"body-lg":["Manrope"],"financial-tabular":["JetBrains Mono"],"headline-md":["Manrope"],"headline-sm":["Manrope"],"financial-tabular-sm":["JetBrains Mono"],"headline-lg":["Manrope"],"headline-xl":["Manrope"],"body-sm":["Manrope"],"headline-xl-mobile":["Manrope"],"label-uppercase":["JetBrains Mono"],"display-currency-mobile":["Manrope"],"body-md":["Manrope"]},fontSize:{"display-currency":["40px",{"lineHeight":"48px","letterSpacing":"-0.03em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"financial-tabular":["14px",{"lineHeight":"20px","letterSpacing":"-0.02em","fontWeight":"500"}],"headline-md":["18px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-sm":["15px",{"lineHeight":"22px","fontWeight":"600"}],"financial-tabular-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"headline-xl-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"700"}],"label-uppercase":["11px",{"lineHeight":"16px","letterSpacing":"0.06em","fontWeight":"600"}],"display-currency-mobile":["30px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-6"><div class="flex flex-col gap-6"><div class="px-6 flex items-center gap-3"><img alt="FinFlow Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeiabPcs_bSTRNoAOuRlWH-X8rOg50roAWMCNTDwjbGbTxHG5mt-0faoXqebvGrQa9uvbtjCLHYXGI_mV5bvpieJRje7Rj3Tc-gVKdyWaFeG_4o53mxjECbI9tmYcz3NYZWUVxrs0c2vO4Qqh9U4QoV4YtosRc4Wkf71W3CTnIHP0-41uBo_b-lnLD7GLvw-C_W2_0lI58p8qLjy0VzQQH63Lsl1jyWnfJ7qT_0i4"/><span class="font-headline-md text-headline-md tracking-tight text-on-surface">FinFlow</span></div><nav class="px-3 flex flex-col gap-1" data-active-classes="bg-surface-container text-on-surface font-semibold"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="visao-geral" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-headline-sm text-headline-sm">Vis∆o Geral</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="transacoes" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="font-headline-sm text-headline-sm">Transaá‰es</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="orcamentos" href="#"><span class="material-symbols-outlined text-[20px]">account_balance_wallet</span><span class="font-headline-sm text-headline-sm">Oráamentos</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="investimentos" href="#"><span class="material-symbols-outlined text-[20px]">trending_up</span><span class="font-headline-sm text-headline-sm">Investimentos</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="metas" href="#"><span class="material-symbols-outlined text-[20px]">flag</span><span class="font-headline-sm text-headline-sm">Metas</span></a></nav></div><div class="px-3"><nav class="flex flex-col gap-1" data-active-classes="bg-surface-container text-on-surface font-semibold"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="configuracoes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span class="font-headline-sm text-headline-sm">Configuraá‰es</span></a></nav></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-8"><div class="flex items-center gap-4 flex-1 max-w-md"><div class="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg bg-surface-container-lowest text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">search</span><input class="bg-transparent w-full outline-none font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant" placeholder="Buscar transaá‰es, contas ou categorias..." type="text"/></div></div><div class="flex items-center gap-5"><div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-lowest text-on-surface font-financial-tabular text-financial-tabular"><span class="material-symbols-outlined text-[18px] text-on-surface-variant">calendar_today</span><span>Màs Atual - Maio 2024</span><span class="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span></div><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error"></span></button><div class="flex items-center gap-3 pl-2"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNQD-eDBScgFDtRXDG31S3iWj0vDc2cyps0VP7szVBrSjYcdb0_iIBzA5tQss5-1jHoseQb8A9L_98zTsTBHorU5HzA-mg4xlEFWHpGTCJXFAl54NCgiSZ2iRzs0PCCPumGi-8JY7ToRlBnP41BC8COGGJArMlaMYjgb0ahBZTxPKL5KzFy2cHQ4jSfzI7MgN35KI-XIztGRuGicTgaUTUmw0R7r26CbXJOLoNhYk"/><div class="flex flex-col text-left"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Lucas Mendes</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-none">lucas@finflow.io</span></div></div></div></header><main class="w-full pt-16 bg-surface px-8"><div class="flex flex-col w-full py-8 space-y-8">
+<!-- TOP BANNER & QUICK ACTIONS -->
+<header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant uppercase tracking-wider">Painel Financeiro Consolidado</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Ol†, Lucas! Veja o resumo da sua sa£de financeira em Maio.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Seus gastos est∆o 14% menores em relaá∆o ao mesmo per°odo do màs anterior.</p>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex items-center gap-3 self-start md:self-auto">
+<button class="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-lowest shadow-sm hover:bg-surface-container-low text-on-surface font-headline-sm text-headline-sm transition-all duration-150">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">file_download</span>
+<span>Exportar</span>
+</button>
+<button class="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-lowest shadow-sm hover:bg-surface-container-low text-on-surface font-headline-sm text-headline-sm transition-all duration-150">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">flag</span>
+<span>Definir Meta</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md transition-all duration-150 transform hover:-translate-y-0.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>Nova Transaá∆o</span>
+</button>
+</div>
+</header>
+<!-- KPI SUMMARY METRIC CARDS -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+<!-- Card 1: Saldo Total -->
+<div class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-4 hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Saldo Total L°quido</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">account_balance</span>
+</div>
+</div>
+<div>
+<p class="font-display-currency text-display-currency text-on-surface tracking-tight">R$ 48.750,20</p>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-financial-tabular-sm text-financial-tabular-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+          +4.2%
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">vs. màs anterior</span>
+</div>
+</div>
+<!-- Card 2: Receitas (Màs) -->
+<div class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-4 hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Receitas (Maio)</span>
+<div class="w-8 h-8 rounded-lg bg-secondary-container/40 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">arrow_circle_up</span>
+</div>
+</div>
+<div>
+<p class="font-display-currency text-display-currency text-secondary tracking-tight">R$ 15.400,00</p>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-financial-tabular-sm text-financial-tabular-sm font-semibold">
+          100% recebido
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">3 entradas ativas</span>
+</div>
+</div>
+<!-- Card 3: Despesas (Màs) -->
+<div class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-4 hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Despesas (Maio)</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">arrow_circle_down</span>
+</div>
+</div>
+<div>
+<p class="font-display-currency text-display-currency text-on-surface tracking-tight">R$ 7.230,80</p>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm font-semibold">
+          47% do oráado
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">teto: R$ 15.000</span>
+</div>
+</div>
+<!-- Card 4: Investimentos -->
+<div class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-4 hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Patrimìnio Investido</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+</div>
+</div>
+<div>
+<p class="font-display-currency text-display-currency text-on-surface tracking-tight">R$ 32.180,00</p>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-financial-tabular-sm text-financial-tabular-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">show_chart</span>
+          +1,15%
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">rendimento màs</span>
+</div>
+</div>
+</section>
+<!-- CENTRAL ANALYTICS & BREAKDOWN -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+<!-- MAIN COLUMN (8 cols) -->
+<div class="xl:col-span-8 flex flex-col space-y-8">
+<!-- CASHFLOW & EVOLUTION CHART -->
+<section class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div class="space-y-1">
+<h2 class="font-headline-md text-headline-md text-on-surface">Fluxo de Caixa Semestral</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Comparativo de aportes e custos operacionais (Dez 2023 - Mai 2024)</p>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-secondary"></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Receitas</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-primary"></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Despesas</span>
+</div>
+<div class="px-2.5 py-1 rounded bg-surface-container font-financial-tabular-sm text-financial-tabular-sm text-on-surface">
+              Economia: <strong class="font-semibold text-secondary">+R$ 8.169,20</strong>
+</div>
+</div>
+</div>
+<!-- Inline Visual Chart (6 Months) -->
+<div class="pt-4 pb-2">
+<div class="h-56 w-full flex items-end justify-between gap-4 px-2">
+<!-- Dez -->
+<div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="flex items-end justify-center gap-1.5 w-full h-44">
+<div class="w-full max-w-[20px] bg-secondary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 75%;" title="Receita: R$ 13.800"></div>
+<div class="w-full max-w-[20px] bg-primary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 55%;" title="Despesa: R$ 8.900"></div>
+</div>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">DEZ</span>
+</div>
+<!-- Jan -->
+<div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="flex items-end justify-center gap-1.5 w-full h-44">
+<div class="w-full max-w-[20px] bg-secondary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 80%;" title="Receita: R$ 14.200"></div>
+<div class="w-full max-w-[20px] bg-primary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 60%;" title="Despesa: R$ 9.400"></div>
+</div>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">JAN</span>
+</div>
+<!-- Fev -->
+<div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="flex items-end justify-center gap-1.5 w-full h-44">
+<div class="w-full max-w-[20px] bg-secondary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 72%;" title="Receita: R$ 13.100"></div>
+<div class="w-full max-w-[20px] bg-primary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 48%;" title="Despesa: R$ 7.100"></div>
+</div>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">FEV</span>
+</div>
+<!-- Mar -->
+<div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="flex items-end justify-center gap-1.5 w-full h-44">
+<div class="w-full max-w-[20px] bg-secondary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 86%;" title="Receita: R$ 15.000"></div>
+<div class="w-full max-w-[20px] bg-primary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 52%;" title="Despesa: R$ 7.900"></div>
+</div>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">MAR</span>
+</div>
+<!-- Abr -->
+<div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="flex items-end justify-center gap-1.5 w-full h-44">
+<div class="w-full max-w-[20px] bg-secondary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 82%;" title="Receita: R$ 14.600"></div>
+<div class="w-full max-w-[20px] bg-primary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 45%;" title="Despesa: R$ 6.800"></div>
+</div>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">ABR</span>
+</div>
+<!-- Mai (Current) -->
+<div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="flex items-end justify-center gap-1.5 w-full h-44">
+<div class="w-full max-w-[20px] bg-secondary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 92%;" title="Receita: R$ 15.400"></div>
+<div class="w-full max-w-[20px] bg-primary rounded-t-sm transition-all duration-300 group-hover:opacity-90" style="height: 47%;" title="Despesa: R$ 7.230"></div>
+</div>
+<span class="font-label-uppercase text-label-uppercase text-secondary font-bold">MAI</span>
+</div>
+</div>
+</div>
+</section>
+<!-- RECENT TRANSACTIONS TABLE -->
+<section class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-5">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Transaá‰es Recentes</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Movimentaá‰es das £ltimas 48 horas nas suas contas conectadas</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+<span class="font-body-sm text-body-sm">Filtrar por Categoria</span>
+</div>
+<a class="font-headline-sm text-headline-sm text-secondary hover:underline px-2" href="#">Ver todas</a>
+</div>
+</div>
+<!-- Table Structure -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-uppercase text-label-uppercase">
+<th class="py-3 px-4 rounded-l-lg">Descriá∆o &amp; Categoria</th>
+<th class="py-3 px-4">Conta / Origem</th>
+<th class="py-3 px-4">Data</th>
+<th class="py-3 px-4 text-right rounded-r-lg">Valor</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Item 1: Receita Sal†rio -->
+<tr class="hover:bg-surface transition-colors">
+<td class="py-3.5 px-4 flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Transferància Recebida - TechCorp</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">Sal†rio</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-body-sm text-body-sm text-on-surface-variant">Conta Corrente Ita£</td>
+<td class="py-3.5 px-4 font-financial-tabular-sm text-financial-tabular-sm text-on-surface-variant">05 Mai, 09:12</td>
+<td class="py-3.5 px-4 text-right font-financial-tabular text-financial-tabular font-bold text-secondary">+ R$ 12.850,00</td>
+</tr>
+<!-- Item 2: Supermercado P∆o de Aá£car -->
+<tr class="hover:bg-surface transition-colors">
+<td class="py-3.5 px-4 flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Supermercado P∆o de Aá£car</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">Alimentaá∆o</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-body-sm text-body-sm text-on-surface-variant">Cart∆o XP Visa Infinite</td>
+<td class="py-3.5 px-4 font-financial-tabular-sm text-financial-tabular-sm text-on-surface-variant">04 Mai, 18:45</td>
+<td class="py-3.5 px-4 text-right font-financial-tabular text-financial-tabular text-on-surface">- R$ 486,30</td>
+</tr>
+<!-- Item 3: Posto Ipiranga -->
+<tr class="hover:bg-surface transition-colors">
+<td class="py-3.5 px-4 flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">local_gas_station</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Posto Ipiranga</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">Transporte</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-body-sm text-body-sm text-on-surface-variant">Cart∆o Nubank Ultravioleta</td>
+<td class="py-3.5 px-4 font-financial-tabular-sm text-financial-tabular-sm text-on-surface-variant">03 Mai, 14:20</td>
+<td class="py-3.5 px-4 text-right font-financial-tabular text-financial-tabular text-on-surface">- R$ 220,00</td>
+</tr>
+<!-- Item 4: Spotify Premium -->
+<tr class="hover:bg-surface transition-colors">
+<td class="py-3.5 px-4 flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">subscriptions</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Spotify Premium Mensal</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">Lazer</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-body-sm text-body-sm text-on-surface-variant">Cart∆o Nubank Ultravioleta</td>
+<td class="py-3.5 px-4 font-financial-tabular-sm text-financial-tabular-sm text-on-surface-variant">02 Mai, 04:00</td>
+<td class="py-3.5 px-4 text-right font-financial-tabular text-financial-tabular text-on-surface">- R$ 34,90</td>
+</tr>
+<!-- Item 5: Uber Viagens -->
+<tr class="hover:bg-surface transition-colors">
+<td class="py-3.5 px-4 flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Uber Viagens</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">Transporte</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-body-sm text-body-sm text-on-surface-variant">Cart∆o XP Visa Infinite</td>
+<td class="py-3.5 px-4 font-financial-tabular-sm text-financial-tabular-sm text-on-surface-variant">01 Mai, 22:15</td>
+<td class="py-3.5 px-4 text-right font-financial-tabular text-financial-tabular text-on-surface">- R$ 42,80</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- ADVISORY BANNER / INSIGHT -->
+<div class="p-5 bg-surface-container-low rounded-xl flex items-start gap-4">
+<div class="w-10 h-10 rounded-lg bg-secondary-container text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">lightbulb</span>
+</div>
+<div class="space-y-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Oportunidade de Otimizaá∆o</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Vocà atingiu 92% da sua meta de Reserva de Emergància. Ao manter o ritmo atual de economia, sua meta ser† conclu°da 2 meses antes do previsto.</p>
+</div>
+</div>
+</div>
+<!-- SUPPORTING SIDEBAR COLUMN (4 cols) -->
+<div class="xl:col-span-4 flex flex-col space-y-8">
+<!-- CATEGORY BUDGETS -->
+<section class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-5">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface">Oráamento por Categoria</h2>
+<span class="font-financial-tabular-sm text-financial-tabular-sm text-on-surface-variant">Maio 2024</span>
+</div>
+<div class="space-y-4">
+<!-- Moradia -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-center font-body-sm text-body-sm">
+<span class="font-semibold text-on-surface">Moradia</span>
+<span class="font-financial-tabular text-financial-tabular text-on-surface">R$ 3.400 / R$ 4.000 <span class="text-on-surface-variant">(85%)</span></span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 85%;"></div>
+</div>
+</div>
+<!-- Lazer (Alerta de Atená∆o) -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-center font-body-sm text-body-sm">
+<span class="font-semibold text-on-surface flex items-center gap-1.5">
+                Lazer
+                <span class="material-symbols-outlined text-error text-[16px]" title="Atená∆o: 90% do limite atingido">warning</span>
+</span>
+<span class="font-financial-tabular text-financial-tabular text-error">R$ 1.350 / R$ 1.500 <span class="font-bold">(90%)</span></span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-error h-full rounded-full" style="width: 90%;"></div>
+</div>
+</div>
+<!-- Alimentaá∆o -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-center font-body-sm text-body-sm">
+<span class="font-semibold text-on-surface">Alimentaá∆o</span>
+<span class="font-financial-tabular text-financial-tabular text-on-surface">R$ 1.550 / R$ 2.500 <span class="text-on-surface-variant">(62%)</span></span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 62%;"></div>
+</div>
+</div>
+<!-- Transporte -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-center font-body-sm text-body-sm">
+<span class="font-semibold text-on-surface">Transporte</span>
+<span class="font-financial-tabular text-financial-tabular text-on-surface">R$ 480 / R$ 1.200 <span class="text-on-surface-variant">(40%)</span></span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 40%;"></div>
+</div>
+</div>
+</div>
+<button class="w-full py-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-headline-sm text-headline-sm transition-colors text-center">
+          Ajustar Oráamentos
+        </button>
+</section>
+<!-- FINANCIAL GOALS -->
+<section class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-5">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface">Metas Financeiras</h2>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">emoji_events</span>
+</div>
+<div class="space-y-4">
+<!-- Meta 1: Reserva de Emergància -->
+<div class="p-3.5 rounded-lg bg-surface-container-low space-y-2">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Reserva de Emergància</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">R$ 27.600 de R$ 30.000</p>
+</div>
+<span class="font-financial-tabular-sm text-financial-tabular-sm font-bold text-secondary">92%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2">
+<div class="bg-secondary h-full rounded-full" style="width: 92%;"></div>
+</div>
+</div>
+<!-- Meta 2: Viagem de FÇrias -->
+<div class="p-3.5 rounded-lg bg-surface-container-low space-y-2">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Viagem de FÇrias</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">R$ 9.750 de R$ 15.000</p>
+</div>
+<span class="font-financial-tabular-sm text-financial-tabular-sm font-bold text-on-surface">65%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2">
+<div class="bg-primary h-full rounded-full" style="width: 65%;"></div>
+</div>
+</div>
+<!-- Meta 3: Entrada Im¢vel -->
+<div class="p-3.5 rounded-lg bg-surface-container-low space-y-2">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Entrada de Im¢vel</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">R$ 35.000 de R$ 100.000</p>
+</div>
+<span class="font-financial-tabular-sm text-financial-tabular-sm font-bold text-on-surface">35%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2">
+<div class="bg-primary h-full rounded-full" style="width: 35%;"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- UPCOMING BILLS / CONTAS A PAGAR -->
+<section class="p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface">Pr¢ximos Vencimentos</h2>
+<span class="font-label-uppercase text-label-uppercase text-on-surface-variant">5 dias</span>
+</div>
+<div class="space-y-3">
+<!-- Bill 1: Fatura Cart∆o Black -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface transition-colors">
+<div class="space-y-0.5">
+<p class="font-headline-sm text-headline-sm text-on-surface">Fatura Cart∆o Black</p>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">
+<span class="material-symbols-outlined text-[14px]">event</span>
+<span>Vence amanh∆ (08 Mai)</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-financial-tabular text-financial-tabular font-bold text-on-surface">R$ 2.450,00</p>
+<button class="mt-1 px-3 py-1 rounded bg-primary text-on-primary font-headline-sm text-headline-sm text-xs hover:bg-primary-container transition-colors">
+                Pagar
+              </button>
+</div>
+</div>
+<!-- Bill 2: Condom°nio Residencial -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface transition-colors">
+<div class="space-y-0.5">
+<p class="font-headline-sm text-headline-sm text-on-surface">Condom°nio Residencial</p>
+<div class="flex items-center gap-1.5 text-secondary font-financial-tabular-sm text-financial-tabular-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>DÇbito Autom†tico (10 Mai)</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-financial-tabular text-financial-tabular font-bold text-on-surface">R$ 820,00</p>
+<span class="inline-block mt-1 font-body-sm text-body-sm text-on-surface-variant">Agendado</span>
+</div>
+</div>
+<!-- Bill 3: Internet Fibra -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface transition-colors">
+<div class="space-y-0.5">
+<p class="font-headline-sm text-headline-sm text-on-surface">Internet Fibra ‡ptica</p>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-financial-tabular-sm text-financial-tabular-sm">
+<span class="material-symbols-outlined text-[14px]">event</span>
+<span>Vence em 12 Mai</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-financial-tabular text-financial-tabular font-bold text-on-surface">R$ 149,90</p>
+<button class="mt-1 px-3 py-1 rounded bg-primary text-on-primary font-headline-sm text-headline-sm text-xs hover:bg-primary-container transition-colors">
+                Pagar
+              </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div></main></div></body></html>

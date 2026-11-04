@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanças da Casa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+    }
+
+    body {
+      background-color: #05113B;
+      color: #F2EBD2;
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 64px 32px;
+      font-feature-settings: "tnum" on, "lnum" on;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-direction: column;
+      margin: 0 auto;
+    }
+
+    /* Topo: Destaque centralizado */
+    .hero-section {
+      text-align: center;
+      padding-bottom: 56px;
+    }
+
+    .hero-label {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #F2EBD2;
+      margin-bottom: 12px;
+      display: block;
+      opacity: 0.85;
+    }
+
+    .hero-value {
+      font-size: 72px;
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: #F2EBD2;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Lista vertical de contas */
+    .bills-section {
+      width: 100%;
+      border-top: 1px solid rgba(242, 235, 210, 0.2);
+    }
+
+    .bills-header {
+      padding: 18px 0 10px 0;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(242, 235, 210, 0.2);
+    }
+
+    .bill-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 0;
+      border-bottom: 1px solid rgba(242, 235, 210, 0.2);
+    }
+
+    .bill-name-group {
+      flex: 1;
+    }
+
+    .bill-name {
+      font-size: 19px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: #F2EBD2;
+    }
+
+    .bill-due {
+      width: 180px;
+      text-align: left;
+      font-size: 15px;
+      color: #F2EBD2;
+      opacity: 0.8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bill-amount {
+      text-align: right;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #F2EBD2;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Rodapé: Entradas e saídas lado a lado */
+    .footer-section {
+      width: 100%;
+      max-width: 760px;
+      margin: 56px auto 0 auto;
+      padding-top: 28px;
+      border-top: 1px solid rgba(242, 235, 210, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 17px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .footer-metric {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .footer-label {
+      opacity: 0.75;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    .footer-val {
+      font-weight: 600;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-container">
+    <!-- Topo -->
+    <header class="hero-section">
+      <span class="hero-label">LIVRE DE VERDADE</span>
+      <h1 class="hero-value">R$ 2.340,00</h1>
+    </header>
+
+    <!-- Lista Vertical -->
+    <main class="bills-section">
+      <div class="bills-header">
+        <span>CONTA</span>
+        <span style="width: 180px; text-align: left;">VENCIMENTO</span>
+        <span style="text-align: right;">VALOR</span>
+      </div>
+
+      <div class="bill-item">
+        <div class="bill-name-group">
+          <div class="bill-name">Aluguel e Condomínio</div>
+        </div>
+        <div class="bill-due">Vence 10/06</div>
+        <div class="bill-amount">R$ 3.200,00</div>
+      </div>
+
+      <div class="bill-item">
+        <div class="bill-name-group">
+          <div class="bill-name">Energia Elétrica (Enel)</div>
+        </div>
+        <div class="bill-due">Vence 14/06</div>
+        <div class="bill-amount">R$ 342,80</div>
+      </div>
+
+      <div class="bill-item">
+        <div class="bill-name-group">
+          <div class="bill-name">Supermercado Quinzenal</div>
+        </div>
+        <div class="bill-due">Vence 18/06</div>
+        <div class="bill-amount">R$ 1.150,00</div>
+      </div>
+
+      <div class="bill-item">
+        <div class="bill-name-group">
+          <div class="bill-name">Internet Fibra Óptica</div>
+        </div>
+        <div class="bill-due">Vence 20/06</div>
+        <div class="bill-amount">R$ 149,90</div>
+      </div>
+
+      <div class="bill-item">
+        <div class="bill-name-group">
+          <div class="bill-name">Gás Encanado</div>
+        </div>
+        <div class="bill-due">Vence 22/06</div>
+        <div class="bill-amount">R$ 87,40</div>
+      </div>
+
+      <div class="bill-item">
+        <div class="bill-name-group">
+          <div class="bill-name">Fatura Cartão de Crédito</div>
+        </div>
+        <div class="bill-due">Vence 25/06</div>
+        <div class="bill-amount">R$ 2.480,50</div>
+      </div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="footer-section">
+      <div class="footer-metric">
+        <span class="footer-label">Entradas do mês:</span>
+        <span class="footer-val">R$ 9.750,60</span>
+      </div>
+      <div class="footer-metric">
+        <span class="footer-label">Saídas do mês:</span>
+        <span class="footer-val">R$ 7.410,60</span>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

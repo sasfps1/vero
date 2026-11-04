@@ -257,7 +257,8 @@
         // Número de teste num aparelho subia sozinho e aparecia no celular da outra
         // pessoa. Quem decide é o dono; recusar baixa a cópia antes de limpar o aparelho.
         const registros = novos.filter(function (op) { return op.t !== 'categorias'; }).length;
-        if (!registros || await perguntarSeJunta(registros)) enfileirar(novos);
+        // Casa só dele, recém-criada: não há com quem dividir, então o que lançou antes sobe sem perguntar.
+        if (!registros || pessoas.length <= 1 || await perguntarSeJunta(registros)) enfileirar(novos);
       }
       for (const op of fila) {
         if (op.op === 'poe') lido.d[op.t][op.k] = op.linha; else delete lido.d[op.t][op.k];
@@ -545,10 +546,69 @@
     await ligar(user);
   }
 
-  function mostrarPortao(podeVoltar) {
+  /* A PRIMEIRA VEZ (etapa 3, 04/11): quem chega vê o próprio número antes de qualquer
+     cadastro. Pedir e-mail a quem ainda não viu nada é pedir confiança de graça; depois
+     do primeiro valor, a conta passa a ser o jeito de não perder o que já é dele.
+     Só aparece a quem nunca usou: sem conta, sem convite e sem nada no aparelho. */
+  function primeiraVez() {
+    return !eu && !ler(K_SEM_CONTA) && !ler(K_CONVITE) &&
+      !S.lancamentos.length && !S.contas.length && !S.emprestimos.length;
+  }
+
+  function mostrarBoasVindas() {
     const p = document.getElementById('portao');
+    p.innerHTML = '<form class="portao-caixa boas-vindas" id="bv-form" novalidate>' + MARCA +
+      '<h1 class="bv-pergunta">Quanto entrou hoje?</h1>' +
+      '<p class="frase">Diária, salário, venda, Pix. Digite o valor e veja o seu dia.</p>' +
+      '<label class="bv-valor"><span class="numero-grande" id="bv-mostra" aria-hidden="true"></span>' +
+        '<input id="bv-valor" inputmode="numeric" autocomplete="off" aria-label="Quanto entrou hoje, em reais"></label>' +
+      '<button type="submit" class="btn primario" id="bv-ver">Ver o meu dia</button>' +
+      '<button type="button" class="btn" id="bv-nada">Hoje não entrou nada</button>' +
+      '<button type="button" class="portao-sem-conta" id="bv-tenho">Já tenho conta</button>' +
+      '</form>';
+    p.hidden = false;
+    ligarRede(p);
+
+    const campo = document.getElementById('bv-valor'), mostra = document.getElementById('bv-mostra');
+    let centavos = 0;
+    const pintar = function () {
+      const d = campo.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
+      campo.value = d;
+      centavos = Number(d || '0');
+      mostra.innerHTML = numeroGrande(centavos, true);
+      mostra.classList.toggle('zero', !centavos);
+    };
+    campo.addEventListener('input', pintar);
+    pintar();
+    if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) campo.focus();
+
+    const entrarSemConta = function () {
+      gravar(K_SEM_CONTA, true);
+      esconderPortao();
+      location.hash = '#/inicio';
+      desenhar();
+    };
+    document.getElementById('bv-form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      // Sem valor, o botão não fica morto: leva ao campo e abre o teclado.
+      if (!centavos) return campo.focus();
+      S.lancamentos.push({
+        id: id(), tipo: 'entrada', centavos: centavos, data: hoje(), nota: 'Entrada', categoria: '',
+        conta: null, emprestimo: null, em: Date.now()
+      });
+      guardar();
+      entrarSemConta();
+    });
+    document.getElementById('bv-nada').addEventListener('click', entrarSemConta);
+    document.getElementById('bv-tenho').addEventListener('click', function () { mostrarPortao(true, mostrarBoasVindas); });
+  }
+
+  function mostrarPortao(podeVoltar, aoVoltar) {
+    const p = document.getElementById('portao');
+    const temLocal = !eu && (S.lancamentos.length || S.contas.length || S.emprestimos.length);
     p.innerHTML = '<form class="portao-caixa" id="portao-form" novalidate>' + MARCA +
       '<p class="frase">' + (ler(K_CONVITE) ? 'Você foi convidado para uma casa no Vero. Crie a sua conta ou entre para aceitar.'
+        : temLocal ? 'Crie uma conta grátis para guardar o que você já lançou e ver em qualquer aparelho.'
         : 'Entre para ver a sua conta em qualquer aparelho.') + '</p>' +
       campoConta('c-email', 'E-mail', 'email', 'autocomplete="username" inputmode="email"') +
       campoSenha('c-senha', 'Senha', 'current-password') +
@@ -600,6 +660,7 @@
       await entrou(r.data.user);
     });
     document.getElementById('conta-sem').addEventListener('click', function () {
+      if (aoVoltar) return aoVoltar();
       if (!podeVoltar) gravar(K_SEM_CONTA, true);
       esconderPortao();
     });
@@ -946,9 +1007,9 @@
   window.veroAviso = function () {
     if (!sb) return '';
     if (eu && sessao && !fila.length && !recusados && !semRede) return '';
-    return '<div class="aviso sem-caixa">' +
-      (eu ? textoDoEstado() : 'Só neste aparelho. Entre para ver os lançamentos em todos os aparelhos.') +
-      '<button class="btn pequeno" data-acao="conta">' + (eu && sessao ? 'Ver' : 'Entrar') + '</button></div>';
+    return '<div class="aviso sem-caixa' + (eu ? '' : ' pesado') + '">' +
+      (eu ? textoDoEstado() : 'Está só neste aparelho. Crie uma conta grátis para não perder.') +
+      '<button class="btn pequeno' + (eu ? '' : ' primario') + '" data-acao="conta">' + (eu && sessao ? 'Ver' : eu ? 'Entrar' : 'Criar conta') + '</button></div>';
   };
 
   window.veroMinhaVaga = function () { return eu ? eu.vaga : 'sas'; };
@@ -974,7 +1035,8 @@
       if (!document.hidden) { drenar(); agendarPuxar(); }
     });
     // Antes de pedir a sessão: quem não tem conta aqui não chega a ver os números.
-    if (!eu && !ler(K_SEM_CONTA)) mostrarPortao(false);
+    if (primeiraVez()) mostrarBoasVindas();
+    else if (!eu && !ler(K_SEM_CONTA)) mostrarPortao(false);
     const r = await sb.auth.getSession();
     if (r.data && r.data.session) {
       esconderPortao();

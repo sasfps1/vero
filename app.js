@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 12;
+const VERSAO = 13;
 let soMemoria = false;
 
 const VAZIO = {
@@ -750,7 +750,8 @@ function avisoCopia() {
     return '<div class="aviso sem-caixa">Trocou de celular? Traga a cópia que você baixou.' + restaurar + '</div>';
   }
   // O Início só avisa quando há o que fazer: o caminho de sempre está em Configurações.
-  if (!vencida) return '';
+  // Sem conta, o aviso de criar a conta já resolve o mesmo medo: dois avisos viram ruído.
+  if (!vencida || (window.veroAviso && window.veroAviso())) return '';
   return '<div class="aviso sem-caixa pesado">' +
     (ult ? 'Última cópia em ' + porExtensoData(ult) + '.' : 'Nenhuma cópia baixada ainda.') +
     ' O celular pode perder isto; a cópia é a sua posse.' +
@@ -812,8 +813,17 @@ function periodoInicio() {
   return { de: d, ate: d, quando: r === 'Hoje' ? 'hoje' : r === 'Ontem' ? 'ontem' : 'em ' + porExtensoData(d), curto: r === 'Hoje' ? 'hoje' : r === 'Ontem' ? 'ontem' : 'neste dia' };
 }
 
+/* "Ainda pode gastar" divide o mês livre pelos dias que faltam. No primeiro dia, só com a
+   entrada de hoje, isso dava "R$ 5" logo depois de "Entrou R$ 180": parecia que o app tinha
+   comido o dinheiro. A frase espera haver contas ou gastos para ter do que falar. */
+function jaTemSaidas() {
+  return S.contas.length > 0 || S.lancamentos.some(function (l) { return l.tipo === 'saida'; });
+}
+
 function telaInicio(n) {
   const p = periodoInicio(), r = resumoEntre(p.de, p.ate);
+  // Sem conta, o aviso de guardar é o que protege o que ele lançou: sobe para junto do número.
+  const semContaAinda = window.veroLigado && !window.veroLigado() && window.veroAviso && !!window.veroAviso();
   const ficou = r.entradas - r.saidas;
   const pct = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
   const abas = [['hoje', 'Hoje'], ['mes', 'Mês']].map(function (a) {
@@ -840,8 +850,9 @@ function telaInicio(n) {
       '</div>' +
       '<div class="barra-fina" role="img" aria-label="' + fraseBarra + '"><i style="width:' + pct + '%"></i></div>' +
       '<p class="frase">' + fraseBarra +
-        (inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 ? ' Ainda pode gastar <b>' + dinheiro(sobra) + '</b> hoje.' : '') + '</p>' +
+        (inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas() ? ' Ainda pode gastar <b>' + dinheiro(sobra) + '</b> hoje.' : '') + '</p>' +
     '</section>' +
+    (semContaAinda ? avisos() : '') +
     faixaContas(n) +
     (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar">Pergunte ao Vero: "quando troquei o pneu?"</button>' : '') +
     secaoParaOndeTiles(p) +
@@ -854,7 +865,7 @@ function telaInicio(n) {
       cartaoNumero('receber', 'A receber', dinheiro(n.aReceber), '') +
     '</div>' +
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
-    avisos() +
+    (semContaAinda ? '' : avisos()) +
   '</div>';
 }
 

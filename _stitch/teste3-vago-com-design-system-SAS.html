@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-primary":"#525c89","on-surface":"#e4e1e6","on-surface-variant":"#c6c5d0","outline-variant":"#45464f","on-primary-fixed-variant":"#3a4470","primary":"#bac4f7","secondary":"#cdc7af","surface-container-lowest":"#0e0e11","on-background":"#e4e1e6","inverse-surface":"#e4e1e6","tertiary-fixed-dim":"#feb59b","secondary-container":"#4d4937","surface-container":"#1f1f23","surface-container-low":"#1b1b1e","outline":"#F2EBD2","surface-dim":"#131316","on-primary":"#05113B","surface-variant":"#353438","secondary-fixed-dim":"#cdc7af","surface-container-highest":"#353438","error":"#ffb4ab","on-primary-fixed":"#0c1842","tertiary":"#feb59b","surface-bright":"#39393c","on-secondary-fixed-variant":"#4b4735","error-container":"#93000a","tertiary-fixed":"#ffdbcf","on-secondary-fixed":"#1e1c0d","on-tertiary":"#502412","surface-container-high":"#2a2a2d","inverse-on-surface":"#303033","on-secondary":"#343120","primary-fixed":"#dde1ff","on-tertiary-fixed":"#360f02","surface-tint":"#bac4f7","primary-fixed-dim":"#bac4f7","primary-container":"#05113b","on-primary-container":"#737dac","on-error":"#690005","tertiary-container":"#2d0900","background":"#05113B","on-error-container":"#ffdad6","on-tertiary-container":"#ae7059","secondary-fixed":"#e9e3ca","on-secondary-container":"#beb8a1","surface":"#05113B","on-tertiary-fixed-variant":"#6c3926"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin":"1.5rem","space-xs":"0.25rem","space-sm":"0.5rem","space-xl":"2.5rem","space-lg":"1.5rem","space-md":"1rem","gutter":"1rem"},"fontFamily":{"headline-md":["Space Grotesk"],"label-sm":["Space Grotesk"],"display":["Space Grotesk"],"body-md":["Space Grotesk"],"label-md":["Space Grotesk"],"headline-lg":["Space Grotesk"],"body-sm":["Space Grotesk"],"headline-sm":["Space Grotesk"],"body-lg":["Space Grotesk"]},"fontSize":{"headline-md":["28px",{"lineHeight":"36px","fontWeight":"600"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.1em","fontWeight":"500"}],"display":["72px",{"lineHeight":"80px","fontWeight":"700"}],"body-md":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.05em","fontWeight":"500"}],"headline-lg":["40px",{"lineHeight":"48px","fontWeight":"700"}],"body-sm":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"600"}],"body-lg":["18px",{"lineHeight":"26px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-outline antialiased selection:bg-outline selection:text-background"><aside class="fixed left-0 top-0 h-full w-64 bg-background border-r border-outline z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-margin border-b border-outline flex items-center justify-between"><span class="font-label-md text-label-md tracking-widest uppercase text-outline font-semibold">SAS // INSTRUMENTO</span><span class="font-label-sm text-label-sm border border-outline px-space-xs py-0 uppercase text-outline">SYS.01</span></div><div class="p-space-md border-b border-outline"><p class="font-label-sm text-label-sm uppercase tracking-wider text-outline opacity-70">MÓDULO OPERACIONAL</p><p class="font-headline-sm text-headline-sm uppercase text-outline mt-space-xs tracking-tight">FINANCEIRO</p></div><nav class="flex flex-col p-space-sm gap-space-xs" data-active-classes="bg-outline text-background font-semibold"><a aria-current="page" class="px-space-md py-space-sm uppercase tracking-wider border border-transparent hover:border-outline transition-none bg-outline text-background font-semibold" data-path="contas-a-pagar" href="#">Contas a Pagar</a><a class="px-space-md py-space-sm font-label-md text-label-md uppercase tracking-wider text-outline border border-transparent hover:border-outline transition-none" data-path="visao-geral-de-caixa" href="#">Fluxo de Caixa</a><a class="px-space-md py-space-sm font-label-md text-label-md uppercase tracking-wider text-outline border border-transparent hover:border-outline transition-none" data-path="titulos-e-liquidacoes" href="#">Liquidações</a><a class="px-space-md py-space-sm font-label-md text-label-md uppercase tracking-wider text-outline border border-transparent hover:border-outline transition-none" data-path="conciliacao-bancaria" href="#">Conciliação</a><a class="px-space-md py-space-sm font-label-md text-label-md uppercase tracking-wider text-outline border border-transparent hover:border-outline transition-none" data-path="plano-de-contas" href="#">Plano de Contas</a><a class="px-space-md py-space-sm font-label-md text-label-md uppercase tracking-wider text-outline border border-transparent hover:border-outline transition-none" data-path="relatorios-e-auditoria" href="#">Auditoria</a></nav></div><div class="border-t border-outline p-space-md"><div class="flex flex-col gap-space-xs"><div class="flex justify-between font-label-sm text-label-sm uppercase text-outline"><span class="opacity-70">STATUS NÓ:</span><span>ONLINE [SYNC]</span></div><div class="flex justify-between font-label-sm text-label-sm uppercase text-outline"><span class="opacity-70">LATÊNCIA:</span><span>12MS</span></div></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-background border-b border-outline z-40 flex items-center justify-between px-space-xl"><div class="flex items-center gap-space-lg"><span class="font-label-sm text-label-sm uppercase tracking-widest text-outline border-r border-outline pr-space-lg">TERMINAL // DESKTOP DE ALTA PRECISÃO</span><span class="font-label-sm text-label-sm uppercase tracking-widest text-outline opacity-80">REGISTRO DE EXERCÍCIO FISCAL: 2024.Q4</span></div><div class="flex items-center gap-space-md"><div class="border border-outline px-space-md py-space-xs font-label-sm text-label-sm uppercase text-outline tracking-wider">AMB: PRODUÇÃO // RESTRITO</div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 bg-surface min-h-screen"><div class="w-full p-space-xl"><div class="flex flex-col w-full text-outline" style="font-variant-numeric: tabular-nums;">
+<!-- SECTION 00 // REGISTRO DE CABEÇALHO ANALÍTICO -->
+<div class="flex flex-col md:flex-row md:items-end justify-between border-b border-outline/20 pb-space-lg mb-space-lg gap-space-md">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm mb-space-xs">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/60">SUBMÓDULO CONTÁBIL // CP-01</span>
+<span class="text-outline/40 font-label-sm text-label-sm">/</span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline">REGIME DE COMPETÊNCIA</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg uppercase tracking-tight text-outline font-bold">CONTAS A PAGAR</h1>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="flex flex-col text-right">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/60">CICLO ATUAL</span>
+<span class="font-headline-sm text-headline-sm font-semibold tracking-tight uppercase">JUNHO / 2025</span>
+</div>
+<div class="h-10 w-px bg-outline/20"></div>
+<div class="flex flex-col text-right">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/60">CONCILIAÇÃO BASE</span>
+<span class="font-headline-sm text-headline-sm font-semibold tracking-tight uppercase">AUDITADO // 100%</span>
+</div>
+</div>
+</div>
+<!-- SECTION 01 // TOTALIZADORES SUPERIORES -->
+<section class="grid grid-cols-1 md:grid-cols-3 border border-outline/20 mb-space-lg">
+<!-- Bloco 1 -->
+<div class="p-space-lg flex flex-col justify-between border-b md:border-b-0 md:border-r border-outline/20">
+<div class="flex items-center justify-between mb-space-md">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/70">TOTAL COMPROMETIDO (MÊS)</span>
+<span class="font-label-sm text-label-sm border border-outline/30 px-space-xs py-0 uppercase">REF 01-30 JUN</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline/50 mb-space-xs">BRL // MONETÁRIO</span>
+<div class="font-headline-lg text-headline-lg font-bold tracking-tight text-outline leading-none">
+          R$ 14.890,50
+        </div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-outline/10 flex justify-between font-label-sm text-label-sm text-outline/60 uppercase">
+<span>08 OBRIGAÇÕES MAPEADAS</span>
+<span>INDEXADOR IPCA/SELIC: NEUTRO</span>
+</div>
+</div>
+<!-- Bloco 2 -->
+<div class="p-space-lg flex flex-col justify-between border-b md:border-b-0 md:border-r border-outline/20">
+<div class="flex items-center justify-between mb-space-md">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/70">VENCENDO HOJE / 48H</span>
+<span class="font-label-sm text-label-sm border border-outline px-space-xs py-0 uppercase font-semibold">PRIORITÁRIO</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-baseline justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline/50 mb-space-xs">EXIGIBILIDADE IMEDIATA</span>
+<span class="font-label-md text-label-md uppercase tracking-wider text-outline font-semibold">02 TÍTULOS</span>
+</div>
+<div class="font-headline-lg text-headline-lg font-bold tracking-tight text-outline leading-none">
+          R$ 3.200,00
+        </div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-outline/10 flex justify-between font-label-sm text-label-sm text-outline/60 uppercase">
+<span>SALDO DISPONÍVEL COBRE: SIM</span>
+<span>AUTORIZAÇÃO: PENDENTE</span>
+</div>
+</div>
+<!-- Bloco 3 -->
+<div class="p-space-lg flex flex-col justify-between">
+<div class="flex items-center justify-between mb-space-md">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/70">PROGRAMADO ATÉ O FIM DO MÊS</span>
+<span class="font-label-sm text-label-sm border border-outline/30 px-space-xs py-0 uppercase">FLUXO PROGRAMADO</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline/50 mb-space-xs">PERÍODO D+3 A D+18</span>
+<div class="font-headline-lg text-headline-lg font-bold tracking-tight text-outline leading-none">
+          R$ 11.690,50
+        </div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-outline/10 flex justify-between font-label-sm text-label-sm text-outline/60 uppercase">
+<span>06 TÍTULOS AGENDADOS/PROGRAMADOS</span>
+<span>COBERTURA PREVISTA: 100%</span>
+</div>
+</div>
+</section>
+<!-- SECTION 02 // UTILITÁRIOS, FILTROS E AÇÕES -->
+<section class="border border-outline/20 p-space-md mb-space-lg flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-space-md">
+<!-- Grupo de Filtros -->
+<div class="flex flex-wrap items-center gap-space-xs" id="filter-container">
+<button class="filter-tab px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider bg-outline text-background font-semibold cursor-pointer border border-outline transition-none" data-filter="all" type="button">
+        [+] TODOS OS TÍTULOS (08)
+      </button>
+<button class="filter-tab px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline cursor-pointer border border-outline/30 hover:border-outline transition-none" data-filter="A VENCER" type="button">
+        VENCENDO EM BREVE (02)
+      </button>
+<button class="filter-tab px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline cursor-pointer border border-outline/30 hover:border-outline transition-none" data-filter="AGENDADO" type="button">
+        AGUARDANDO LIQUIDAÇÃO (03)
+      </button>
+<button class="filter-tab px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline cursor-pointer border border-outline/30 hover:border-outline transition-none" data-filter="PROGRAMADO" type="button">
+        PROGRAMADOS (03)
+      </button>
+</div>
+<!-- Busca e Ações Primárias -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm">
+<!-- Busca Input -->
+<div class="relative flex items-center">
+<label class="sr-only" for="search-input">BUSCA POR DOCUMENTO OU FORNECEDOR</label>
+<span class="absolute left-space-sm font-label-sm text-label-sm uppercase tracking-widest text-outline/40 pointer-events-none">LOCALIZAR:</span>
+<input class="w-full sm:w-64 bg-transparent border border-outline/30 pl-24 pr-space-sm py-space-sm font-body-sm text-body-sm text-outline uppercase placeholder:text-outline/30 focus:border-outline focus:outline-none transition-none" id="search-input" placeholder="FORNECEDOR OU CÓDIGO..." type="text"/>
+</div>
+<!-- Botões de Ação Rigorosos -->
+<div class="flex items-center gap-space-xs">
+<button class="px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline border border-outline hover:bg-outline hover:text-background cursor-pointer transition-none opacity-50 cursor-not-allowed" disabled="" id="btn-liquidar" type="button">
+          LIQUIDAR SELECIONADOS
+        </button>
+<button class="px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider bg-outline text-background font-semibold border border-outline hover:bg-transparent hover:text-outline cursor-pointer transition-none" id="btn-novo" type="button">
+          + NOVO LANÇAMENTO
+        </button>
+</div>
+</div>
+</section>
+<!-- SECTION 03 // TABELA TÉCNICA RIGOROSA -->
+<section class="border border-outline/20 w-full overflow-x-auto">
+<table class="w-full text-left border-collapse" id="payables-table">
+<thead>
+<tr class="border-b border-outline/20 font-label-sm text-label-sm uppercase tracking-widest text-outline/70 select-none">
+<th class="w-12 p-space-sm border-r border-outline/20 text-center">
+<input aria-label="Selecionar todas as linhas" class="w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" id="select-all" type="checkbox"/>
+</th>
+<th class="p-space-sm border-r border-outline/20 font-medium">VENCIMENTO</th>
+<th class="p-space-sm border-r border-outline/20 font-medium">DOCUMENTO / CÓD</th>
+<th class="p-space-sm border-r border-outline/20 font-medium">FAVORECIDO / CATEGORIA</th>
+<th class="p-space-sm border-r border-outline/20 font-medium text-center">COMPETÊNCIA</th>
+<th class="p-space-sm border-r border-outline/20 font-medium text-right">VALOR (R$)</th>
+<th class="p-space-sm font-medium text-center">STATUS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline/10 font-body-sm text-body-sm">
+<!-- LINHA 1 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="A VENCER" data-valor="3200.00">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            12/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">TIT</span>
+            DUP-98412
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Condomínio Edifício Horizon</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">HABITAÇÃO // INFRAESTRUTURA</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            MAI/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            3.200,00
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline px-space-xs py-0.5">
+              A VENCER
+            </span>
+</td>
+</tr>
+<!-- LINHA 2 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="A VENCER" data-valor="342.80">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            14/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">FAT</span>
+            FAT-00291
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Enel Distribuição SP</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">UTILIDADES // ELETRICIDADE</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            MAI/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            342,80
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline px-space-xs py-0.5">
+              A VENCER
+            </span>
+</td>
+</tr>
+<!-- LINHA 3 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="AGENDADO" data-valor="1150.00">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            18/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">BOL</span>
+            BOL-88401
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Supermercados St. Marche</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">ALIMENTAÇÃO // DESPESAS GERAIS</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            JUN/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            1.150,00
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline/50 px-space-xs py-0.5 text-outline/80">
+              AGENDADO
+            </span>
+</td>
+</tr>
+<!-- LINHA 4 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="AGENDADO" data-valor="149.90">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            20/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">NFE</span>
+            NF-441029
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Vivo Fibra Telecom</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">CONECTIVIDADE // LINKS DEDICADOS</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            JUN/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            149,90
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline/50 px-space-xs py-0.5 text-outline/80">
+              AGENDADO
+            </span>
+</td>
+</tr>
+<!-- LINHA 5 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="AGENDADO" data-valor="99.90">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            22/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">FAT</span>
+            FAT-10293
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Comgás Companhia de Gás</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">UTILIDADES // GÁS ENCANADO</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            MAI/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            99,90
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline/50 px-space-xs py-0.5 text-outline/80">
+              AGENDADO
+            </span>
+</td>
+</tr>
+<!-- LINHA 6 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="PROGRAMADO" data-valor="4480.50">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            25/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">CC</span>
+            FAT-88390
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Cartão Visa Infinite Corporativo</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">FATURA // OPERAÇÕES MENSAIS</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            JUN/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            4.480,50
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline/30 px-space-xs py-0.5 text-outline/60">
+              PROGRAMADO
+            </span>
+</td>
+</tr>
+<!-- LINHA 7 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="PROGRAMADO" data-valor="1850.00">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            28/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">NFS</span>
+            SRV-33019
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Serv. Contabilidade e Auditoria</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">HONORÁRIOS // COMPLIANCE</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            JUN/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            1.850,00
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline/30 px-space-xs py-0.5 text-outline/60">
+              PROGRAMADO
+            </span>
+</td>
+</tr>
+<!-- LINHA 8 -->
+<tr class="table-row group hover:bg-outline/5 transition-none" data-status="PROGRAMADO" data-valor="3617.40">
+<td class="p-space-sm border-r border-outline/20 text-center">
+<input class="row-checkbox w-3.5 h-3.5 bg-transparent border border-outline/50 appearance-none checked:bg-outline cursor-pointer inline-block align-middle focus:outline-none rounded-none" type="checkbox"/>
+</td>
+<td class="p-space-sm border-r border-outline/20 font-medium text-outline whitespace-nowrap">
+            30/06/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-outline/80 whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider border border-outline/30 px-space-xs py-0 mr-space-xs">APO</span>
+            SEGURO-77
+          </td>
+<td class="p-space-sm border-r border-outline/20">
+<div class="flex flex-col">
+<span class="font-semibold text-outline">Porto Seguro Residencial</span>
+<span class="font-label-sm text-label-sm text-outline/50 uppercase tracking-wider">PROTEÇÃO // PATRIMÔNIO</span>
+</div>
+</td>
+<td class="p-space-sm border-r border-outline/20 text-center font-label-md text-label-md text-outline/80 whitespace-nowrap">
+            JUN/2025
+          </td>
+<td class="p-space-sm border-r border-outline/20 text-right font-medium text-outline whitespace-nowrap">
+            3.617,40
+          </td>
+<td class="p-space-sm text-center whitespace-nowrap">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline/30 px-space-xs py-0.5 text-outline/60">
+              PROGRAMADO
+            </span>
+</td>
+</tr>
+</tbody>
+<!-- SECTION 04 // RODAPÉ CONTÁBIL DA LISTAGEM -->
+<tfoot>
+<tr class="border-t-2 border-outline/40 font-body-sm text-body-sm bg-outline/5">
+<td class="p-space-md border-r border-outline/20" colspan="4">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-outline/70">TOTALIZADOR DE REGISTROS:</span>
+<span class="font-label-md text-label-md font-semibold text-outline" id="displayed-count">08 LANÇAMENTOS EXIBIDOS</span>
+</div>
+<div class="font-label-sm text-label-sm uppercase tracking-wider text-outline/50">
+                AUDITORIA INTERNA // HASH: 9E10-CP-202506
+              </div>
+</div>
+</td>
+<td class="p-space-md border-r border-outline/20 text-center font-label-sm text-label-sm uppercase tracking-wider text-outline/70 whitespace-nowrap">
+            SOMA TOTAL
+          </td>
+<td class="p-space-md border-r border-outline/20 text-right whitespace-nowrap">
+<span class="font-headline-sm text-headline-sm font-bold text-outline">
+              R$ 14.890,50
+            </span>
+</td>
+<td class="p-space-md text-center">
+<span class="font-label-sm text-label-sm uppercase tracking-widest border border-outline px-space-sm py-space-xs text-outline font-semibold">
+              BALANCEADO
+            </span>
+</td>
+</tr>
+</tfoot>
+</table>
+</section>
+<!-- PAINEL TÉCNICO INFERIOR / INSTRUÇÕES & TELEMETRIA -->
+<footer class="mt-space-lg border border-outline/20 p-space-md flex flex-col md:flex-row items-start md:items-center justify-between font-label-sm text-label-sm uppercase tracking-wider text-outline/60 gap-space-sm">
+<div class="flex items-center gap-space-md">
+<span>COMANDO DE TECLADO: [ESPAÇO] SELECIONA</span>
+<span class="text-outline/30">|</span>
+<span>[ENTER] CONFIRMA LIQUIDAÇÃO</span>
+<span class="text-outline/30">|</span>
+<span>[/] BUSCA IMEDIATA</span>
+</div>
+<div class="flex items-center gap-space-md">
+<span id="selection-status">0 SELECIONADOS (R$ 0,00)</span>
+<span class="text-outline/30">|</span>
+<span class="text-outline">ARQUIVO FISCAL ABERTO</span>
+</div>
+</footer>
+</div>
+<script>
+  (function() {
+    const selectAll = document.getElementById('select-all');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const btnLiquidar = document.getElementById('btn-liquidar');
+    const selectionStatus = document.getElementById('selection-status');
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    const searchInput = document.getElementById('search-input');
+    const tableRows = document.querySelectorAll('#payables-table tbody tr');
+    const displayedCount = document.getElementById('displayed-count');
+
+    function updateSelection() {
+      let selectedCount = 0;
+      let selectedSum = 0;
+
+      rowCheckboxes.forEach((cb) => {
+        if (cb.checked) {
+          const row = cb.closest('tr');
+          selectedCount++;
+          const val = parseFloat(row.getAttribute('data-valor') || '0');
+          selectedSum += val;
+          row.classList.add('bg-outline/10');
+        } else {
+          cb.closest('tr').classList.remove('bg-outline/10');
+        }
+      });
+
+      const formattedSum = selectedSum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      selectionStatus.textContent = `${selectedCount} SELECIONADOS (R$ ${formattedSum})`;
+
+      if (selectedCount > 0) {
+        btnLiquidar.classList.remove('opacity-50', 'cursor-not-allowed');
+        btnLiquidar.removeAttribute('disabled');
+      } else {
+        btnLiquidar.classList.add('opacity-50', 'cursor-not-allowed');
+        btnLiquidar.setAttribute('disabled', 'true');
+      }
+
+      if (selectAll) {
+        const visibleCheckboxes = Array.from(rowCheckboxes).filter(cb => cb.closest('tr').style.display !== 'none');
+        if (visibleCheckboxes.length > 0) {
+          selectAll.checked = visibleCheckboxes.every(cb => cb.checked);
+        }
+      }
+    }
+
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        const isChecked = selectAll.checked;
+        rowCheckboxes.forEach(cb => {
+          if (cb.closest('tr').style.display !== 'none') {
+            cb.checked = isChecked;
+          }
+        });
+        updateSelection();
+      });
+    }
+
+    rowCheckboxes.forEach(cb => {
+      cb.addEventListener('change', updateSelection);
+    });
+
+    // Filtros
+    let currentFilter = 'all';
+
+    function filterTable() {
+      const query = (searchInput.value || '').trim().toLowerCase();
+      let visible = 0;
+
+      tableRows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status') || '';
+        const rowText = row.textContent.toLowerCase();
+
+        const matchesFilter = (currentFilter === 'all' || rowStatus === currentFilter);
+        const matchesSearch = query === '' || rowText.includes(query);
+
+        if (matchesFilter && matchesSearch) {
+          row.style.display = '';
+          visible++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      displayedCount.textContent = `${visible.toString().padStart(2, '0')} LANÇAMENTOS EXIBIDOS`;
+      updateSelection();
+    }
+
+    filterTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        filterTabs.forEach(t => {
+          t.className = 'filter-tab px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline cursor-pointer border border-outline/30 hover:border-outline transition-none';
+        });
+        tab.className = 'filter-tab px-space-md py-space-sm font-label-sm text-label-sm uppercase tracking-wider bg-outline text-background font-semibold cursor-pointer border border-outline transition-none';
+        currentFilter = tab.getAttribute('data-filter') || 'all';
+        filterTable();
+      });
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', filterTable);
+    }
+
+    // Atalhos de teclado úteis no estilo console/terminal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+  })();
+</script></div></main></div></body></html>
