@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 13;
+const VERSAO = 14;
 let soMemoria = false;
 
 const VAZIO = {
@@ -429,7 +429,9 @@ const ICONES = {
   celular: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2', pessoa: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
   voltar: 'M15 5l-7 7 7 7', avancar: 'M9 5l7 7-7 7', lapis: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
   agenda: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4',
-  certo: 'M5 12l5 5 9-10'
+  certo: 'M5 12l5 5 9-10',
+  conversa: 'M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM8 10h8M8 13h5',
+  fechar: 'M6 6l12 12M18 6L6 18'
 };
 function icone(n) {
   return '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONES[n] + '"/></svg>';
@@ -585,7 +587,7 @@ function listaHtml() {
       // "Mercado / Mercado" não diz nada duas vezes.
       sub: [l.nota && cat && sinNorm(l.nota) !== sinNorm(cat) ? esc(cat) : '',
         window.veroDono ? esc(window.veroDono(l, contaVista())) : ''].filter(Boolean).join(' · '),
-      prefixo: l.tipo === 'entrada' ? '+' : '',
+      prefixo: l.tipo === 'entrada' ? '+' : '−',
       centavos: l.centavos,
       classes: 'compacta',
       toque: { acao: 'editar', ref: l.id, rotulo: 'Corrigir' }
@@ -652,7 +654,7 @@ function telaGastos() {
   const g = paraOndeEntre(p.de, p.ate), r = resumoEntre(p.de, p.ate);
   const nomesPeriodo = { dia: 'Dia', semana: 'Semana', mes: 'Mês', ano: 'Ano' };
   const abas = Object.keys(nomesPeriodo).map(function (k) {
-    return '<button class="periodo' + (k === periodoTipo ? ' activo' : '') + '" data-acao="periodo" data-ref="' + k + '"' +
+    return '<button class="aba' + (k === periodoTipo ? ' activo' : '') + '" data-acao="periodo" data-ref="' + k + '"' +
       (k === periodoTipo ? ' aria-pressed="true"' : ' aria-pressed="false"') + '>' + nomesPeriodo[k] + '</button>';
   }).join('');
   let linhas = '';
@@ -670,13 +672,13 @@ function telaGastos() {
       toque: { acao: 'filtrar', ref: it.nome, rotulo: 'Ver os lançamentos de' }
     });
   }
-  return '<div class="painel gastos"><section class="bloco he">' +
-      '<div class="periodos">' + abas + '</div>' +
+  // O mês anda FORA do cartão, como no Início: navegação por cima, o dado dentro.
+  return '<div class="painel gastos"><nav class="abas" aria-label="Período">' + abas + '</nav>' +
       '<div class="seletor-mes">' +
         '<button class="seta" data-acao="andar" data-ref="-1" aria-label="Período anterior"' + (podeAndar(-1) ? '' : ' disabled') + '>' + icone('voltar') + '</button>' +
         '<span>' + p.nome + '</span>' +
         '<button class="seta" data-acao="andar" data-ref="1" aria-label="Período seguinte"' + (podeAndar(1) ? '' : ' disabled') + '>' + icone('avancar') + '</button>' +
-      '</div>' +
+      '</div><section class="bloco he">' +
       '<span class="rotulo">Para onde foi</span>' +
       '<div class="numero-grande">' + numeroGrande(g.total) + '</div>' +
       '<p class="frase">' + (!corrente
@@ -767,7 +769,16 @@ function avisoCopia() {
     `o` = { marca, titulo, sub, botoes, centavos, classes }
     `marca: null` tira a coluna da marca. `centavos: null` deixa o valor vazio.
     `toque` = { acao, ref, rotulo } faz da linha inteira um botão. */
+/* 04/11: nos lançamentos o quadradinho cheio/vazio lia-se como caixa de tarefa a marcar.
+   Entrou e saiu passam a ser a seta num azulejo, a mesma dos cartões do Início; as contas
+   e as pessoas continuam com as marcas delas. A saída leva o sinal de menos e a entrada o
+   azul-gelo da marca: o sentido lê-se antes do número. */
+const SETAS = { entrou: 'entrou', saiu: 'saiu', transfer: 'pessoa' };
 function linhaHtml(o) {
+  const seta = SETAS[o.marca];
+  if (seta) {
+    o = Object.assign({}, o, { icone: seta, marca: null, classes: (o.classes || '') + ' seta-' + o.marca });
+  }
   const semMarca = o.marca === null || o.marca === undefined;
   const tag = o.toque ? 'button' : 'div';
   const toque = o.toque ? ' data-acao="' + o.toque.acao + '" data-ref="' + esc(o.toque.ref) + '"' : '';
@@ -783,7 +794,8 @@ function linhaHtml(o) {
       // metida na linha da data encolhia de 170px para 22 e desaparecia.
       (o.extra ? '<span class="extra-linha">' + o.extra + '</span>' : '') +
     '</span>' +
-    '<span class="valor">' + (o.centavos === null ? '' : (o.prefixo || '') + dinheiro(o.centavos)) + '</span>' +
+    '<span class="valor">' + (o.centavos === null ? '' : (o.prefixo || '') + dinheiro(o.centavos)) +
+      (o.acaoDireita ? '<span class="acao-direita">' + o.acaoDireita + '</span>' : '') + '</span>' +
   '</' + tag + '>';
 }
 
@@ -826,12 +838,15 @@ function telaInicio(n) {
   const semContaAinda = window.veroLigado && !window.veroLigado() && window.veroAviso && !!window.veroAviso();
   const ficou = r.entradas - r.saidas;
   const pct = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
+  /* 04/11, pedido dele: o seletor dentro do cartão disputava o lugar com o número. O
+     período é navegação, e navegação fica FORA do dado: abas simples por cima do cartão,
+     como nos bancos, e o cartão fica só com o que aconteceu. */
   const abas = [['hoje', 'Hoje'], ['mes', 'Mês']].map(function (a) {
-    return '<button class="periodo' + (inicioVista === a[0] ? ' activo' : '') + '" data-acao="inicio-vista" data-ref="' + a[0] + '" aria-pressed="' + (inicioVista === a[0]) + '">' + a[1] + '</button>';
+    return '<button class="aba' + (inicioVista === a[0] ? ' activo' : '') + '" data-acao="inicio-vista" data-ref="' + a[0] + '" aria-pressed="' + (inicioVista === a[0]) + '">' + a[1] + '</button>';
   }).join('') +
     // O seletor de data do próprio aparelho, por baixo do botão: no celular abre o calendário.
-    '<label class="periodo escolher' + (inicioVista === 'dia' ? ' activo' : '') + '">' +
-      (inicioVista === 'dia' && inicioDia ? porExtensoData(inicioDia) : 'Escolher dia') +
+    '<label class="aba escolher' + (inicioVista === 'dia' ? ' activo' : '') + '">' + icone('agenda') +
+      (inicioVista === 'dia' && inicioDia ? porExtensoData(inicioDia) : 'Outro dia') +
       '<input type="date" id="inicio-dia" max="' + hoje() + '" value="' + (inicioDia || hoje()) + '" aria-label="Escolher o dia"></label>';
 
   const sobra = Math.max(0, n.limite - n.gastoHoje);
@@ -840,21 +855,21 @@ function telaInicio(n) {
     : 'Saiu ' + pct + '% do que entrou.';
 
   return '<div class="painel">' +
+    '<nav class="abas" aria-label="Período">' + abas + '</nav>' +
     '<section class="bloco he">' +
-      '<div class="periodos tres">' + abas + '</div>' +
       '<span class="rotulo">Entrou ' + p.quando + '</span>' +
       '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
-      '<div class="saiu-ficou">' +
-        '<span><i>' + icone('saiu') + '</i>Saiu <b>' + dinheiro(r.saidas) + '</b></span>' +
-        '<span>Ficou <b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></span>' +
-      '</div>' +
       '<div class="barra-fina" role="img" aria-label="' + fraseBarra + '"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="saiu-ficou">' +
+        '<div><span>' + icone('saiu') + 'Saiu</span><b>' + dinheiro(r.saidas) + '</b></div>' +
+        '<div><span>Ficou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></div>' +
+      '</div>' +
       '<p class="frase">' + fraseBarra +
         (inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas() ? ' Ainda pode gastar <b>' + dinheiro(sobra) + '</b> hoje.' : '') + '</p>' +
     '</section>' +
     (semContaAinda ? avisos() : '') +
     faixaContas(n) +
-    (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar">Pergunte ao Vero: "quando troquei o pneu?"</button>' : '') +
+    (window.veroAbrirIA ? '<button class="perguntar" data-acao="perguntar"><span class="ico">' + icone('conversa') + '</span><span>Pergunte ao Vero<small>"Quando troquei o pneu?"</small></span>' + icone('avancar') + '</button>' : '') +
     secaoParaOndeTiles(p) +
     secaoLancInicio(p) +
     // Os quatro são sempre do mês, seja qual for o período aberto no topo.
@@ -917,7 +932,7 @@ function secaoLancInicio(p) {
           marca: l.emprestimo || emprestimoDeOrigem(l) ? 'transfer' : l.tipo === 'entrada' ? 'entrou' : 'saiu',
           titulo: esc(String(l.nota || '').trim() || cat || 'Sem nome'),
           sub: l.nota && cat && sinNorm(l.nota) !== sinNorm(cat) ? esc(cat) : '',
-          prefixo: l.tipo === 'entrada' ? '+' : '', centavos: l.centavos, classes: 'compacta',
+          prefixo: l.tipo === 'entrada' ? '+' : '−', centavos: l.centavos, classes: 'compacta',
           toque: { acao: 'editar', ref: l.id, rotulo: 'Corrigir' }
         });
       });
@@ -1073,19 +1088,24 @@ function telaContas(n) {
   const vistas = contasVistas();
   const ordenadas = vistas.slice().sort(function (a, b) { return a.dia - b.dia; });
   let linhas = '';
+  /* 04/11: cada conta com o ícone dela, o prazo dito como prazo ("em 4 dias") e o
+     "Paguei" debaixo do valor, à direita. Antes o botão flutuava no meio da linha e o
+     quadradinho parecia uma caixa a marcar. Paga, o ícone vira o visto. */
   for (const c of ordenadas) {
     const pago = c.pagos && c.pagos[mes];
     const venc = mes + '-' + p2(Math.min(c.dia, diasNoMes(mes)));
     const atrasada = !pago && venc < h;
     const valor = pago ? pago.centavos : c.centavos;
+    const faltam = diasEntre(h, venc);
     linhas += linhaHtml({
-      marca: (pago ? 'paga fraca' : atrasada ? 'vencida' : ''),
+      icone: pago ? 'certo' : iconeDoGasto(c.nome),
       titulo: tituloEditavel('editar-conta', c.id, esc(c.nome)),
-      sub: pago ? 'pago em ' + porExtensoData(pago.data)
-        : 'dia ' + c.dia + (atrasada ? ' · venceu' : ''),
-      botoes: pago ? botao('despagar', c.id, 'Não paguei', true) : botao('pagar', c.id, 'Paguei'),
+      sub: pago ? 'Pago em ' + porExtensoData(pago.data)
+        : atrasada ? 'Venceu dia ' + c.dia
+        : faltam === 0 ? 'Vence hoje' : faltam === 1 ? 'Vence amanhã' : 'Vence dia ' + c.dia + ' · em ' + faltam + ' dias',
+      acaoDireita: pago ? botao('despagar', c.id, 'Desfazer', true) : botao('pagar', c.id, 'Paguei'),
       centavos: valor,
-      classes: (atrasada ? 'atrasada ' : '') + (pago ? 'fraca' : '')
+      classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (pago ? 'fraca' : '')
     });
   }
 
@@ -1096,13 +1116,13 @@ function telaContas(n) {
     const primeira = !jaTemBotao[x.conta.id];
     jaTemBotao[x.conta.id] = true;
     return linhaHtml({
-      marca: 'vencida',
+      icone: iconeDoGasto(x.conta.nome),
       titulo: tituloEditavel('editar-conta', x.conta.id, esc(x.conta.nome)),
-      sub: 'de ' + nomeDoMes(x.mes) + ' · venceu ' + porExtensoData(x.venc),
-      botoes: botao('pagar', x.conta.id + '|' + x.mes, 'Paguei') +
+      sub: 'De ' + nomeDoMes(x.mes) + ' · venceu ' + porExtensoData(x.venc),
+      acaoDireita: botao('pagar', x.conta.id + '|' + x.mes, 'Paguei') +
         (primeira ? botao('dispensar-conta', x.conta.id + '|' + x.mes, 'Não devo', true) : ''),
       centavos: x.conta.centavos,
-      classes: 'atrasada '
+      classes: 'conta-linha atrasada '
     });
   }).join('');
 
@@ -1352,7 +1372,7 @@ function atualizarApp() {
 
 // ── folha de lançamento ──────────────────────────────────────────────────────
 
-let digitos = '', emEdicao = null, categoriaEscolhida = false, valorDaFrase = false;
+let digitos = '', emEdicao = null, categoriaEscolhida = false, valorDaFrase = false, tipoFolha = 'saida', dataLivre = true;
 
 /** "gastei 50 de gasolina ontem" -> { centavos: 5000, nota: 'Gasolina', data: ontem }.
     Não tem IA e não custa nada: lançar precisa funcionar sem sinal.
@@ -1495,7 +1515,10 @@ function abrirFolha(l) {
   emEdicao = l ? l.id : null;
   digitos = l ? String(l.centavos) : '';
   const ligado = l && (l.emprestimo || l.conta || emprestimoDeOrigem(l));
-  document.getElementById('lancar-titulo').textContent = l ? 'Corrigir lançamento' : 'Lançar';
+  document.getElementById('lancar-titulo').textContent = l ? 'Corrigir lançamento' : 'Novo lançamento';
+  tipoFolha = l ? l.tipo : 'saida';
+  // A conta paga e o empréstimo têm o sentido deles: o tipo não se troca.
+  document.getElementById('lancar-tipo').hidden = !!ligado;
   document.getElementById('lancar-nota').value = l ? (l.nota || '') : '';
   document.getElementById('lancar-categoria').innerHTML = opcoesCategoria();
   document.getElementById('lancar-categoria').value = l ? (l.categoria || categoriaSugerida(l.nota)) : '';
@@ -1517,24 +1540,68 @@ function abrirFolha(l) {
     data.min = mesDe(l.data) + '-01';
     data.max = [hoje(), mesDe(l.data) + '-' + p2(diasNoMes(mesDe(l.data)))].sort()[0];
   }
+  // Hoje e Ontem só valem quando cabem no intervalo: na conta paga, só o calendário.
+  dataLivre = !(l && l.conta);
   valorDaFrase = false;
   document.getElementById('campo-frase').hidden = !!l;
   document.getElementById('lancar-frase').value = '';
   document.getElementById('frase-dica').textContent = '';
   document.getElementById('lancar-microfone').hidden = !reconhecedor();
   pintarAtalhos(!l);
-  document.querySelectorAll('[data-lancar]').forEach(function (b) {
-    b.hidden = !!(ligado && b.dataset.lancar !== l.tipo);
-  });
   pintarValor();
   document.getElementById('folha-lancar').hidden = false;
 }
 function abrirLancar() { abrirFolha(null); }
 
+/** Pinta a folha inteira a partir do estado: o tipo, o valor, o botão e as fichas. */
 function pintarValor() {
-  const c = Number(digitos || '0');
+  const c = Number(digitos || '0'), saiu = tipoFolha === 'saida';
   document.getElementById('lancar-valor').innerHTML = numeroGrande(c, true);
-  document.querySelectorAll('[data-lancar]').forEach(function (b) { b.disabled = c === 0; });
+  document.getElementById('lancar-valor').classList.toggle('zero', !c);
+  document.getElementById('lancar-rotulo').textContent = saiu ? 'Quanto saiu' : 'Quanto entrou';
+  document.getElementById('lancar-nota').placeholder = saiu ? 'Feira, gasolina, lanche…' : 'Diária, salário, venda…';
+  document.getElementById('lancar-frase').placeholder = saiu ? 'Ou escreva: gasolina 50 ontem' : 'Ou escreva: diária 90 hoje';
+  document.querySelectorAll('#lancar-tipo [data-tipo]').forEach(function (b) {
+    const ativo = b.dataset.tipo === tipoFolha;
+    b.classList.toggle('activo', ativo);
+    b.setAttribute('aria-pressed', ativo);
+  });
+  const ok = document.getElementById('lancar-confirmar');
+  ok.dataset.lancar = tipoFolha;
+  ok.disabled = c === 0;
+  ok.textContent = emEdicao ? 'Salvar correção'
+    : (saiu ? 'Lançar saída' : 'Lançar entrada') + (c ? ' de ' + dinheiroReal(c) : '');
+  pintarFichas();
+}
+
+/* Categoria e dia em fichas de um toque (04/11): a lista suspensa e o calendário pediam
+   dois toques e um olhar para dizer o que quase sempre é "hoje". O <select> e o <input>
+   continuam por baixo como a fonte da verdade, e quem lê a folha não mudou. */
+function pintarFichas() {
+  const sel = document.getElementById('lancar-categoria'), atual = sel.value;
+  let lista = tipoFolha === 'saida' ? CAT_SAIDA.concat(S.categorias) : CAT_ENTRADA.slice();
+  if (atual && atual !== '__nova' && !lista.includes(atual)) lista = [atual].concat(lista);
+  document.getElementById('chips-categoria').innerHTML = lista.map(function (c) {
+    return '<button type="button" class="ficha-op' + (c === atual ? ' activo' : '') + '" data-cat="' + esc(c) + '" aria-pressed="' + (c === atual) + '">' +
+      (tipoFolha === 'saida' ? icone(iconeDoGasto(c)) : '') + esc(c) + '</button>';
+  }).join('') + '<button type="button" class="ficha-op' + (atual === '__nova' ? ' activo' : '') + '" data-cat="__nova">+ Nova</button>';
+  // A escolhida fica à vista: na correção, "Transporte" estava cortada na borda.
+  // Depois do quadro: com a folha ainda escondida, as medidas dão zero.
+  requestAnimationFrame(function () {
+    const ativa = document.querySelector('#chips-categoria .activo');
+    if (!ativa) return;
+    const caixa = ativa.parentNode, x = ativa.offsetLeft - caixa.offsetLeft;
+    if (x < caixa.scrollLeft || x + ativa.offsetWidth > caixa.scrollLeft + caixa.clientWidth) caixa.scrollLeft = Math.max(0, x - 40);
+  });
+
+  const data = document.getElementById('lancar-data'), v = data.value, ontem = dataMais(-1);
+  const qual = v === hoje() ? 'hoje' : v === ontem ? 'ontem' : 'outro';
+  document.getElementById('chips-data').hidden = !dataLivre;
+  document.getElementById('chips-data').innerHTML = [['hoje', 'Hoje'], ['ontem', 'Ontem'], ['outro', qual === 'outro' && v ? porExtensoData(v) : 'Outro dia']].map(function (d) {
+    return '<button type="button" class="ficha-op' + (d[0] === qual ? ' activo' : '') + '" data-dia="' + d[0] + '" aria-pressed="' + (d[0] === qual) + '">' +
+      (d[0] === 'outro' ? icone('agenda') : '') + d[1] + '</button>';
+  }).join('');
+  data.classList.toggle('escondido', dataLivre);
 }
 function fecharFolhas() {
   document.getElementById('folha-lancar').hidden = true;
@@ -2101,6 +2168,40 @@ document.getElementById('desfazer-btn').addEventListener('click', function () {
   esconderDesfazer();
 });
 
+document.getElementById('lancar-tipo').addEventListener('click', function (ev) {
+  const b = ev.target.closest('[data-tipo]');
+  if (!b) return;
+  tipoFolha = b.dataset.tipo;
+  // A categoria de saída não serve a uma entrada: volta a sugerir pela descrição.
+  if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaSugerida(document.getElementById('lancar-nota').value);
+  pintarValor();
+});
+document.getElementById('chips-categoria').addEventListener('click', function (ev) {
+  const b = ev.target.closest('[data-cat]');
+  if (!b) return;
+  const sel = document.getElementById('lancar-categoria');
+  // Tocar na escolhida desfaz: a categoria nunca é obrigatória.
+  sel.value = sel.value === b.dataset.cat ? '' : b.dataset.cat;
+  categoriaEscolhida = true;
+  document.getElementById('campo-nova').hidden = sel.value !== '__nova';
+  if (sel.value === '__nova') document.getElementById('lancar-nova').focus();
+  pintarFichas();
+});
+document.getElementById('chips-data').addEventListener('click', function (ev) {
+  const b = ev.target.closest('[data-dia]');
+  if (!b) return;
+  const data = document.getElementById('lancar-data');
+  if (b.dataset.dia === 'hoje') data.value = hoje();
+  else if (b.dataset.dia === 'ontem') data.value = dataMais(-1);
+  else {
+    // O calendário do próprio aparelho; onde não abre sozinho, o campo aparece.
+    data.classList.remove('escondido');
+    try { data.showPicker(); } catch (e) { data.focus(); }
+    return;
+  }
+  pintarFichas();
+});
+
 document.getElementById('teclado').addEventListener('click', function (ev) {
   const b = ev.target.closest('button');
   if (!b) return;
@@ -2213,6 +2314,7 @@ document.addEventListener('input', function (ev) {
     preencherDaFrase(ev.target.value);
   } else if (ev.target.id === 'lancar-nota' && !categoriaEscolhida) {
     document.getElementById('lancar-categoria').value = categoriaSugerida(ev.target.value);
+    pintarFichas();
   }
 });
 document.addEventListener('change', function (ev) {
@@ -2222,6 +2324,7 @@ document.addEventListener('change', function (ev) {
     inicioVista = inicioDia === hoje() ? 'hoje' : 'dia';
     return desenhar();
   }
+  if (ev.target.id === 'lancar-data') return pintarFichas();
   if (ev.target.id !== 'lancar-categoria') return;
   categoriaEscolhida = true;
   document.getElementById('campo-nova').hidden = ev.target.value !== '__nova';

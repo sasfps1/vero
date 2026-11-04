@@ -8,7 +8,9 @@
   --surface-dim:        #03091F;
   --surface-raised:     #0A1A4A;
   --on-surface:         #F2EBD2;
-  --on-surface-muted:   rgba(242, 235, 210, 0.62);
+  /* 0,74 e não 0,62 (04/11): o creme a 62% sobre o navy mistura-se num cinza neutro
+     (152,152,152, medido pelo revisor), a zona morta da marca. A 74% ainda puxa ao creme. */
+  --on-surface-muted:   rgba(242, 235, 210, 0.74);
   --on-surface-faint:   rgba(242, 235, 210, 0.38);
   --outline:            rgba(242, 235, 210, 0.14);
   --outline-strong:     rgba(242, 235, 210, 0.24);
@@ -61,12 +63,12 @@ body {
 .anel-v circle { transition: stroke-dasharray .3s ease; }
 body.oculto .anel-v circle { stroke-dasharray: 553 0; }
 
+/* Rótulo em caixa normal (04/11): as maiúsculas espaçadas eram um tique meu, de
+   relatório, e num app de bolso pediam esforço para ler "NO QUE FOI (PODE DEIXAR VAZIO)". */
 .rotulo {
   display: block;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--on-surface-muted);
 }
 
@@ -226,17 +228,28 @@ section.bloco.he {
 .pode-gastar { display: inline-block; font-size: 14px; font-weight: 800; border-radius: 99px; padding: 7px 14px; background: var(--on-surface); color: var(--surface); }
 .he .medida { margin: 16px 0 6px; }
 /* Início de 03/11: Hoje · Mês · Escolher dia, e o bruto do período em destaque. */
-.periodos.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 18px; }
+/* As abas de período, fora do cartão (04/11). Texto com um traço por baixo da escolhida,
+   como as abas de um banco: navegação discreta, o cartão fica com o dado. */
+.abas { display: flex; align-items: stretch; gap: 4px; margin: 0; border-bottom: 1px solid var(--outline); overflow-x: auto; scrollbar-width: none; }
+.abas::-webkit-scrollbar { display: none; }
+.aba { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; background: none; border: 0; font-size: 14.5px; font-weight: 600; color: var(--on-surface-muted); cursor: pointer; }
+.aba svg.traco { width: 16px; height: 16px; }
+.aba.activo { color: var(--on-surface); font-weight: 800; }
+.aba.activo::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--on-surface); }
+.aba.escolher { margin-left: auto; }
+.aba.escolher input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; min-height: 0; }
+.aba.escolher input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
 .balao.na-ponta-esq { transform: translate(-14px, -4px); }
 .balao.na-ponta-dir { transform: translate(calc(-100% + 14px), -4px); }
-.periodo.escolher { position: relative; display: grid; place-items: center; cursor: pointer; }
-.periodo.escolher input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.periodo.escolher input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
-.saiu-ficou { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 15px; font-weight: 500; }
-.saiu-ficou span { display: inline-flex; align-items: center; gap: 6px; }
-.saiu-ficou i svg.traco { width: 17px; height: 17px; }
-.saiu-ficou b { font-weight: 800; }
-.barra-fina { height: 6px; margin: 16px 0 0; border-radius: 99px; background: rgba(242, 235, 210, 0.2); overflow: hidden; }
+/* Saiu e Ficou em duas colunas de instrumento: rótulo pequeno em cima, valor em baixo,
+   um fio entre elas. Antes iam numa frase corrida e o olho não sabia onde parar. */
+.saiu-ficou { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
+.saiu-ficou > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.saiu-ficou > div + div { padding-left: 16px; border-left: 1px solid rgba(242, 235, 210, 0.22); }
+.saiu-ficou span { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; opacity: 0.78; }
+.saiu-ficou span svg.traco { width: 15px; height: 15px; }
+.saiu-ficou b { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.barra-fina { height: 6px; margin: 4px 0 0; border-radius: 99px; background: rgba(242, 235, 210, 0.2); overflow: hidden; }
 .barra-fina i { display: block; height: 100%; border-radius: 99px; background: var(--on-surface); }
 .he .frase b { font-weight: 800; }
 
@@ -244,7 +257,6 @@ section.bloco.he {
 .faixa-nome { min-width: 0; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .faixa-nome small { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
 .faixa-todas { grid-column: 2 / -1; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
-.periodos.tres > *, .periodo.escolher input { min-width: 0; }
 .faixa-contas.atrasada .faixa-nome small { color: var(--on-surface); font-weight: 800; }
 
 .fichas { grid-auto-columns: 140px; }
@@ -309,9 +321,10 @@ section.bloco.he {
 .vence-item small { font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); margin: 1px 0 10px; }
 .vence-item.atrasada small { font-weight: 800; }
 
+h2.secao > .rotulo { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; color: var(--on-surface); }
 h2.secao {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
@@ -377,14 +390,16 @@ h2.secao {
 .periodo.activo { background: var(--on-surface); color: var(--surface); font-weight: 800; }
 
 /* A pergunta à IA. */
-.perguntar { width: 100%; min-height: 48px; padding: 8px 16px; text-align: left; background: var(--surface-raised); border: 0; border-radius: 18px; font-size: 13.5px; font-weight: 600; color: var(--on-surface); }
+.perguntar { width: 100%; min-height: 60px; padding: 10px 14px; display: grid; grid-template-columns: 36px minmax(0, 1fr) 20px; align-items: center; gap: 12px; text-align: left; background: var(--surface-raised); border: 0; border-radius: 18px; font-size: 14.5px; font-weight: 700; color: var(--on-surface); cursor: pointer; }
+.perguntar small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+.perguntar > svg.traco { color: var(--on-surface-muted); }
 .ia-conversa { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 6px; }
 .fala { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .fala.minha { align-self: flex-end; background: var(--on-surface); color: var(--surface); font-weight: 600; }
 .fala.dele { align-self: flex-start; background: var(--surface-raised); }
 
 /* Lançamentos: mês, busca e o cabeçalho de cada dia. */
-.seletor-mes { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -6px 10px; font-size: 14px; font-weight: 700; }
+.seletor-mes { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -6px -4px; font-size: 15px; font-weight: 800; }
 .seta { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; }
 .seta:disabled { opacity: 0.38; cursor: default; }
 input.busca { margin: 12px 0 6px; }
@@ -392,7 +407,8 @@ input.busca { margin: 12px 0 6px; }
 .tempo-busca { font-size: 13px; color: var(--on-surface-muted); padding: 2px 0 4px; }
 
 /* Lançar por frase, por voz ou repetindo um gasto. */
-.campo-frase { width: 100%; }
+.campo-frase { width: 100%; max-width: 420px; margin: 14px auto 0; }
+input::placeholder { color: rgba(242, 235, 210, 0.58); opacity: 1; }
 .campo-frase[hidden], .atalhos[hidden] { display: none; }
 .campo-frase .rotulo { margin-bottom: 6px; }
 .frase-linha { display: flex; gap: 8px; align-items: stretch; }
@@ -419,6 +435,22 @@ h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); pa
    a esquerda e o nome comeca 24px depois do titulo da tela. */
 .linha.sem-marca { grid-template-columns: minmax(0, 1fr) auto; }
 .linha.sem-marca.com-icone { grid-template-columns: 36px minmax(0, 1fr) auto; }
+/* Entrou e saiu: a seta num azulejo menor que o das categorias, para a lista não pesar.
+   O azulejo de saída é creme apagado, o de entrada é o gelo da marca; o valor fica
+   creme nos dois, porque o sentido já vai na seta e no sinal (DESIGN.md: forma, não cor). */
+.linha[class*="seta-"] { grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; }
+.linha[class*="seta-"] .ico { width: 32px; height: 32px; border-radius: 10px; }
+.linha[class*="seta-"] .ico svg.traco { width: 17px; height: 17px; }
+.linha.seta-saiu .ico { background: rgba(242, 235, 210, 0.09); color: var(--on-surface); }
+.linha.seta-transfer .ico { background: rgba(242, 235, 210, 0.09); color: var(--on-surface-muted); }
+.linha[class*="seta-"] .valor { align-self: center; padding-top: 0; }
+/* Contas: o valor e, por baixo dele, a ação. A coluna da direita alinha sozinha. */
+.linha.conta-linha { grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; min-height: 68px; padding: 10px 0; }
+.linha.conta-linha .valor { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; align-self: center; padding-top: 0; }
+.acao-direita { display: flex; gap: 6px; }
+.linha.conta-linha .sub-linha .sub { min-width: 0; }
+.linha.conta-linha.fraca .ico { color: var(--on-surface-muted); }
+.linha.conta-linha.atrasada .sub { color: var(--on-surface); font-weight: 700; }
 /* `muted`, nao `faint`: esta linha leva a data que decide ("venceu 03/10"). */
 .linha .sub { font-size: 12px; color: var(--on-surface-muted); }
 /* A coluna do dinheiro alinha SEMPRE.
@@ -575,7 +607,7 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
 }
 .folha[hidden] { display: none; }
 .folha .cabeca { display: flex; align-items: center; justify-content: space-between; padding: 14px var(--gutter); border-bottom: 1px solid var(--outline); }
-.folha .mostrador { flex: 1 1 auto; overflow-y: auto; padding: 26px var(--gutter) 16px; }
+.folha .mostrador { flex: 1 1 auto; overflow-y: auto; padding: 18px var(--gutter) 24px; }
 .folha .corpo { flex: 1 1 auto; overflow-y: auto; padding: 0 var(--gutter); }
 
 .teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
@@ -589,8 +621,38 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
 }
 .teclado button:active { background: var(--surface-dim); }
 
-.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 18px; }
-.duas .btn { min-height: 48px; gap: 9px; }
+/* ── a folha de lançar, 04/11 ──
+   Ordem de banco: o tipo, o valor ao centro, o teclado, os detalhes, e um botão só,
+   preso em baixo, que diz o que vai acontecer ("Lançar saída de R$ 45,90"). */
+.folha .cabeca { min-height: 60px; }
+.folha-titulo { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.fechar-x { width: 40px; height: 40px; display: grid; place-items: center; background: var(--surface-raised); border: 0; border-radius: 50%; color: var(--on-surface); cursor: pointer; }
+.fechar-x svg.traco { width: 18px; height: 18px; }
+.tipo-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 99px; background: var(--surface-dim); max-width: 340px; margin: 0 auto; }
+.tipo-seg[hidden] { display: none; }
+.tipo-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; background: none; border: 0; border-radius: 99px; font-size: 14.5px; font-weight: 700; color: var(--on-surface-muted); cursor: pointer; }
+.tipo-seg button svg.traco { width: 17px; height: 17px; }
+.tipo-seg button.activo { background: var(--on-surface); color: var(--surface); font-weight: 800; }
+.valor-centro { text-align: center; padding: 22px 0 14px; }
+.valor-centro .numero-grande { margin: 6px 0 0; }
+.valor-centro .numero-grande.zero { opacity: 0.4; }
+.teclado button svg.traco { width: 24px; height: 24px; margin: 0 auto; }
+.detalhes { margin-top: 8px; }
+.detalhes .campo { display: block; margin: 18px 0 0; }
+.detalhes .apagar { width: 100%; margin-top: 22px; }
+.detalhes .campo .rotulo { margin-bottom: 8px; }
+.campo[hidden] { display: none; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
+.chips[hidden] { display: none; }
+.chips::-webkit-scrollbar { display: none; }
+.ficha-op { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; background: var(--surface-raised); border: 1px solid var(--outline); border-radius: 99px; font-size: 13.5px; font-weight: 600; color: var(--on-surface); white-space: nowrap; cursor: pointer; }
+.ficha-op svg.traco { width: 16px; height: 16px; color: var(--on-surface-muted); }
+.ficha-op.activo { background: var(--on-surface); border-color: var(--on-surface); color: var(--surface); font-weight: 800; }
+.ficha-op.activo svg.traco { color: var(--surface); }
+.escondido { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; opacity: 0; pointer-events: none; overflow: hidden; }
+#lancar-data:not(.escondido) { margin-top: 8px; }
+.rodape-folha { padding: 12px var(--gutter) 14px; border-top: 1px solid var(--outline); background: var(--surface); }
+.rodape-folha .btn { width: 100%; min-height: 54px; font-size: 15.5px; font-weight: 800; }
 
 /* campos */
 label.campo { display: block; margin: 14px 0; }
@@ -633,7 +695,17 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 
 @media (min-width: 640px) {
   /* No computador uma folha de 1280px esticava cada campo de ponta a ponta. */
-  .folha .mostrador, .folha .corpo { padding-left: max(var(--gutter), calc(50% - 280px)); padding-right: max(var(--gutter), calc(50% - 280px)); }
+  /* No computador a folha é uma janela no meio, não uma tela inteira com o título numa
+     ponta e o X na outra (revisão de 04/11). O resto escurece por trás. */
+  .folha {
+    inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: min(560px, calc(100vw - 48px)); max-height: min(920px, calc(100vh - 40px));
+    border: 1px solid var(--outline-strong); border-radius: 22px; overflow: hidden;
+    box-shadow: 0 0 0 100vmax rgba(3, 9, 31, 0.72);
+  }
+  .folha .mostrador, .folha .corpo { padding-left: 22px; padding-right: 22px; }
+  .rodape-folha { padding-left: 22px; padding-right: 22px; }
+  .folha .cabeca { padding-left: 22px; padding-right: 16px; }
   .rosca-e-lista { grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: center; }
   .rosca { width: 200px; height: 200px; }
 }
@@ -687,6 +759,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   /* No celular "Para onde foi" vem logo a seguir ao número; aqui cabem os dois na
      primeira tela, com os quatro números ao lado do principal. */
   .painel .he { order: 1; }
+  .painel > .abas, .painel > .seletor-mes { order: 0; grid-column: 1 / -1; }
   .quatro { order: 2; }
   .faixa-contas { order: 3; grid-column: 1 / -1; }
   .perguntar { order: 4; grid-column: 1 / -1; }
@@ -718,3 +791,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .painel.gastos:not(:has(.grupos)) .lancamentos { grid-column: 1 / -1; }
   .desfazer { left: auto; right: 28px; bottom: 28px; max-width: 420px; }
 }
+
+/* Pessoas: a linha tem botões em baixo, então a seta e o valor ficam no topo dela. */
+.linha.seta-transfer { align-items: start; }
+.linha.seta-transfer .valor { align-self: start; padding-top: 6px; }

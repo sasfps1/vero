@@ -23,7 +23,7 @@
   <button class="seletor-conta" id="seletor-conta" data-acao="escolher-conta" aria-haspopup="dialog" hidden><span id="seletor-nome"></span><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <button class="logotipo" data-acao="ocultar" aria-pressed="false" aria-label="Esconder os valores"><svg class="anel-v" viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="176" stroke-width="28" stroke-dasharray="497.6 55.3" stroke-dashoffset="525.25"/><path d="M180 178 L256 346 L332 178" stroke-width="36"/></svg><span class="logo-nome">Vero</span></button>
   <a class="icone-topo" href="#/ajustes" aria-label="Configurações"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
-  <button class="btn primario lancar-topo" data-acao="lancar">+ Lançar um gasto</button>
+  <button class="btn primario lancar-topo" data-acao="lancar">+ Novo lançamento</button>
 </header>
 
 <main id="tela"></main>
@@ -34,7 +34,7 @@
     <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Início</a>
   <a href="#/gastos" data-rota="gastos">
     <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9"/></svg>Gastos</a>
-  <button class="lancar-centro" data-acao="lancar" aria-label="Lançar um gasto">
+  <button class="lancar-centro" data-acao="lancar" aria-label="Novo lançamento">
     <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
   </button>
   <a href="#/contas" data-rota="contas">
@@ -49,54 +49,66 @@
      controlo de finanças cita o custo de registar (Epstein et al. 2016). -->
 <div class="folha" id="folha-lancar" hidden>
   <div class="cabeca">
-    <span class="rotulo" id="lancar-titulo">Lançar</span>
-    <button class="btn pequeno" data-fechar-folha>Fechar</button>
+    <h2 class="folha-titulo" id="lancar-titulo">Novo lançamento</h2>
+    <button class="fechar-x" data-fechar-folha aria-label="Fechar"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="mostrador">
+    <!-- 04/11: o tipo vem PRIMEIRO, como num banco. Antes era o botão final, e o valor
+         ficava sem sentido (saiu? entrou?) até o último toque. -->
+    <div class="tipo-seg" id="lancar-tipo" role="group" aria-label="Saiu ou entrou">
+      <button type="button" data-tipo="saida"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>Saiu</button>
+      <button type="button" data-tipo="entrada"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7L7 17M7 9v8h8"/></svg>Entrou</button>
+    </div>
+    <!-- A frase vem logo depois do tipo (revisão de 04/11): no fim da folha chegava
+         depois de tudo já preenchido à mão, e o atalho perdia o sentido. -->
     <div id="campo-frase" class="campo-frase">
-      <span class="rotulo">Fale ou escreva tudo de uma vez</span>
       <div class="frase-linha">
-        <input type="text" id="lancar-frase" maxlength="160" autocomplete="off" placeholder="gasolina 50 ontem" aria-label="Fale ou escreva o lançamento">
+        <input type="text" id="lancar-frase" maxlength="160" autocomplete="off" placeholder="Ou escreva: gasolina 50 ontem" aria-label="Escreva o lançamento numa frase">
         <button class="btn microfone" id="lancar-microfone" data-acao="ouvir" aria-label="Falar o lançamento" hidden>
           <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
         </button>
       </div>
       <p class="frase" id="frase-dica" role="status"></p>
     </div>
+    <div class="valor-centro">
+      <span class="rotulo" id="lancar-rotulo">Quanto saiu</span>
+      <div class="numero-grande" id="lancar-valor"></div>
+    </div>
     <div class="atalhos" id="lancar-atalhos" hidden></div>
-    <span class="rotulo" id="lancar-rotulo">Quanto</span>
-    <div class="numero-grande" id="lancar-valor"></div>
     <div class="teclado" id="teclado">
       <button data-d="1">1</button><button data-d="2">2</button><button data-d="3">3</button>
       <button data-d="4">4</button><button data-d="5">5</button><button data-d="6">6</button>
       <button data-d="7">7</button><button data-d="8">8</button><button data-d="9">9</button>
-      <button data-d="00">00</button><button data-d="0">0</button><button data-apagar aria-label="Apagar">⌫</button>
+      <button data-d="00">00</button><button data-d="0">0</button><button data-apagar aria-label="Apagar"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7zM12 9.5l5 5M17 9.5l-5 5"/></svg></button>
     </div>
-    <div class="duas">
-      <button class="btn primario" data-lancar="saida"><span class="marca saiu" style="border-color:currentColor;background:currentColor"></span> Saiu</button>
-      <button class="btn" data-lancar="entrada"><span class="marca entrou"></span> Entrou</button>
+    <div class="detalhes">
+      <label class="campo">
+        <span class="rotulo">Descrição</span>
+        <input type="text" id="lancar-nota" maxlength="120" inputmode="text" autocomplete="off" placeholder="Feira, gasolina, diária…">
+      </label>
+      <div class="campo" id="campo-categoria">
+        <span class="rotulo">Categoria</span>
+        <div class="chips" id="chips-categoria"></div>
+        <select id="lancar-categoria" class="escondido" tabindex="-1" aria-hidden="true"></select>
+      </div>
+      <label class="campo" id="campo-nova" hidden>
+        <span class="rotulo">Nome da categoria nova</span>
+        <input type="text" id="lancar-nova" maxlength="28" autocomplete="off">
+      </label>
+      <div class="campo" id="campo-data">
+        <span class="rotulo">Quando</span>
+        <div class="chips" id="chips-data"></div>
+        <input type="date" id="lancar-data" aria-label="Dia do lançamento">
+      </div>
+      <label class="campo" id="campo-dono" hidden>
+        <span class="rotulo">Carteira</span>
+        <select id="lancar-dono"></select>
+      </label>
+      <button class="btn fraco apagar" id="lancar-apagar" data-acao="apagar-lanc" hidden>Apagar este lançamento</button>
     </div>
-    <label class="campo" style="margin:0">
-      <span class="rotulo">No que foi (pode deixar vazio)</span>
-      <input type="text" id="lancar-nota" maxlength="120" inputmode="text" autocomplete="off" placeholder="feira, gasolina, diária">
-    </label>
-    <label class="campo" id="campo-categoria">
-      <span class="rotulo">Categoria (pode deixar como está)</span>
-      <select id="lancar-categoria"></select>
-    </label>
-    <label class="campo" id="campo-nova" hidden>
-      <span class="rotulo">Nome da categoria</span>
-      <input type="text" id="lancar-nova" maxlength="28" autocomplete="off">
-    </label>
-    <label class="campo" id="campo-data">
-      <span class="rotulo">Dia</span>
-      <input type="date" id="lancar-data">
-    </label>
-    <label class="campo" id="campo-dono" hidden>
-      <span class="rotulo">De quem é</span>
-      <select id="lancar-dono"></select>
-    </label>
-    <button class="btn fraco apagar" id="lancar-apagar" data-acao="apagar-lanc" hidden>Apagar este lançamento</button>
+  </div>
+  <div class="rodape-folha">
+    <button class="btn primario" id="lancar-confirmar" data-lancar="saida">Lançar saída</button>
   </div>
 </div>
 
