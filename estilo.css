@@ -847,6 +847,44 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 .painel > * { min-width: 0; }
 .inicio section.bloco { border-radius: 24px; }
 
+/* ── CORES COM CARGO (04/11, "as cores que fazem sentido", decidido por ele) ─────────
+   Nenhuma cor nova: a marca é navy, creme e gelo, e o impacto vem de dar a cada uma
+   um TRABALHO que o cérebro aprende depressa.
+   · NAVY = o chão. Calma e seriedade; recua e deixa o resto falar.
+   · GELO = GANHO e o que está ATIVO. Entrou, sobrou, a aba onde se está. Cor fria e clara
+     lida como "seguro" — e a única coisa que brilha.
+   · CREME = o que pede a tua MÃO: o botão principal e a conta que vence. Cor quente
+     avança na percepção; é ela que chama para agir.
+   · SAÍDA = sem cor. Creme apagado, nunca vermelho. Vermelho é ameaça, e em dinheiro a
+     ameaça ensina a NÃO abrir o app (o "efeito avestruz": evita-se olhar a conta quando
+     se teme a notícia). Quem não abre não controla.
+   · LUZ e MOVIMENTO valem mais que matiz: o olho apanha primeiro diferença de brilho.
+     Por isso o ganho BRILHA (halo), e o herói pulsa uma vez quando acabas de lançar. */
+.heroi.ganho .sobrou b { color: var(--signal); text-shadow: 0 0 14px rgba(5, 17, 59, 0.42); }
+.heroi.pulso { animation: pulso-luz 1.4s ease-out 1; }
+@keyframes pulso-luz {
+  0%   { box-shadow: 0 0 0 0 rgba(158, 197, 232, 0.55); filter: brightness(1.18); }
+  100% { box-shadow: 0 0 0 22px rgba(158, 197, 232, 0); filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) { .heroi.pulso { animation: none; } }
+.item.e-entrada .item-valor { color: var(--signal); }
+.item.e-entrada .item-ico { background: rgba(158, 197, 232, 0.16); color: var(--signal); }
+.item.e-saida .item-valor { color: var(--on-surface); opacity: 0.8; }
+/* SELECIONADO tem um tom só: gelo tingido, texto gelo. AÇÃO tem outro: creme cheio. */
+.filtros .aba.activo, .pilula.activo { background: rgba(158, 197, 232, 0.18); color: var(--signal); }
+.conversa-campo .btn.acento { background: var(--on-surface); border-color: var(--on-surface); color: var(--surface); }
+/* a rosca é de GASTOS: creme e os azuis de fundo da marca, nunca o gelo (gelo é ganho).
+   Creme transparente sobre navy dava cinzento — a zona morta — por isso os azuis. */
+.arco.dois { stroke: var(--azul-rosca); }
+.arco.resto { stroke: var(--azul-fundo); }
+.ponto.dois { background: var(--azul-rosca); }
+.ponto.resto { background: var(--azul-fundo); }
+.destino-c .kpi-barra i, .destino-c.um .kpi-barra i { background: var(--on-surface); }
+.destino-c.dois .kpi-barra i { background: var(--azul-rosca); }
+.destino-c.resto .kpi-barra i { background: var(--azul-fundo); }
+/* a conta que vence pede a mão: creme quente, não gelo */
+.conta-ficha.acesa { background: var(--on-surface); color: var(--surface); }
+
 @media (min-width: 1180px) {
   /* ── a casca da v15: o menu no topo, em pílulas ── */
   body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "rail" "topo" "obra"; }
@@ -857,7 +895,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .logo-rail { padding: 0; margin-right: auto; }
   .nav-pilulas { display: flex; gap: 2px; padding: 5px; border-radius: 99px; background: var(--surface-raised); }
   .nav-pilulas a { min-height: 40px; padding: 0 18px; border-radius: 99px; font-size: 14px; font-weight: 600; color: var(--on-surface-muted); }
-  nav.barra .nav-pilulas a.activo { background: var(--signal); color: var(--surface); font-weight: 800; }
+  nav.barra .nav-pilulas a.activo { background: rgba(158, 197, 232, 0.18); color: var(--signal); font-weight: 800; }
   .nav-pilulas a svg.traco { width: 17px; height: 17px; }
   nav.barra a.so-rail { margin-left: auto; width: 46px; min-height: 46px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--outline-strong); font-size: 0; gap: 0; }
   nav.barra a.so-rail.activo { background: var(--surface-raised); }

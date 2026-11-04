@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 16;
+const VERSAO = 17;
 let soMemoria = false;
 
 const VAZIO = {
@@ -856,14 +856,17 @@ function telaInicio(n) {
 
   const sobra = Math.max(0, n.limite - n.gastoHoje);
   const podeGastar = inicioVista === 'hoje' && n.limite > 0 && n.livre > 0 && jaTemSaidas();
-  const heroi = '<section class="bloco he heroi">' +
+  // Recompensa na hora (Hábitos Atômicos: o hábito pega quando o ganho é IMEDIATO): o
+  // herói acende por um instante logo depois de um lançamento.
+  const ultimo = S.lancamentos.reduce(function (m, l) { return Math.max(m, l.em || 0); }, 0);
+  const heroi = '<section class="bloco he heroi' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
     '<span class="rotulo">Entrou ' + p.quando + '</span>' +
     '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
     '<div class="heroi-dois">' +
       '<div><span>' + icone('saiu') + 'Saiu</span><b>' + dinheiro(r.saidas) + '</b>' +
         '<div class="barra-fina" role="img" aria-label="Saiu ' + pct + '% do que entrou"><i style="width:' + pct + '%"></i></div>' +
         '<small>' + (r.entradas ? pct + '% do que entrou' : r.saidas ? 'Só saiu dinheiro' : 'Nada saiu') + '</small></div>' +
-      '<div><span>Sobrou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b><small>' +
+      '<div class="sobrou"><span>Sobrou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b><small>' +
         (podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—') + '</small></div>' +
     '</div>' +
     (inicioVista !== 'mes' ? '<p class="heroi-mes">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
@@ -883,7 +886,8 @@ function telaInicio(n) {
 
 /** O que falta pagar no mês, com as próximas em fichas e a primeira acesa. */
 function cartaoContas(n) {
-  const itens = itensProximos(), h = hoje();
+  // O que tem data vem primeiro: a ficha acesa é a que vence mais cedo, não a "sem data".
+  const itens = itensProximos().sort(function (a, b) { return (a.semData ? 1 : 0) - (b.semData ? 1 : 0); }), h = hoje();
   if (!n.faltaPagar && !itens.length) return '';
   const fichas = itens.slice(0, 2).map(function (it, i) {
     const dd = it.semData ? null : diasEntre(h, it.data);
@@ -914,7 +918,7 @@ function listaInicio(p) {
   const linhas = lista.map(function (l) {
     const cat = categoriaDe(l), e = l.tipo === 'entrada';
     const sub = p.de === p.ate ? (cat || (e ? 'Entrada' : 'Saída')) : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
-    return '<button class="item" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + esc(String(l.nota || cat || '')) + '">' +
+    return '<button class="item ' + (e ? 'e-entrada' : 'e-saida') + '" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + esc(String(l.nota || cat || '')) + '">' +
       '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
       '<span class="item-nome">' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '<small>' + esc(sub) + '</small></span>' +
       '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>';
