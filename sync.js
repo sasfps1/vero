@@ -32,9 +32,18 @@
   let enviando = false, enviados = 0, recusados = 0, semRede = false, puxando = false, repuxar = false;
   let relerNoFim = false, relogioFila = null, relogioPuxar = null, canal = null, nomes = {}, codigo = eu ? eu.codigo : null;
   let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null, bancoTemDesde = false;
-  /* Nome da segunda pessoa quando ela usa o mesmo login (pedido de 03/11). Quem entra com login
-     próprio fica em membros e vence este. Sem a coluna casas.nome_segunda, fica vazio. */
-  let nomeSegunda = (eu && eu.nomeSegunda) || '', bancoTemSegunda = false;
+  /* ⭐ Carteiras (03/11, Vero para muita gente): "de quem são os números" deixou de ser duas
+     vagas fixas. Cada pessoa nasce com a sua, e qualquer um cria outras (Casa, Moto, Pix).
+     Uma carteira privada só existe para quem a criou: a RLS esconde-a, e o que está nela. */
+  let carteiras = (eu && eu.carteiras) || [], pessoas = (eu && eu.pessoas) || [];
+  // Convite que chegou por link (#convite=CODIGO): fica guardado até a pessoa ter conta.
+  const K_CONVITE = 'vero.convite';
+  (function () {
+    const m = /convite=([A-Za-z0-9]{6,12})/.exec(location.hash);
+    if (!m) return;
+    gravar(K_CONVITE, m[1].toUpperCase());
+    history.replaceState(null, '', location.pathname + '#/inicio');
+  })();
 
   // ── do estado do app para as linhas do banco, e de volta ──────────────────
 
@@ -212,23 +221,29 @@
         lido = await lerTudo();
         if (antes === enviados) break;
       }
-      const mem = await sb.from('membros').select('user_id,nome,vaga').eq('casa_id', eu.casa);
+      const mem = await sb.from('membros').select('user_id,nome,vaga,papel').eq('casa_id', eu.casa);
       if (!mem.error) {
         nomes = {};
         nomesVaga = {};
         mem.data.forEach(function (m) { nomes[m.user_id] = m.nome; nomesVaga[m.vaga] = m.nome; });
+        // O dono primeiro, depois por nome: a lista não pode mudar de ordem a cada leitura.
+        pessoas = mem.data.map(function (m) { return { uid: m.user_id, nome: m.nome, vaga: m.vaga, dono: m.papel === 'dono' }; })
+          .sort(function (a, b) { return (b.dono - a.dono) || a.nome.localeCompare(b.nome); });
         eu.nomesVaga = nomesVaga;
+        eu.pessoas = pessoas;
         gravar(K_EU, eu);
       }
-      let casa = await sb.from('casas').select('codigo,nome_segunda').eq('id', eu.casa);
-      // Sem a coluna no banco, o botão de dar nome falharia: só aparece quando o banco a tiver.
-      bancoTemSegunda = !casa.error;
-      if (casa.error) casa = await sb.from('casas').select('codigo').eq('id', eu.casa);
+      const cart = await sb.from('carteiras').select('id,nome,privada,dono,ordem').eq('casa_id', eu.casa)
+        .order('ordem').order('criado_em');
+      if (!cart.error) {
+        carteiras = cart.data;
+        eu.carteiras = carteiras;
+        gravar(K_EU, eu);
+      }
+      const casa = await sb.from('casas').select('codigo').eq('id', eu.casa);
       if (!casa.error && casa.data[0]) {
         codigo = casa.data[0].codigo;
-        nomeSegunda = casa.data[0].nome_segunda || '';
         eu.codigo = codigo;
-        eu.nomeSegunda = nomeSegunda;
         gravar(K_EU, eu);
       }
       // Na primeira ligação, o que já estava neste aparelho sobe para o servidor.
@@ -274,7 +289,7 @@
     canal = sb.channel('casa-' + eu.casa);
     // Sem filtro: um apagamento não traz a casa, e o Vero antigo perdia-os assim.
     // A RLS só deixa passar o que é desta casa, e o aviso serve só para reler.
-    for (const t of TABELAS.concat('membros')) {
+    for (const t of TABELAS.concat('membros', 'carteiras')) {
       canal = canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarPuxar);
     }
     canal.subscribe();
@@ -288,7 +303,7 @@
   // ── conta e casa ──────────────────────────────────────────────────────────
 
   function esquecer() {
-    eu = null; espelho = null; fila = []; codigo = null; nomes = {}; nomesVaga = {}; nomeSegunda = ''; conversa = [];
+    eu = null; espelho = null; fila = []; codigo = null; nomes = {}; nomesVaga = {}; carteiras = []; pessoas = []; conversa = [];
     mudarVista('todos');
     gravar(K_EU, null); gravar(K_ESPELHO, null); gravar(K_FILA, []); gravar(K_CHAT, []);
     if (canal) { sb.removeChannel(canal); canal = null; }
@@ -307,10 +322,16 @@
       espelho = null; fila = [];
       gravar(K_ESPELHO, null); gravar(K_FILA, []);
     }
-    eu = { uid: user.id, casa: r.data[0].casa_id, vaga: r.data[0].vaga, codigo: codigo };
+    eu = { uid: user.id, casa: r.data[0].casa_id, vaga: r.data[0].vaga, codigo: codigo,
+      carteiras: carteiras, pessoas: pessoas, nomesVaga: nomesVaga };
     gravar(K_EU, eu);
     assinar();
     await puxar();
+    // Quem já tem casa e abriu um link de convite: dizer, em vez de falhar calado.
+    if (ler(K_CONVITE)) {
+      gravar(K_CONVITE, null);
+      oferecerDesfazer('Você já faz parte de uma casa. Para entrar noutra, saia desta primeiro.', null);
+    }
   }
 
   function campoConta(id, rotulo, tipo, extra) {
@@ -346,10 +367,12 @@
     senha_curta: 'A senha precisa de pelo menos 6 caracteres.',
     senha_fraca: 'Essa senha é fraca demais. Tente outra.',
     ja_existe: 'Esse e-mail já tem conta. Use Entrar.',
-    contas_cheias: 'Este Vero já tem as duas contas da casa.',
-    cadastro_fechado: 'Já existe uma casa aqui. Peça o código a quem a criou.',
     codigo_invalido: 'Esse código não existe. Confira as letras.',
-    casa_cheia: 'Essa casa já tem as duas pessoas.'
+    casa_cheia: 'Essa casa já chegou ao limite de 12 pessoas.',
+    ja_tem_casa: 'Você já faz parte de uma casa.',
+    tentativas: 'Muitas tentativas seguidas. Espere um pouco e tente de novo.',
+    so_dono: 'Só quem criou a casa pode fazer isso.',
+    duplicate: 'Já existe uma carteira com esse nome.'
   };
   function textoDoErro(e) {
     const m = String((e && e.message) || e || '');
@@ -525,7 +548,8 @@
   function mostrarPortao(podeVoltar) {
     const p = document.getElementById('portao');
     p.innerHTML = '<form class="portao-caixa" id="portao-form" novalidate>' + MARCA +
-      '<p class="frase">Entre para ver a sua conta em qualquer aparelho.</p>' +
+      '<p class="frase">' + (ler(K_CONVITE) ? 'Você foi convidado para uma casa no Vero. Crie a sua conta ou entre para aceitar.'
+        : 'Entre para ver a sua conta em qualquer aparelho.') + '</p>' +
       campoConta('c-email', 'E-mail', 'email', 'autocomplete="username" inputmode="email"') +
       campoSenha('c-senha', 'Senha', 'current-password') +
       '<p class="frase portao-erro" id="conta-erro" role="alert"></p>' +
@@ -607,11 +631,19 @@
     });
   }
 
+  /* O padrão é começar sozinho: quem chega não precisa de saber o que é uma casa para
+     lançar a primeira diária. Entrar na casa de alguém é o caminho de quem recebeu um
+     convite, e o link já traz o código preenchido. */
   function abrirCasa() {
-    abrirForm('Sua casa',
-      '<p class="frase" style="margin:14px 0">A primeira pessoa cria a casa e recebe um código. A segunda entra com esse código.</p>' +
+    const convite = ler(K_CONVITE) || '';
+    abrirForm(convite ? 'Entrar na casa' : 'Bem-vindo ao Vero',
+      '<p class="frase" style="margin:14px 0">' + (convite
+        ? 'Você vai ver e lançar junto com quem te convidou. Carteiras privadas continuam só de cada um.'
+        : 'Diga como quer ser chamado. Depois, se quiser, convide quem divide as contas com você.') + '</p>' +
       campoConta('c-nome', 'Seu nome', 'text', 'maxlength="20" autocomplete="given-name"') +
-      campoConta('c-codigo', 'Código da casa (deixe vazio se for criar)', 'text', 'maxlength="6" autocomplete="off"') +
+      '<details class="mais-opcoes"' + (convite ? ' open' : '') + '><summary>Tenho um código de convite</summary>' +
+        campoConta('c-codigo', 'Código da casa', 'text', 'maxlength="12" autocomplete="off" autocapitalize="characters"') +
+      '</details>' +
       '<p class="frase" id="conta-erro" role="alert"></p>',
       async function () {
         const nome = document.getElementById('c-nome').value.trim() || 'Você';
@@ -620,9 +652,11 @@
           ? await sb.rpc('entrar_na_casa', { p_codigo: cod, p_nome: nome })
           : await sb.rpc('criar_casa', { p_nome: nome });
         if (r.error) return mostrarErro(textoDoErro(r.error));
+        gravar(K_CONVITE, null);
         fecharFolhas();
         await ligar(sessao);
-      }, 'Continuar');
+      }, 'Começar');
+    document.getElementById('c-codigo').value = convite;
   }
 
   /* ⚠️ Só neste aparelho. O padrão do Supabase encerra TODAS as sessões: sair no PC
@@ -679,27 +713,109 @@
     document.getElementById('c-nome').value = nomesVaga[eu.vaga] || '';
   };
 
-  /** A segunda pessoa sem login próprio: o nome fica na casa e serve aos dois aparelhos. */
-  window.veroNomearSegunda = function () {
-    abrirForm('Nome da segunda pessoa',
-      campoConta('c-nome', 'Como aparece no app', 'text', 'maxlength="20"') +
-      '<p class="frase" id="conta-erro" role="alert"></p>',
+  // ── carteiras, convite e a própria conta ──────────────────────────────────
+
+  function campoPrivada(marcada) {
+    return '<label class="campo-marcar"><input type="checkbox" id="c-privada"' + (marcada ? ' checked' : '') + '>' +
+      '<span>Só eu vejo esta carteira<small>As outras pessoas da casa não veem nem ela nem o que estiver nela.</small></span></label>';
+  }
+
+  /** Criar e corrigir usam a mesma folha. A carteira de cada pessoa nasce com o nome dela. */
+  window.veroCarteira = function (id) {
+    const c = id ? carteiras.find(function (x) { return x.id === id; }) : null;
+    const minha = c && c.id === eu.vaga;
+    const usos = c ? contarUsos(c.id) : 0;
+    abrirForm(c ? 'Carteira' : 'Nova carteira',
+      '<p class="frase" style="margin:14px 0">' + (c ? 'O nome aparece em "De quem é" e no seletor do topo.'
+        : 'Separe o dinheiro como fizer sentido para você: por pessoa (Ana), ou por uso (Casa, Moto, Poupança).') + '</p>' +
+      campoConta('c-nome', 'Nome', 'text', 'maxlength="20" autocomplete="off"') +
+      (minha ? '' : campoPrivada(c ? c.privada : false)) +
+      '<p class="frase" id="conta-erro" role="alert"></p>' +
+      (c && !minha ? '<button type="button" class="btn fraco apagar" id="c-apagar-carteira">' +
+        (usos ? 'Não dá para apagar: tem ' + usos + (usos === 1 ? ' registro' : ' registros') : 'Apagar carteira') + '</button>' : ''),
       async function () {
         const nome = document.getElementById('c-nome').value.trim();
-        if (!nome) return;
-        const r = await sb.rpc('nomear_segunda', { p_nome: nome });
-        if (r.error) {
-          return mostrarErro(/nomear_segunda|function|schema cache/i.test(r.error.message)
-            ? 'O banco ainda não guarda este nome. Falta uma atualização no servidor.'
-            : textoDoErro(r.error));
+        if (!nome) return mostrarErro('Dê um nome à carteira.');
+        if (carteiras.some(function (x) { return x.id !== (c && c.id) && x.nome.toLowerCase() === nome.toLowerCase(); })) {
+          return mostrarErro(ERROS.duplicate);
         }
-        nomeSegunda = nome;
-        eu.nomeSegunda = nome;
+        const privada = !minha && document.getElementById('c-privada').checked;
+        const linha = { nome: nome, privada: privada, dono: privada || minha ? eu.uid : (c ? c.dono : null) };
+        const r = c
+          ? await sb.from('carteiras').update(linha).eq('casa_id', eu.casa).eq('id', c.id)
+          : await sb.from('carteiras').insert(Object.assign({ casa_id: eu.casa, id: 'c' + idNovo(), ordem: carteiras.length }, linha));
+        if (r.error) return mostrarErro(textoDoErro(r.error));
+        fecharFolhas();
+        oferecerDesfazer(c ? 'Carteira salva' : 'Carteira criada', null);
+        await puxar();
+      }, c ? 'Salvar' : 'Criar carteira');
+    document.getElementById('c-nome').value = c ? c.nome : '';
+    const apagar = document.getElementById('c-apagar-carteira');
+    if (apagar) {
+      apagar.disabled = usos > 0;
+      apagar.addEventListener('click', async function () {
+        const r = await sb.from('carteiras').delete().eq('casa_id', eu.casa).eq('id', c.id);
+        if (r.error) return mostrarErro(textoDoErro(r.error));
+        if (verConta === c.id) mudarVista('todos');
+        fecharFolhas();
+        oferecerDesfazer('Carteira apagada', null);
+        await puxar();
+      });
+    }
+  };
+  function contarUsos(id) {
+    return S.lancamentos.concat(S.contas, S.emprestimos).filter(function (x) { return x.vaga === id; }).length;
+  }
+  function idNovo() {
+    return (window.crypto && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+      : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  }
+
+  /** O convite é um link: no WhatsApp ele abre o Vero com o código já preenchido. */
+  function linkConvite() { return location.origin + location.pathname + '#convite=' + codigo; }
+  window.veroConvidar = async function () {
+    if (!codigo) return;
+    const texto = 'Te convidei para a nossa casa no Vero, o app das nossas contas. Abra este link: ' + linkConvite();
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Vero', text: texto }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+  };
+  window.veroCopiarConvite = function () { copiarCodigo(linkConvite(), 'Link'); };
+
+  window.veroNovoCodigo = function () {
+    abrirForm('Trocar o código da casa',
+      '<p class="frase" style="margin:14px 0">O código e o link antigos deixam de funcionar. Quem já está na casa continua.</p>' +
+      '<p class="frase" id="conta-erro" role="alert"></p>',
+      async function () {
+        const r = await sb.rpc('novo_codigo_casa');
+        if (r.error) return mostrarErro(textoDoErro(r.error));
+        codigo = r.data;
+        eu.codigo = codigo;
         gravar(K_EU, eu);
         fecharFolhas();
+        oferecerDesfazer('Código trocado', null);
         redesenhar();
-      });
-    document.getElementById('c-nome').value = nomeSegunda;
+      }, 'Trocar o código');
+  };
+
+  /* Apagar a conta (LGPD): sem desfazer, por isso pede para escrever APAGAR. Se for a última
+     pessoa, a casa vai junto; senão, sai só o que era desta pessoa. */
+  window.veroApagarConta = function () {
+    const sozinho = pessoas.length <= 1;
+    abrirForm('Apagar minha conta',
+      '<p class="frase" style="margin:14px 0">' + (sozinho
+        ? 'Isto apaga a sua conta e tudo o que está nela: lançamentos, contas e empréstimos. Não tem como desfazer. Se quiser guardar, baixe uma cópia antes.'
+        : 'Isto apaga a sua conta e as suas carteiras, com o que estiver nelas. A casa continua para as outras pessoas. Não tem como desfazer.') + '</p>' +
+      campoConta('c-confirma', 'Escreva APAGAR para confirmar', 'text', 'autocomplete="off" autocapitalize="characters"') +
+      '<p class="frase" id="conta-erro" role="alert"></p>',
+      async function () {
+        if (document.getElementById('c-confirma').value.trim().toUpperCase() !== 'APAGAR') return mostrarErro('Escreva APAGAR para confirmar.');
+        const r = await sb.rpc('apagar_minha_conta');
+        if (r.error) return mostrarErro(textoDoErro(r.error));
+        await sair();
+        oferecerDesfazer('Conta apagada', null);
+      }, 'Apagar para sempre');
   };
 
   window.veroSincronizar = async function () {
@@ -723,8 +839,8 @@
       disponivel: !!sb, entrou: !!sessao, ligado: !!(sessao && eu),
       email: sessao && sessao.email, vaga: eu && eu.vaga, nome: eu ? window.veroNomeDaVaga(eu.vaga) : '',
       codigo: codigo, estado: textoDoEstado(), conversa: conversa.length,
-      pessoas: ['sas', 'ela'].filter(function (v) { return nomesVaga[v]; }).map(function (v) { return { vaga: v, nome: nomesVaga[v] }; }),
-      nomeSegunda: nomeSegunda, podeNomearSegunda: bancoTemSegunda
+      pessoas: pessoas, carteiras: carteiras,
+      souDono: !!(eu && pessoas.some(function (p) { return p.uid === eu.uid && p.dono; }))
     };
   };
 
@@ -836,16 +952,17 @@
   };
 
   window.veroMinhaVaga = function () { return eu ? eu.vaga : 'sas'; };
-  window.veroVagaOcupada = function (v) { return !!nomesVaga[v]; };
-  /** A segunda vaga existe antes de a pessoa entrar: dá para lançar para ela desde já. */
+  /** As carteiras que este aparelho pode usar. Sem casa ligada, não há nenhuma. */
+  window.veroCarteiras = function () { return eu ? carteiras : []; };
   window.veroNomeDaVaga = function (v) {
-    return nomesVaga[v] || (v === 'ela' ? (nomeSegunda || 'Segunda pessoa') : 'Primeira pessoa');
+    const c = carteiras.find(function (x) { return x.id === v; });
+    return (c && c.nome) || nomesVaga[v] || 'Sem carteira';
   };
   /** De quem é a linha só se diz no Total: dentro de uma conta, já se sabe. */
   window.veroDono = function (l, vista) {
     if (vista !== 'todos') return '';
     const v = l.vaga || window.veroMinhaVaga();
-    if (Object.keys(nomes).length < 2 && v === window.veroMinhaVaga()) return '';
+    if (carteiras.length < 2 && v === window.veroMinhaVaga()) return '';
     return window.veroNomeDaVaga(v);
   };
 

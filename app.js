@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 11;
+const VERSAO = 12;
 let soMemoria = false;
 
 const VAZIO = {
@@ -139,20 +139,23 @@ function esc(t) {
 
 // ── de quem são os números ───────────────────────────────────────────────────
 
-/* Mecanismo do Vero de 11/09: Total, a pessoa 1 ou a pessoa 2. O filtro fica aqui, antes
-   de calc(), para as quatro telas continuarem a somar pela mesma função. Sem conta
-   ligada não há duas pessoas, logo a tela mostra tudo. */
+/* Mecanismo do Vero de 11/09: Total ou uma carteira. Até 03/11 eram duas vagas fixas
+   ('sas' e 'ela'); agora são as carteiras da casa, quantas houver. O filtro fica aqui,
+   antes de calc(), para as quatro telas continuarem a somar pela mesma função. Sem conta
+   ligada não há carteiras, logo a tela mostra tudo. */
 const K_VISTA = 'vero.vista';
 let verConta = (function () {
-  try {
-    const v = localStorage.getItem(K_VISTA);
-    return v === 'sas' || v === 'ela' ? v : 'todos';
-  } catch (e) { return 'todos'; }
+  try { return localStorage.getItem(K_VISTA) || 'todos'; } catch (e) { return 'todos'; }
 })();
 
 function haContas() { return !!(window.veroLigado && window.veroLigado()); }
 function minhaVaga() { return window.veroMinhaVaga ? window.veroMinhaVaga() : 'sas'; }
-function contaVista() { return haContas() ? verConta : 'todos'; }
+function carteiras() { return window.veroCarteiras ? window.veroCarteiras() : []; }
+function contaVista() {
+  if (!haContas() || verConta === 'todos') return 'todos';
+  // Carteira apagada ou que deixou de ser visível: volta ao Total em vez de mostrar zero.
+  return carteiras().some(function (c) { return c.id === verConta; }) ? verConta : 'todos';
+}
 function daVista(x) {
   const v = contaVista();
   return v === 'todos' || (x.vaga || minhaVaga()) === v;
@@ -164,23 +167,28 @@ function emprestimosVistos() { return S.emprestimos.filter(daVista); }
 function nomeDaVaga(v) { return window.veroNomeDaVaga ? window.veroNomeDaVaga(v) : ''; }
 function nomeDaVista() { return contaVista() === 'todos' ? 'Total' : nomeDaVaga(verConta); }
 function mudarVista(v) {
-  verConta = v === 'sas' || v === 'ela' ? v : 'todos';
+  verConta = v && carteiras().some(function (c) { return c.id === v; }) ? v : 'todos';
   try { localStorage.setItem(K_VISTA, verConta); } catch (e) { /* vale até fechar */ }
 }
 
 /** A conta aberta decide de quem é o que se lança. No Total, é de quem está a lançar. */
 function donoPadrao() { return contaVista() === 'todos' ? minhaVaga() : verConta; }
 function opcoesDono(atual) {
-  return ['sas', 'ela'].map(function (v) {
-    return '<option value="' + v + '"' + (v === atual ? ' selected' : '') + '>' + esc(nomeDaVaga(v)) + '</option>';
+  const lista = carteiras().slice();
+  // Um registro antigo numa carteira que já não existe não pode perder o dono ao corrigir.
+  if (atual && !lista.some(function (c) { return c.id === atual; })) lista.push({ id: atual, nome: nomeDaVaga(atual) });
+  return lista.map(function (c) {
+    return '<option value="' + esc(c.id) + '"' + (c.id === atual ? ' selected' : '') + '>' + esc(c.nome) + (c.privada ? ' (só eu)' : '') + '</option>';
   }).join('');
 }
 function campoDono(nome, atual) {
-  if (!haContas()) return '';
-  return '<label class="campo"><span class="rotulo">De quem é</span><select id="' + nome + '">' + opcoesDono(atual) + '</select></label>';
+  // Com uma carteira só, a pergunta não tem resposta a dar: fica de fora.
+  if (!haContas() || carteiras().length < 2) return '';
+  return '<label class="campo"><span class="rotulo">Carteira</span><select id="' + nome + '">' + opcoesDono(atual) + '</select></label>';
 }
 function lerDono(nome, atual) {
-  return haContas() ? (document.getElementById(nome).value || atual) : atual;
+  const campo = document.getElementById(nome);
+  return haContas() && campo ? (campo.value || atual) : atual;
 }
 
 // ── a UNICA funcao que calcula ───────────────────────────────────────────────
@@ -1182,22 +1190,41 @@ function ajustesConta(c) {
     linhaAjuste('Seu nome', esc(c.nome), botao('alterar-nome', '', 'Alterar')) +
     linhaAjuste('Senha', 'Não precisa da senha antiga enquanto estiver conectado aqui.', botao('trocar-senha', '', 'Trocar')) +
     linhaAjuste('Sincronização', esc(c.estado), botao('sincronizar', '', 'Sincronizar')) +
-    '<button class="btn fraco sair" data-acao="sair">Sair da conta neste aparelho</button>');
+    '<button class="btn fraco sair" data-acao="sair">Sair da conta neste aparelho</button>' +
+    // Direito do titular (LGPD): apagar está à vista, mas com o peso visual mais baixo.
+    '<button class="apagar-conta" data-acao="apagar-conta">Apagar minha conta</button>');
 }
 
+/* ⭐ Casa e carteiras (03/11): pessoas entram por convite, quantas forem; o dinheiro
+   separa-se em carteiras. O convite vem DEPOIS de a pessoa já usar o app sozinha —
+   é o momento em que já há valor a dividir (YNAB e Monarch fazem o mesmo). */
 function ajustesCasa(c) {
   if (!c.ligado) return '';
   const pessoas = c.pessoas.map(function (p) {
-    return linhaAjuste(esc(p.nome), p.vaga === c.vaga ? 'Você' : '');
+    return linhaAjuste(esc(p.nome), [p.vaga === c.vaga ? 'Você' : 'Participa da casa', p.dono ? 'criou a casa' : ''].filter(Boolean).join(' · '));
+  }).join('');
+  // A carteira de cada pessoa diz de quem é: "Da casa" com nome de gente confundia (olho, 03/11).
+  const donoDe = function (k) {
+    const p = c.pessoas.find(function (x) { return x.vaga === k.id; });
+    return p ? 'De ' + p.nome : '';
+  };
+  const carts = c.carteiras.map(function (k) {
+    return linhaAjuste(esc(k.nome), k.id === c.vaga ? 'Sua carteira' : k.privada ? 'Só você vê' : esc(donoDe(k)) || 'Todos da casa veem',
+      botao('carteira', k.id, 'Editar'));
   }).join('');
   return blocoAjuste('Sua casa',
-    (c.codigo ? '<div class="ajuste"><div class="ajuste-texto">Código para a outra pessoa entrar<small class="codigo-casa">' + esc(c.codigo) + '</small></div>' +
-      '<div class="ajuste-botoes">' + botao('copiar-codigo', '', 'Copiar') + botao('enviar-codigo', '', 'Enviar') + '</div></div>' : '') +
+    '<p class="frase">Quem você convidar vê e lança junto com você. Carteiras marcadas "Só você vê" ficam fora da vista dos outros.</p>' +
     pessoas +
-    (c.pessoas.length < 2 ? linhaAjuste(esc(nomeDaVaga('ela')),
-      'Pode usar o seu mesmo login: troque os números para ela antes de lançar. Ou ela cria o login dela com este código.',
-      c.podeNomearSegunda ? botao('nomear-segunda', '', c.nomeSegunda ? 'Alterar' : 'Dar nome') : '') : '') +
-    linhaAjuste('Números mostrados', esc(nomeDaVista()), botao('escolher-conta', '', 'Trocar')));
+    (c.codigo ? '<div class="ajuste"><div class="ajuste-texto">Convidar alguém<small>Manda um link pelo WhatsApp.</small>' +
+      '<small class="sem-quebra">Código: <b class="codigo-casa-mini">' + esc(c.codigo) + '</b></small></div>' +
+      '<div class="ajuste-botoes">' + botao('convidar', '', 'Convidar') + botao('copiar-convite', '', 'Copiar link') + '</div></div>' : '') +
+    (c.souDono ? linhaAjuste('Código vazou?', 'Troque, e o link antigo deixa de abrir a casa.', botao('novo-codigo', '', 'Trocar código')) : '')) +
+    blocoAjuste('Carteiras',
+      '<p class="frase">Separe o dinheiro como fizer sentido: por pessoa ou por uso (Casa, Moto, Poupança).</p>' +
+      carts +
+      '<button class="btn fraco nova-carteira" data-acao="nova-carteira">+ Nova carteira</button>' +
+      linhaAjuste('Mostrar no Início', contaVista() === 'todos' ? 'Tudo junto, de todas as carteiras' : 'Só a carteira ' + esc(nomeDaVista()),
+        botao('escolher-conta', '', 'Mudar')));
 }
 
 function ajustesLimite(n) {
@@ -1288,9 +1315,9 @@ function editarCategoria(nome) {
   document.getElementById('cat-nome').value = nome;
 }
 
-function copiarCodigo(codigo) {
-  const pronto = function () { oferecerDesfazer('Código copiado', null); };
-  const falhou = function () { oferecerDesfazer('Não deu para copiar. O código é ' + codigo, null); };
+function copiarCodigo(codigo, oque) {
+  const pronto = function () { oferecerDesfazer((oque || 'Código') + ' copiado', null); };
+  const falhou = function () { oferecerDesfazer('Não deu para copiar: ' + codigo, null); };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(codigo).then(pronto, falhou);
   else falhou();
 }
@@ -1669,16 +1696,15 @@ function escolherConta() {
     return '<button class="opcao-conta" role="radio" aria-checked="' + (v === ref) + '" data-acao="ver-conta" data-ref="' + ref + '">' +
       '<span>' + esc(nome) + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + icone('certo') + '</button>';
   };
-  const sub = function (vaga) {
-    if (vaga === eu) return 'Sua conta';
-    return window.veroVagaOcupada(vaga) ? '' : 'Ainda não entrou. O código da casa está na sua conta.';
-  };
-  abrirForm('De quem são os números',
+  const lista = carteiras();
+  abrirForm('Ver os números de',
     '<div class="opcoes-conta" role="radiogroup">' +
-      opcao('todos', 'Total', 'Soma das duas pessoas') +
-      opcao('sas', nomeDaVaga('sas'), sub('sas')) +
-      opcao('ela', nomeDaVaga('ela'), sub('ela')) +
-    '</div>', null);
+      opcao('todos', 'Total', lista.length > 1 ? 'Soma de todas as carteiras que você vê' : '') +
+      lista.map(function (c) {
+        return opcao(c.id, c.nome, c.id === eu ? 'Sua carteira' : c.privada ? 'Só você vê' : '');
+      }).join('') +
+    '</div>' +
+    '<button class="btn fraco nova-carteira" data-acao="nova-carteira">+ Nova carteira</button>', null);
 }
 
 function campoTexto(nome, rotulo, extra) {
@@ -2101,7 +2127,12 @@ document.addEventListener('click', function (ev) {
       return window.scrollTo(0, 0);
     case 'conta':           return window.veroAbrirConta();
     case 'alterar-nome':    return window.veroAlterarNome();
-    case 'nomear-segunda':  return window.veroNomearSegunda();
+    case 'carteira':        return window.veroCarteira(ref);
+    case 'nova-carteira':   return window.veroCarteira(null);
+    case 'convidar':        return window.veroConvidar();
+    case 'copiar-convite':  return window.veroCopiarConvite();
+    case 'novo-codigo':     return window.veroNovoCodigo();
+    case 'apagar-conta':    return window.veroApagarConta();
     case 'trocar-senha':    return window.veroAbrirSenha();
     case 'sincronizar':     return window.veroSincronizar();
     case 'sair':            return window.veroSair();

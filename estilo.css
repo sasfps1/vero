@@ -149,6 +149,16 @@ nav.barra a.so-rail { display: none; }
 .codigo-casa { font-size: 22px; font-weight: 800; letter-spacing: 0.1em; }
 .periodos.cinco { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 12px; }
 .btn.sair { width: 100%; margin-top: 12px; }
+/* Carteiras e convite (03/11). */
+.btn.nova-carteira { width: 100%; margin: 10px 0 4px; }
+.sem-quebra { white-space: nowrap; }
+.codigo-casa-mini { font-weight: 800; letter-spacing: 0.08em; color: var(--on-surface); }
+.apagar-conta { display: block; width: 100%; min-height: 44px; margin-top: 6px; background: none; border: 0; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); text-decoration: underline; }
+.campo-marcar { display: flex; align-items: flex-start; gap: 12px; margin: 14px 0; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.campo-marcar input { flex: none; width: 22px; height: 22px; margin-top: 1px; accent-color: var(--signal); }
+.campo-marcar small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
+.mais-opcoes { margin: 4px 0 8px; }
+.mais-opcoes summary { min-height: 44px; display: flex; align-items: center; font-size: 13.5px; font-weight: 700; cursor: pointer; color: var(--on-surface-muted); }
 .sobre-vero { display: flex; align-items: center; gap: 8px; font-family: "Playfair Display", Georgia, serif; font-size: 20px; font-weight: 800; }
 @media (max-width: 430px) { header.topo > .logotipo .logo-nome { display: none; } }
 
