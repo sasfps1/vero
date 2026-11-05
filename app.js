@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 22;
+const VERSAO = 23;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1630,6 +1630,59 @@ function ouvir() {
   rec.start();
 }
 
+/** O resumo da noite (04/11): das 18h às 5h, a fala do Vero conta o dia numa frase.
+    Calculado aqui, sem IA. Ganho primeiro e nunca castigo: quem leva bronca do app
+    pára de olhar para ele (o "efeito avestruz" das finanças). Antes das 5h é o dia
+    de ontem, porque o turno dele vai da meia-noite às 3h. */
+function resumoDaNoite() {
+  const agora = new Date(), h = agora.getHours();
+  if (h >= 5 && h < 18) return null;
+  const base = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - (h < 5 ? 1 : 0));
+  const dia = iso(base), quando = h < 5 ? 'Ontem' : 'Hoje';
+  const doDia = lancamentosVistos().filter(function (l) { return l.data === dia; });
+  if (!doDia.length) return quando + ' ainda não tem lançamento. Se entrou ou saiu alguma coisa, é só me contar aqui.';
+  const r = resumoEntre(dia, dia), ficou = r.entradas - r.saidas;
+  const curto = function (c) { return dinheiro(c).replace(/,00$/, ''); };
+
+  // A semana: os seis dias antes deste, só os que têm lançamento.
+  const outros = [];
+  for (let i = 1; i <= 6; i++) {
+    const d = iso(new Date(base.getFullYear(), base.getMonth(), base.getDate() - i));
+    if (lancamentosVistos().some(function (l) { return l.data === d; })) {
+      const x = resumoEntre(d, d);
+      outros.push(x.entradas - x.saidas);
+    }
+  }
+  let seguidos = 1;
+  while (seguidos < 60) {
+    const d = iso(new Date(base.getFullYear(), base.getMonth(), base.getDate() - seguidos));
+    if (!lancamentosVistos().some(function (l) { return l.data === d; })) break;
+    seguidos++;
+  }
+  const media = outros.length ? outros.reduce(function (a, v) { return a + v; }, 0) / outros.length : 0;
+  let extra = '';
+  if (ficou > 0 && outros.length >= 2 && outros.every(function (v) { return ficou > v; })) extra = 'Seu melhor dia da semana.';
+  else if (ficou > 0 && outros.length >= 3 && ficou > media) extra = 'Acima da sua média da semana.';
+  else if (seguidos >= 3) extra = quantosDias(seguidos) + ' seguidos lançando.';
+
+  // Com os valores escondidos ele está na rua: a frase conta o dia sem número nenhum.
+  if (S.config.oculto) {
+    return (ficou > 0 ? quando + ' sobrou dinheiro.' : quando + ' você lançou ' + doDia.length + (doDia.length === 1 ? ' coisa.' : ' coisas.')) + (extra ? ' ' + extra : '');
+  }
+  let frase;
+  if (!r.entradas) {
+    const cat = {};
+    doDia.forEach(function (l) { if (l.tipo === 'saida') { const c = categoriaDe(l) || 'Outros'; cat[c] = (cat[c] || 0) + l.centavos; } });
+    const maior = Object.keys(cat).sort(function (a, b) { return cat[b] - cat[a]; })[0];
+    frase = quando + ' saiu ' + curto(r.saidas) + (maior && maior !== 'Outros' ? ', a maior parte em ' + maior : '') + ', e não entrou nada.';
+  } else if (ficou >= 0) {
+    frase = quando + ' entrou ' + curto(r.entradas) + (r.saidas ? ' e sobrou ' + curto(ficou) + '.' : ' e nada saiu.');
+  } else {
+    frase = quando + ' entrou ' + curto(r.entradas) + ' e saiu ' + curto(r.saidas) + ', ' + curto(-ficou) + ' a mais do que entrou.';
+  }
+  return frase + (extra ? ' ' + extra : '');
+}
+
 /** "Fale com o Vero" no Início (04/11): ele nem reparou que a conversa existia, porque
     na v15 era uma pílula fina com cara de busca. Agora é um cartão de conversa, com o
     microfone (ele opera por ditado) e três perguntas prontas para um toque. */
@@ -1643,10 +1696,12 @@ function conversaCartao() {
     const ultima = hist.filter(function (m) { return m.role === 'assistant'; }).pop();
     if (ultima && ultima.content) fala = ultima.content.length > 180 ? ultima.content.slice(0, 177) + '…' : ultima.content;
   } catch (e) {}
+  const noite = resumoDaNoite();
   return '<section class="bloco conversa-vero">' +
     '<div class="conversa-cabeca"><span class="ico">' + icone('conversa') + '</span>' +
       '<div><h2 class="titulo-cartao">Fale com o Vero</h2><small>Pergunte qualquer coisa sobre o que você lançou.</small></div></div>' +
-    '<p class="fala-vero" data-acao="perguntar">' + esc(fala) + '</p>' +
+    '<p class="fala-vero' + (noite ? ' noite' : '') + '" data-acao="perguntar">' +
+      (noite ? '<small class="fala-quando">Resumo da noite</small>' + esc(noite) : esc(fala)) + '</p>' +
     '<div class="conversa-campo">' +
       '<input type="text" id="ia-inicio" maxlength="500" autocomplete="off" placeholder="Escreva ou fale a pergunta" aria-label="Sua pergunta ao Vero">' +
       (reconhecedor() ? '<button class="btn microfone" data-acao="ia-ouvir" aria-label="Falar a pergunta"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>' : '') +
