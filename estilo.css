@@ -992,7 +992,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   /* ── o Início: herói + rosca, a conversa, a lista + as contas ── */
   .painel.inicio {
     grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: 16px; align-items: start;
-    grid-template-areas: "filtros filtros" "atalhos atalhos" "heroi onde" "conversa conversa" "lista contas" "pordia pordia" "avisos avisos";
+    grid-template-areas: "filtros filtros" "atalhos atalhos" "heroi onde" "conversa conversa" "lista contas" "lista cal" "pordia pordia" "avisos avisos";
   }
   .inicio .filtros { grid-area: filtros; }
   .inicio .atalhos { grid-area: atalhos; }
@@ -1010,11 +1010,22 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .inicio .lista-inicio { grid-area: lista; }
   .inicio .contas-cartao { grid-area: contas; }
   .inicio .por-dia { grid-area: pordia; }
+  .inicio .mes-cal { grid-area: cal; }
+  .painel.inicio:not(:has(.contas-cartao)) .mes-cal { grid-area: contas; }
   .inicio .avisos { grid-area: avisos; }
   .painel.inicio:not(:has(.para-onde)) .heroi { grid-column: 1 / -1; }
-  .painel.inicio:not(:has(.contas-cartao)) .lista-inicio { grid-column: 1 / -1; }
+  .painel.inicio:not(:has(.contas-cartao)):not(:has(.mes-cal)) .lista-inicio { grid-column: 1 / -1; }
 }
 
 /* Pessoas: a linha tem botões em baixo, então a seta e o valor ficam no topo dela. */
 .linha.seta-transfer { align-items: start; }
 .linha.seta-transfer .valor { align-self: start; padding-top: 6px; }
+
+/* O X do mês (05/11): aceso = dia com lançamento. Vazio fica neutro, sem castigo. */
+.mes-cal .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px auto 0; max-width: 440px; }
+.mes-cal .sem { font-size: 11px; font-weight: 600; color: var(--on-surface-faint); text-align: center; padding-bottom: 2px; }
+.mes-cal .d { aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--on-surface-muted); }
+.mes-cal .d.futuro { color: var(--on-surface-faint); }
+.mes-cal .d.lancou { background: var(--signal); color: var(--surface); font-weight: 700; cursor: pointer; }
+.mes-cal .d.hoje { box-shadow: 0 0 0 2px var(--signal); }
+.mes-cal .d.lancou.hoje { box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--signal); }

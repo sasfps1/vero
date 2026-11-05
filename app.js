@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 23;
+const VERSAO = 24;
 let soMemoria = false;
 
 const VAZIO = {
@@ -928,6 +928,7 @@ function telaInicio(n) {
     conversaCartao() +
     listaInicio(p) +
     cartaoContas(n) +
+    calendarioDoMes() +
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     avisos() +
   '</div>';
@@ -1122,6 +1123,35 @@ function roscaHtml(fatias, total, aria) {
   const maior = fatias[0];
   return '<div class="rosca"><svg viewBox="0 0 100 100" role="img" aria-label="' + aria + '">' + arcos + '</svg>' +
     '<div class="rosca-centro"><span>' + esc(maior.nome) + '</span><b>' + Math.round(maior.centavos / total * 100) + '%</b></div></div>';
+}
+
+/** O X do mês (05/11, fase 1 do plano): os dias em que ele lançou ficam acesos.
+    Conta-se o TOTAL de dias, nunca a sequência: quem quebra uma corrente tende a
+    largar tudo (o efeito "dane-se" da psicologia do hábito). Dia vazio fica neutro,
+    sem vermelho. Tocar num dia aceso abre esse dia no topo. */
+function calendarioDoMes() {
+  const h = hoje(), mes = (inicioVista === 'dia' && inicioDia ? inicioDia : h).slice(0, 7);
+  const total = diasNoMes(mes), atual = mes === h.slice(0, 7);
+  const ate = atual ? diaDe(h) : total;
+  const lancou = {};
+  lancamentosVistos().forEach(function (l) { if (l.data.slice(0, 7) === mes) lancou[diaDe(l.data)] = true; });
+  const acesos = Object.keys(lancou).filter(function (d) { return d <= ate; }).length;
+  if (!acesos && !atual) return '';
+  const p = mes.split('-').map(Number), vazio = new Date(p[0], p[1] - 1, 1).getDay();
+  let celulas = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (s) { return '<span class="sem" aria-hidden="true">' + s + '</span>'; }).join('');
+  for (let i = 0; i < vazio; i++) celulas += '<span></span>';
+  for (let d = 1; d <= total; d++) {
+    const data = mes + '-' + p2(d), classe = 'd' + (lancou[d] ? ' lancou' : '') + (d > ate ? ' futuro' : '') + (data === h ? ' hoje' : '');
+    celulas += lancou[d]
+      ? '<button class="' + classe + '" data-acao="inicio-abrir-dia" data-ref="' + data + '" aria-label="Dia ' + d + ', com lançamento">' + d + '</button>'
+      : '<span class="' + classe + '">' + d + '</span>';
+  }
+  const frase = !acesos ? 'Quando você lançar, o dia acende aqui.'
+    : acesos === ate ? (atual ? 'Todos os dias até hoje têm lançamento.' : 'Todos os dias do mês tiveram lançamento.')
+    : quantosDias(acesos) + ' com lançamento' + (atual ? ' até hoje' : ' no mês') + '.';
+  return '<section class="bloco mes-cal"><h2 class="titulo-cartao">Seu mês</h2>' +
+    '<p class="frase">' + frase + '</p>' +
+    '<div class="cal" role="group" aria-label="Dias do mês com lançamento">' + celulas + '</div></section>';
 }
 
 function secaoPorDia(n) {
