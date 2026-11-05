@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 21;
+const VERSAO = 22;
 let soMemoria = false;
 
 const VAZIO = {
@@ -665,8 +665,9 @@ function telaGastos() {
       (k === periodoTipo ? ' aria-pressed="true"' : ' aria-pressed="false"') + '>' + nomesPeriodo[k] + '</button>';
   }).join('');
   let linhas = '';
-  for (const it of g.lista) {
-    const pct = g.total > 0 ? Math.round(it.centavos / g.total * 100) : 0;
+  const pcts = partesDe100(g.lista.map(function (x) { return x.centavos; }));
+  for (const [ix, it] of g.lista.entries()) {
+    const pct = pcts[ix];
     // Sem marca: nesta lista TUDO saiu, logo seis quadrados cheios iguais não
     // informam nada — eram só mais tinta.
     linhas += linhaHtml({
@@ -680,7 +681,7 @@ function telaGastos() {
     });
   }
   // O mês anda FORA do cartão, como no Início: navegação por cima, o dado dentro.
-  return '<div class="painel gastos"><nav class="abas" aria-label="Período">' + abas + '</nav>' +
+  return '<div class="painel gastos"><nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
       '<div class="seletor-mes">' +
         '<button class="seta" data-acao="andar" data-ref="-1" aria-label="Período anterior"' + (podeAndar(-1) ? '' : ' disabled') + '>' + icone('voltar') + '</button>' +
         '<span>' + p.nome + '</span>' +
@@ -921,6 +922,7 @@ function telaInicio(n) {
 
   return '<div class="painel inicio">' +
     '<nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
+    atalhosHtml() +
     heroi +
     secaoParaOndeTiles(p) +
     conversaCartao() +
@@ -929,6 +931,62 @@ function telaInicio(n) {
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     avisos() +
   '</div>';
+}
+
+/** Os lançamentos que ele REPETE (mesmo nome, mesmo valor, mesmo tipo, 2+ vezes nos
+    últimos 45 dias), os três mais frequentes. 04/11: a diária cai quase todo dia e ele
+    digita por ditado — repetir tem de ser um toque, não uma folha inteira. */
+function atalhosRepetidos() {
+  const desde = iso(new Date(Date.now() - 45 * 86400000)), conta = {};
+  lancamentosVistos().forEach(function (l) {
+    if (l.data < desde || l.conta || l.emprestimo || !String(l.nota || '').trim()) return;
+    const k = l.tipo + '|' + sinNorm(l.nota) + '|' + l.centavos;
+    if (!conta[k]) conta[k] = { n: 0, l: l };
+    conta[k].n++;
+    if ((l.em || 0) > (conta[k].l.em || 0)) conta[k].l = l;
+  });
+  return Object.keys(conta).map(function (k) { return conta[k]; })
+    .filter(function (x) { return x.n >= 2; })
+    .sort(function (a, b) { return b.n - a.n; }).slice(0, 3).map(function (x) { return x.l; });
+}
+
+function atalhosHtml() {
+  const lista = atalhosRepetidos();
+  if (!lista.length) return '';
+  return '<div class="atalhos" role="group" aria-label="Lançar de novo com um toque">' +
+    '<span class="atalhos-rotulo">De novo, num toque</span>' +
+    lista.map(function (l) {
+      return '<button class="atalho ' + (l.tipo === 'entrada' ? 'e-entrada' : 'e-saida') + '" data-acao="repetir" data-ref="' + l.id + '">' +
+        icone(l.tipo === 'entrada' ? 'entrou' : 'saiu') + esc(String(l.nota).trim()) + ' <b>' + dinheiro(l.centavos) + '</b></button>';
+    }).join('') + '</div>';
+}
+
+function repetirLancamento(ref) {
+  const o = S.lancamentos.find(function (x) { return x.id === ref; });
+  if (!o) return;
+  const l = { id: id(), tipo: o.tipo, centavos: o.centavos, data: hoje(), nota: o.nota, categoria: o.categoria || '',
+    conta: null, emprestimo: null, em: Date.now(), vaga: o.vaga };
+  S.lancamentos.push(l);
+  guardar();
+  desenhar();
+  oferecerDesfazer((l.tipo === 'saida' ? 'Saiu ' : 'Entrou ') + dinheiro(l.centavos) + ' · ' + String(l.nota).trim(), function () {
+    S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== l.id; });
+    guardar(); desenhar();
+  });
+}
+
+/** Porcentagens inteiras que somam 100 (maior resto). 04/11: 60+18+13+10 dava 101%,
+    porque 17,5 e 12,5 arredondavam os dois para cima. */
+function partesDe100(valores) {
+  const total = valores.reduce(function (a, v) { return a + v; }, 0);
+  if (!total) return valores.map(function () { return 0; });
+  const brutos = valores.map(function (v) { return v / total * 100; });
+  const inteiros = brutos.map(Math.floor);
+  let falta = 100 - inteiros.reduce(function (a, v) { return a + v; }, 0);
+  brutos.map(function (b, i) { return { i: i, resto: b - inteiros[i] }; })
+    .sort(function (a, b) { return b.resto - a.resto; })
+    .forEach(function (x) { if (falta > 0) { inteiros[x.i]++; falta--; } });
+  return inteiros;
 }
 
 /** O que falta pagar no mês, com as próximas em fichas e a primeira acesa. */
@@ -942,11 +1000,22 @@ function cartaoContas(n) {
     return '<div class="conta-ficha' + (i === 0 ? ' acesa' : '') + '"><small>' + prazo + '</small><b>' + esc(it.nome) + '</b><span>' + dinheiro(it.centavos) + '</span></div>';
   }).join('');
   const primeira = itens[0];
+  // "Com o que sobrou, a Luz de R$ 180 em 4 dias está coberta?" — a pergunta que o
+  // número solto de 1.280 não respondia. Ganho primeiro: quanto JÁ está coberto.
+  const rh = resumoEntre(h, h), sobrouHoje = Math.max(0, rh.entradas - rh.saidas);
+  let cobre = '';
+  if (primeira && primeira.tipo === 'conta' && sobrouHoje > 0) {
+    const pc = Math.min(100, Math.round(sobrouHoje / primeira.centavos * 100));
+    cobre = '<div class="cobre"><span>' + (pc >= 100 ? 'O que sobrou hoje já paga a ' + esc(primeira.nome) + ' inteira.'
+      : 'O que sobrou hoje já cobre <b>' + pc + '%</b> da ' + esc(primeira.nome) + ' · faltam ' + dinheiro(primeira.centavos - sobrouHoje)) + '</span>' +
+      '<div class="barra-cobre"><i style="width:' + pc + '%"></i></div></div>';
+  }
   return '<section class="bloco contas-cartao">' +
     '<div class="cabeca-linha"><span class="rotulo">Falta pagar no mês</span><a class="ver-todos" href="#/contas">Contas</a></div>' +
     '<div class="numero-grande valor-medio">' + numeroGrande(n.faltaPagar) + '</div>' +
     (n.aReceber ? '<small class="nota">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
     (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="nota">Nada vence nos próximos 7 dias.</p>') +
+    cobre +
     (primeira ? '<button class="btn contorno" data-acao="' + (primeira.tipo === 'conta' ? 'pagar' : 'devolvi') + '" data-ref="' + esc(primeira.ref) + '">' +
       (primeira.tipo === 'conta' ? 'Paguei ' + esc(primeira.nome) : esc(primeira.nome.replace(/^Devolver/, 'Já devolvi'))) + '</button>' : '') +
   '</section>';
@@ -964,7 +1033,10 @@ function listaInicio(p) {
   }).join('') + '</div>' : '';
   const linhas = lista.map(function (l) {
     const cat = categoriaDe(l), e = l.tipo === 'entrada';
-    const sub = p.de === p.ate ? (cat || (e ? 'Entrada' : 'Saída')) : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
+    // A hora em cada linha (04/11): com o "de novo num toque", duas diárias iguais
+    // pareciam um engano; com a hora, vê-se que são duas.
+    const hora = l.em ? ' · ' + new Date(l.em).toTimeString().slice(0, 5) : '';
+    const sub = p.de === p.ate ? (cat || (e ? 'Entrada' : 'Saída')) + hora : rotuloDoDia(l.data) + (cat ? ' · ' + cat : '');
     const nome = esc(String(l.nota || '').trim() || cat || 'Sem nome');
     // 04/11, pedido dele: "tem que ter a opção de apagar, caso eu lance errado". O
     // apagar já existia, mas escondido dentro da folha de corrigir. Agora fica na linha,
@@ -993,8 +1065,9 @@ function secaoParaOndeTiles(p) {
   const fatias = g.lista.slice(0, 5);
   const resto = g.lista.slice(5).reduce(function (a, it) { return a + it.centavos; }, 0);
   if (resto) fatias.push({ nome: 'Outras ' + (g.lista.length - 5), centavos: resto, resto: true });
+  const pcts = partesDe100(fatias.map(function (x) { return x.centavos; }));
   const cartoes = fatias.map(function (it, i) {
-    const pct = Math.round(it.centavos / g.total * 100), tom = ['um', 'dois'][i] || 'resto';
+    const pct = pcts[i], tom = ['um', 'dois'][i] || 'resto';
     return '<button class="destino-c ' + tom + '" data-acao="ver-destino" data-ref="' + esc(it.nome) + '">' +
       '<span class="destino-c-topo"><span class="item-ico">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span><span class="destino-c-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '</span><small>' + pct + '%</small></span>' +
       '<span class="kpi-valor">' + dinheiro(it.centavos) + '</span>' +
@@ -2371,6 +2444,7 @@ document.addEventListener('click', function (ev) {
       return desenhar();
     case 'editar':          return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'apagar-lanc':     return apagarLancamento();
+    case 'repetir':         return repetirLancamento(ref);
     case 'apagar-direto':   return comDesfazer('Lançamento apagado', function () { removerLancamento(ref); });
     case 'andar':           return mudarPeriodo(Number(ref));
     case 'periodo':

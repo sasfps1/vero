@@ -911,6 +911,22 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
    nada (a barra de baixo do celular é fixa e não pode ganhar position nova). */
 .rede-neural { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
 
+/* Atalhos de um toque (04/11): uma fila de pílulas logo abaixo do período. */
+.atalhos { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.atalhos::-webkit-scrollbar { display: none; }
+.atalhos-rotulo { flex: none; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); margin-right: 2px; }
+.atalho { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--outline-strong); background: var(--surface-raised); color: var(--on-surface); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.atalho svg.traco { width: 15px; height: 15px; }
+.atalho b { font-weight: 800; }
+.atalho.e-entrada svg.traco, .atalho.e-entrada b { color: var(--signal); }
+.atalho:active { transform: scale(0.97); }
+/* quanto da próxima conta o que sobrou hoje já cobre */
+.cobre { margin: -4px 0 14px; font-size: 13px; color: var(--on-surface-muted); }
+.cobre b { color: var(--signal); font-weight: 800; }
+.barra-cobre { height: 4px; margin-top: 8px; border-radius: 99px; background: rgba(var(--tinta-rgb), 0.12); overflow: hidden; }
+.barra-cobre i { display: block; height: 100%; border-radius: 99px; background: var(--signal); }
+.painel.gastos > .filtros { justify-self: start; }
+
 /* ── CORES COM CARGO (04/11, "as cores que fazem sentido", decidido por ele) ─────────
    Nenhuma cor nova: a marca é navy, creme e gelo, e o impacto vem de dar a cada uma
    um TRABALHO que o cérebro aprende depressa.
@@ -975,9 +991,10 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   /* ── o Início: herói + rosca, a conversa, a lista + as contas ── */
   .painel.inicio {
     grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: 16px; align-items: start;
-    grid-template-areas: "filtros filtros" "heroi onde" "conversa conversa" "lista contas" "pordia pordia" "avisos avisos";
+    grid-template-areas: "filtros filtros" "atalhos atalhos" "heroi onde" "conversa conversa" "lista contas" "pordia pordia" "avisos avisos";
   }
   .inicio .filtros { grid-area: filtros; }
+  .inicio .atalhos { grid-area: atalhos; }
   .inicio .heroi { grid-area: heroi; align-self: stretch; padding: 30px 32px 24px; display: flex; flex-direction: column; }
   .inicio .heroi .heroi-mes { margin-top: auto; }
   .inicio .heroi .heroi-dois { margin-bottom: 18px; }
