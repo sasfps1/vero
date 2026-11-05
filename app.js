@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 20;
+const VERSAO = 21;
 let soMemoria = false;
 
 const VAZIO = {
@@ -32,7 +32,7 @@ const VAZIO = {
   contas: [],
   emprestimos: [],
   categorias: [],
-  config: { folga: 0.10, redondo: 500, limite: null, copia: null, oculto: false }
+  config: { folga: 0.10, redondo: 500, limite: null, copia: null, oculto: false, tema: 'auto' }
 };
 
 function carregar() {
@@ -432,7 +432,12 @@ const ICONES = {
   certo: 'M5 12l5 5 9-10',
   conversa: 'M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM8 10h8M8 13h5',
   fechar: 'M6 6l12 12M18 6L6 18',
-  lixo: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'
+  lixo: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  sol: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  lua: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
+  auto: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 3v18',
+  olho: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  'olho-fechado': 'M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 3.9M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2'
 };
 function icone(n) {
   return '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONES[n] + '"/></svg>';
@@ -700,7 +705,42 @@ function telaGastos() {
 
 let rotaPintada = null;
 
+/* Dia e noite (04/11). "auto" segue a hora: claro das 6h às 18h, escuro no resto —
+   e o turno dele é das 00h às 03h, onde o escuro descansa a vista. A escolha na mão
+   (claro/escuro) fica guardada. Vale o que o <script> do index já pôs antes de pintar. */
+function temaAgora() {
+  const t = S.config.tema || 'auto', h = new Date().getHours();
+  return t === 'auto' ? (h >= 6 && h < 18 ? 'claro' : 'escuro') : t;
+}
+function aplicarTema() {
+  const novo = temaAgora(), raiz = document.documentElement;
+  if (!raiz || !raiz.dataset) return;   // nas provas não há <html>
+  const mudou = raiz.dataset.tema !== novo;
+  raiz.dataset.tema = novo;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', novo === 'claro' ? '#F2EBD2' : '#05113B');
+  const t = S.config.tema || 'auto';
+  const b = document.getElementById('botao-tema');
+  if (b) {
+    b.innerHTML = icone(t === 'auto' ? 'auto' : t === 'claro' ? 'sol' : 'lua');
+    b.setAttribute('aria-label', t === 'auto' ? 'Tema automático: claro de dia, escuro à noite' : t === 'claro' ? 'Tema claro' : 'Tema escuro');
+    b.title = b.getAttribute('aria-label');
+  }
+  const o = document.getElementById('botao-olho');
+  if (o) o.innerHTML = icone(S.config.oculto ? 'olho-fechado' : 'olho');
+  // a rede neural lê a tinta do tema: redesenhá-la quando o tema vira
+  if (mudou) window.dispatchEvent(new Event('resize'));
+}
+function trocarTema() {
+  const ordem = ['auto', 'claro', 'escuro'];
+  S.config.tema = ordem[(ordem.indexOf(S.config.tema || 'auto') + 1) % 3];
+  guardar();
+  desenhar();
+  oferecerDesfazer(S.config.tema === 'auto' ? 'Automático: claro de dia, escuro à noite' : S.config.tema === 'claro' ? 'Tema claro' : 'Tema escuro', null);
+}
+
 function desenhar() {
+  aplicarTema();
   const n = calc();
   const r = rota();
   document.body.classList.toggle('oculto', !!S.config.oculto);
@@ -2370,6 +2410,7 @@ document.addEventListener('click', function (ev) {
       buscaTexto = ref;
       desenhar();
       return document.getElementById('busca').scrollIntoView({ block: 'start' });
+    case 'tema':            return trocarTema();
     case 'ocultar':
       S.config.oculto = !S.config.oculto;
       guardar();
@@ -2423,6 +2464,8 @@ window.addEventListener('appinstalled', function () {
 
 // O dia pode mudar com o app aberto (ele opera das 00h as 03h): ao voltar ao
 // app, recalcular, senao o limite de ontem fica na tela.
+// (as provas correm num sandbox sem relógio: daí o typeof)
+if (typeof setInterval === 'function') setInterval(function () { const r = document.documentElement; if ((S.config.tema || 'auto') === 'auto' && r && r.dataset && r.dataset.tema !== temaAgora()) desenhar(); }, 60000);
 let diaPintado = hoje();
 document.addEventListener('visibilitychange', function () {
   if (!document.hidden && hoje() !== diaPintado) { diaPintado = hoje(); desenhar(); }

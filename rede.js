@@ -14,7 +14,8 @@
 (function () {
   const reduzido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const CEL = 136, LIGA = 136 * 1.35, RAIO = 260;
-  const TINTA = '242,235,210';
+  // A tinta vem do tema (creme à noite, navy de dia): lida a cada desenho.
+  let TINTA = '242,235,210';
   const C = { aNoMin: 0.07, aLigMin: 0.045, aNo: 0.34, aLig: 0.17 };
 
   const cv = document.createElement('canvas');
@@ -54,6 +55,8 @@
 
   function desenhar() {
     pedido = 0;
+    const css = getComputedStyle(document.documentElement);
+    TINTA = (css.getPropertyValue('--rede-rgb') || css.getPropertyValue('--tinta-rgb') || '242,235,210').trim();
     ctx.clearRect(0, 0, larg, alt);
     ctx.lineWidth = 1;
     for (let a = 0; a < nos.length; a++) {
