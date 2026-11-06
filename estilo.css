@@ -1002,3 +1002,117 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 .mes-cal .d.lancou { background: var(--signal); color: var(--surface); font-weight: 700; cursor: pointer; }
 .mes-cal .d.hoje { box-shadow: 0 0 0 2px var(--signal); }
 .mes-cal .d.lancou.hoje { box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--signal); }
+
+/* ── TELA ÚNICA no computador (05/11, pedido dele: "quero numa tela só") ──────
+   Medido antes, a 1366x768 (a tela do notebook dele): o Início tinha 768 + 955 px,
+   quase duas telas, e o primeiro número só aparecia na linha 309, depois do
+   "Boa noite" de 46 px, dos filtros e dos atalhos. A referência dele (painel em
+   grade, Pinterest) faz o oposto: a página não rola, a grade ocupa a janela
+   exata e cada caixa rola por dentro. Isso é a diferença entre site e app.
+   Só no Início, só com altura >= 640 (abaixo disso volta a rolar, como antes). */
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* O topo encolhe em todas as telas: o "Boa noite" vira uma linha, não uma faixa. */
+  nav.barra { padding-top: 12px; padding-bottom: 0; }
+  header.topo { padding-top: 8px; padding-bottom: 10px; }
+  .topo-texto { display: flex; align-items: baseline; gap: 12px; }
+  .topo-texto h1 { font-size: 24px; line-height: 1.2; }
+  .topo-texto span { margin-top: 0; }
+
+  body:has(.painel.inicio) main { overflow: hidden; padding-bottom: 18px; }
+  .painel.inicio {
+    height: 100%; gap: 12px; align-items: stretch;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1.05fr) minmax(0, 1fr) auto;
+    grid-template-areas: "filtros atalhos atalhos" "heroi heroi onde" "lista contas cal" "conversa conversa conversa";
+  }
+  .painel.inicio > .filtros, .painel.inicio > .atalhos { margin: 0; align-self: center; }
+  .painel.inicio > .bloco { min-height: 0; overflow: auto; margin: 0; scrollbar-width: thin; }
+  .inicio .por-dia { grid-area: cal; }
+  .painel.inicio:has(.por-dia) .mes-cal { display: none; }
+  .painel.inicio:not(:has(.contas-cartao)) .mes-cal { grid-area: contas; }
+  /* os avisos (cópia, memória) não ganham uma fila: sobem para a linha dos filtros */
+  .inicio .avisos { grid-area: atalhos; justify-self: end; align-self: center; padding: 8px 14px; max-width: 60%; }
+  .painel.inicio:has(.avisos) .atalhos { justify-self: start; }
+
+  /* o herói: o número rei continua rei, mas cabe numa caixa de ~300 px */
+  .inicio .heroi { padding: 20px 26px 16px; }
+  .inicio .heroi .numero-grande { font-size: 64px; }
+  .inicio .heroi-dois { margin-top: 10px; }
+  .inicio .heroi .heroi-dois { margin-bottom: 10px; }
+  .inicio .heroi-dois b { font-size: 26px; }
+
+  /* para onde foi: rosca ao lado da lista, não em cima */
+  .inicio .para-onde .rosca-e-lista { grid-template-columns: 120px minmax(0, 1fr); gap: 14px; }
+  .inicio .para-onde .rosca { width: 120px; height: 120px; }
+
+  /* a conversa vira uma barra de comando de uma linha */
+  .inicio .conversa-vero { padding: 10px 16px; grid-template-columns: auto minmax(0, 1fr); column-gap: 20px; align-items: center; overflow: visible; }
+  .inicio .conversa-vero .fala-vero, .inicio .conversa-vero .conversa-prontas { display: none; }
+  .inicio .conversa-vero .conversa-campo { grid-column: 2; grid-row: 1; }
+
+  .inicio .contas-cartao .numero-grande.valor-medio { font-size: 34px; }
+  .mes-cal .cal { gap: 3px; margin-top: 8px; max-width: 300px; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 2.a volta (fotografada): com aviso, o aviso tomava a mesma faixa dos atalhos e
+     tapava um deles. Agora cada um tem a sua coluna. */
+  .painel.inicio:has(.avisos) { grid-template-areas: "filtros atalhos avisos" "heroi heroi onde" "lista contas cal" "conversa conversa conversa"; }
+  .painel.inicio .avisos { grid-area: avisos; justify-self: stretch; max-width: none; }
+  .painel.inicio:has(.avisos) .atalhos-rotulo { display: none; }
+  .painel.inicio .atalhos { overflow: hidden; flex-wrap: nowrap; }
+  /* o herói não pode rolar: a linha do mês cortava por 49 px */
+  .inicio .heroi { padding: 16px 24px 12px; }
+  .inicio .heroi .numero-grande { font-size: 54px; }
+  .inicio .heroi-dois b { font-size: 24px; }
+  /* o calendário inteiro (até o dia 31) numa caixa de ~220 px */
+  .mes-cal .cal { row-gap: 2px; }
+  .mes-cal .d { aspect-ratio: auto; height: 25px; width: 25px; justify-self: center; font-size: 12px; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 3.a volta: o herói ainda rolava 37 px e o calendário 10. A fila de cima
+     ganha mais altura (é a do número rei); a de baixo rola por dentro. */
+  .painel.inicio { grid-template-rows: auto minmax(0, 1.22fr) minmax(0, 1fr) auto; }
+  .mes-cal .d { height: 23px; width: 23px; }
+  .mes-cal .cal { margin-top: 6px; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 4.a volta: o herói tinha 400 px vazios à direita e a linha do mês encostada
+     no fundo. Saiu/Sobrou passam para o lado do número (como o painel da
+     referência), e a altura que sobra vai para a fila de baixo. */
+  .inicio .heroi { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: auto 1fr auto; column-gap: 28px; padding: 20px 26px 14px; }
+  .inicio .heroi > .rotulo { grid-column: 1; grid-row: 1; }
+  .inicio .heroi > .numero-grande { grid-column: 1; grid-row: 2; align-self: center; font-size: 66px; }
+  .inicio .heroi .heroi-dois { grid-column: 2; grid-row: 1 / 3; align-self: center; margin: 0; }
+  .inicio .heroi .heroi-mes { grid-column: 1 / -1; grid-row: 3; margin-top: 10px; }
+  .painel.inicio { grid-template-rows: auto minmax(0, 0.82fr) minmax(0, 1fr) auto; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 5.a volta: a rosca de 150 px empurrava a lista para fora da caixa. Lado a lado. */
+  .inicio .para-onde .rosca-destinos { grid-template-columns: 112px minmax(0, 1fr); align-items: center; justify-items: stretch; margin-top: 8px; }
+  .inicio .para-onde .rosca-destinos .rosca { width: 112px; height: 112px; }
+  .inicio .para-onde .rosca-destinos .rosca-centro b { font-size: 22px; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* Vista "Mês": a regra antiga `.por-dia { grid-column: 1 / -1 !important }` esticava o
+     "por dia" por cima das três caixas de baixo. Na tela única ele fica no lugar do calendário. */
+  .painel.inicio .por-dia { grid-area: cal !important; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 6.a volta: no mês a rosca descia para o fundo (centrada numa fila alta) e os nomes
+     das categorias saíam "Tran…". A rosca já mostra a percentagem: na linha, sai. */
+  .inicio .para-onde .rosca-destinos { align-items: start; }
+  .inicio .para-onde .destino-c .kpi-nota, .inicio .para-onde .destino-c-topo > small { display: none; }
+}
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 7.a volta (06/11, o segundo olhar reprovou): texto cortado a meio da letra no fundo
+     das caixas que rolam, sem sinal de que rolam. Agora o fundo de cada uma esmaece
+     (o olho lê "continua") e há folga para a última linha sair inteira do esmaecido. */
+  .inicio .para-onde, .inicio .lista-inicio, .inicio .contas-cartao, .inicio .mes-cal, .inicio .por-dia {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent);
+    padding-bottom: 30px;
+  }
+  /* "Gasto por dia": a régua do gráfico ficava cortada. O gráfico encolhe para caber. */
+  .inicio .por-dia { overflow: hidden; -webkit-mask-image: none; mask-image: none; padding-bottom: 14px; }
+  .inicio .por-dia .barras { flex: 1 1 auto; min-height: 0; height: auto; }
+}
