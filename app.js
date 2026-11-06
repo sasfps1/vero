@@ -770,6 +770,44 @@ function desenhar() {
   if (r !== rotaPintada) { window.scrollTo(0, 0); tela.scrollTop = 0; }
   else tela.scrollTop = rolagem;
   rotaPintada = r;
+  caberSemRolar();
+}
+
+/* TELA ÚNICA no computador, 3.ª versão (06/11): nenhuma caixa do Início rola por
+   dentro. No Chrome dele a área útil é 1366x641 e cada caixa rolava ("ficou
+   ridículo"). Aqui cada caixa perde, pela ordem, o que é extra (data-cede) e depois
+   os últimos itens das listas, até caber inteira; no lugar fica um "+N" para a lista
+   completa. Só corre quando o estilo da tela única está ligado (mesma media query). */
+var telaUnica = window.matchMedia ? window.matchMedia('(min-width: 1180px) and (min-height: 600px)') : null;
+function caberSemRolar() {
+  const painel = document.querySelector('.painel.inicio');
+  if (!painel || !telaUnica || !telaUnica.matches) return;
+  [].forEach.call(painel.children, function (b) {
+    if (!b.classList.contains('bloco')) return;
+    const transborda = function () { return b.scrollHeight > b.clientHeight + 1; };
+    if (!transborda()) return;
+    const cede = [].slice.call(b.querySelectorAll('[data-cede]'))
+      .sort(function (x, y) { return Number(x.dataset.cede) - Number(y.dataset.cede); });
+    for (let i = 0; i < cede.length && transborda(); i++) cede[i].style.display = 'none';
+    // As fichas de contas ficam lado a lado: tirar uma não baixa a caixa, por isso não entram.
+    const itens = [].slice.call(b.querySelectorAll('.lista-itens > .item-linha, .destinos > .destino-c'));
+    if (!transborda() || itens.length < 2) return;
+    const mais = document.createElement('a');
+    mais.className = 'mais-n';
+    mais.href = '#/gastos';
+    // dentro da própria lista: fora dela, numa grade, caía numa fila nova e era cortado
+    itens[0].parentNode.appendChild(mais);
+    let fora = 0;
+    while (itens.length > 1 && (fora === 0 || transborda())) {
+      itens.pop().style.display = 'none'; fora++;
+      mais.textContent = '+' + fora + ' · ver todos';
+    }
+  });
+}
+if (telaUnica) {
+  let espera = 0;
+  window.addEventListener('resize', function () { clearTimeout(espera); espera = setTimeout(function () { if (rotaPintada && (telaUnica.matches || document.querySelector('.mais-n'))) desenhar(); }, 150); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (rotaPintada) desenhar(); });
 }
 
 function saudacao() {
@@ -800,7 +838,7 @@ function avisoCopia() {
   if (!vencida || (window.veroAviso && window.veroAviso())) return '';
   return '<div class="aviso sem-caixa pesado">' +
     (ult ? 'Última cópia em ' + porExtensoData(ult) + '.' : 'Nenhuma cópia baixada ainda.') +
-    ' O celular pode perder isto; a cópia é a sua posse.' +
+    '<span class="aviso-extra"> O celular pode perder isto; a cópia é a sua posse.</span>' +
     '<span class="botoes-aviso"><button class="btn pequeno" data-acao="copia">Baixar cópia</button>' + restaurar + '</span></div>';
 }
 
@@ -918,7 +956,7 @@ function telaInicio(n) {
       '<div class="sobrou"><span>Sobrou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b><small>' +
         (podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—') + '</small></div>' +
     '</div>' +
-    (inicioVista !== 'mes' ? '<p class="heroi-mes">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
+    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
   '</section>';
 
   return '<div class="painel inicio">' +
@@ -1008,14 +1046,14 @@ function cartaoContas(n) {
   let cobre = '';
   if (primeira && primeira.tipo === 'conta' && sobrouHoje > 0) {
     const pc = Math.min(100, Math.round(sobrouHoje / primeira.centavos * 100));
-    cobre = '<div class="cobre"><span>' + (pc >= 100 ? 'O que sobrou hoje já paga a ' + esc(primeira.nome) + ' inteira.'
+    cobre = '<div class="cobre" data-cede="1"><span>' + (pc >= 100 ? 'O que sobrou hoje já paga a ' + esc(primeira.nome) + ' inteira.'
       : 'O que sobrou hoje já cobre <b>' + pc + '%</b> da ' + esc(primeira.nome) + ' · faltam ' + dinheiro(primeira.centavos - sobrouHoje)) + '</span>' +
       '<div class="barra-cobre"><i style="width:' + pc + '%"></i></div></div>';
   }
   return '<section class="bloco contas-cartao">' +
     '<div class="cabeca-linha"><span class="rotulo">Falta pagar no mês</span><a class="ver-todos" href="#/contas">Contas</a></div>' +
     '<div class="numero-grande valor-medio">' + numeroGrande(n.faltaPagar) + '</div>' +
-    (n.aReceber ? '<small class="nota">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
+    (n.aReceber ? '<small class="nota" data-cede="2">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
     (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="nota">Nada vence nos próximos 7 dias.</p>') +
     cobre +
     (primeira ? '<button class="btn contorno" data-acao="' + (primeira.tipo === 'conta' ? 'pagar' : 'devolvi') + '" data-ref="' + esc(primeira.ref) + '">' +
@@ -1051,7 +1089,7 @@ function listaInicio(p) {
       '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '">' + icone('lixo') + '</button></div>';
   }).join('');
   return '<section class="bloco lista-inicio">' +
-    '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos ' + p.curto + '</h2>' + pilulas + '</div>' +
+    '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos<span class="titulo-periodo"> ' + p.curto + '</span></h2>' + pilulas + '</div>' +
     (linhas ? '<div class="lista-itens">' + linhas + '</div>' : '<p class="vazio">Nada lançado ' + p.curto + '. Toque em + Novo lançamento.</p>') +
   '</section>';
 }
@@ -1151,7 +1189,7 @@ function calendarioDoMes() {
     : acesos === ate ? (atual ? 'Todos os dias até hoje têm lançamento.' : 'Todos os dias do mês tiveram lançamento.')
     : quantosDias(acesos) + ' com lançamento' + (atual ? ' até hoje' : ' no mês') + '.';
   return '<section class="bloco mes-cal"><h2 class="titulo-cartao">Seu mês</h2>' +
-    '<p class="frase">' + frase + '</p>' +
+    '<p class="frase" data-cede="1">' + frase + '</p>' +
     '<div class="cal" role="group" aria-label="Dias do mês com lançamento">' + celulas + '</div></section>';
 }
 
