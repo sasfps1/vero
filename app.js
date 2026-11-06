@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 24;
+const VERSAO = 25;
 let soMemoria = false;
 
 const VAZIO = {
@@ -706,9 +706,10 @@ function telaGastos() {
 
 let rotaPintada = null;
 
-/* Dia e noite (04/11). "auto" segue a hora: claro das 6h às 18h, escuro no resto —
-   e o turno dele é das 00h às 03h, onde o escuro descansa a vista. A escolha na mão
-   (claro/escuro) fica guardada. Vale o que o <script> do index já pôs antes de pintar. */
+/* Dia e noite (04/11; cores de 05/11). "auto" segue a hora: "claro" das 6h às 18h,
+   "escuro" no resto — e o turno dele é das 00h às 03h, onde o escuro descansa a vista.
+   Os nomes ficaram; as cores não: "claro" é o navy, "escuro" é o quase preto da logo
+   (estilo.css, bloco DIA E NOITE). A escolha na mão fica guardada. Vale o que o <script> do index já pôs antes de pintar. */
 function temaAgora() {
   const t = S.config.tema || 'auto', h = new Date().getHours();
   return t === 'auto' ? (h >= 6 && h < 18 ? 'claro' : 'escuro') : t;
@@ -719,12 +720,12 @@ function aplicarTema() {
   const mudou = raiz.dataset.tema !== novo;
   raiz.dataset.tema = novo;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', novo === 'claro' ? '#F2EBD2' : '#05113B');
+  if (meta) meta.setAttribute('content', novo === 'claro' ? '#05113B' : '#03091F');
   const t = S.config.tema || 'auto';
   const b = document.getElementById('botao-tema');
   if (b) {
     b.innerHTML = icone(t === 'auto' ? 'auto' : t === 'claro' ? 'sol' : 'lua');
-    b.setAttribute('aria-label', t === 'auto' ? 'Tema automático: claro de dia, escuro à noite' : t === 'claro' ? 'Tema claro' : 'Tema escuro');
+    b.setAttribute('aria-label', t === 'auto' ? 'Automático: navy de dia, quase preto à noite' : t === 'claro' ? 'Sempre o navy do dia' : 'Sempre o escuro da noite');
     b.title = b.getAttribute('aria-label');
   }
   const o = document.getElementById('botao-olho');
@@ -737,7 +738,7 @@ function trocarTema() {
   S.config.tema = ordem[(ordem.indexOf(S.config.tema || 'auto') + 1) % 3];
   guardar();
   desenhar();
-  oferecerDesfazer(S.config.tema === 'auto' ? 'Automático: claro de dia, escuro à noite' : S.config.tema === 'claro' ? 'Tema claro' : 'Tema escuro', null);
+  oferecerDesfazer(S.config.tema === 'auto' ? 'Automático: navy de dia, quase preto à noite' : S.config.tema === 'claro' ? 'Sempre o navy do dia' : 'Sempre o escuro da noite', null);
 }
 
 function desenhar() {

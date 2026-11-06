@@ -28,45 +28,18 @@
   --gutter: 14px;
 }
 
-/* ── DIA: o tema claro (04/11, pedido dele: "trocar de cor de dia e de noite") ──────
-   Nenhuma cor nova: é a marca ao contrário — creme no chão, navy na tinta. O creme
-   mais claro e o mais escuro são o MESMO creme misturado com branco/navy, não outra
-   família. O gelo não se lê sobre creme (2:1), por isso de dia o "ganho/ativo" passa
-   ao azul-fundo da marca. O cartão-herói FICA escuro: um cartão escuro no meio dos
-   claros é o padrão P10 do catálogo, e o número rei ganha ainda mais luz. */
-:root[data-tema="claro"] {
-  --surface:            #F2EBD2;
-  --surface-dim:        #E7DEC0;
-  --surface-raised:     #FAF6EA;
-  --on-surface:         #05113B;
-  --on-surface-muted:   rgba(5, 17, 59, 0.72);
-  --on-surface-faint:   rgba(5, 17, 59, 0.40);
-  /* Revisão de 04/11: navy transparente sobre creme dá CINZENTO (são opostos e anulam-se),
-     a zona morta. Por isso, de dia, os fios, trilhos e véus usam um creme ESCURO (o mesmo
-     matiz do creme, só mais fundo) — e o que pede cor certa usa cor sólida. */
-  --outline:            rgba(110, 92, 40, 0.20);
-  --outline-strong:     rgba(110, 92, 40, 0.42);
-  --signal:             #173F96;
-  --tinta-rgb: 110, 92, 40;
-  --sinal-rgb: 110, 92, 40;
-  --rede-rgb: 5, 17, 59;
+/* ── DIA E NOITE (05/11, decisão dele: "o nosso de dia é esse azul e o nosso à noite é
+   um preto estrategicamente pensado, ou seja, esse azul muito escuro") ────────────────
+   DIA ("claro" no código) = o navy da marca no chão, os tokens de cima, sem mudança.
+   NOITE ("escuro") = o chão desce para #03091F, o canto escuro do degradê da PRÓPRIA logo
+   (~#000920, ΔE 1,1: não é cor nova), e os cartões ficam no navy #05113B. Nunca preto
+   puro: texto claro sobre #000 "borra" e cansa (guia de tema escuro do Material Design).
+   O creme deixou de ser fundo: até 04/11 o dia era creme (v21). Ver _marca/DESIGN.md. */
+:root[data-tema="escuro"] {
+  --surface:            #03091F;
+  --surface-raised:     #05113B;
+  --surface-dim:        #02071A;
 }
-:root[data-tema="claro"] .filtros .aba.activo,
-:root[data-tema="claro"] .pilula.activo,
-:root[data-tema="claro"] nav.barra .nav-pilulas a.activo { background: #E7DEC0; color: #173F96; }
-:root[data-tema="claro"] .pilulas { background: #EFE7CC; }
-:root[data-tema="claro"] .fala-vero { background: #EFE7CC; }
-:root[data-tema="claro"] input::placeholder { color: #4A516C; }
-:root[data-tema="claro"] .conversa-campo input::placeholder { color: #173F96; }
-/* o herói e os cartões de cabeçalho (.he) guardam a noite dentro deles */
-:root[data-tema="claro"] section.bloco.he {
-  --surface: #05113B; --surface-raised: #0A1A4A; --on-surface: #F2EBD2;
-  --on-surface-muted: #F2EBD2; --outline: rgba(242, 235, 210, 0.14); --outline-strong: rgba(242, 235, 210, 0.24);
-  --signal: #9EC5E8; --tinta-rgb: 242, 235, 210; --sinal-rgb: 158, 197, 232;
-  color: var(--on-surface);
-}
-:root[data-tema="claro"] section.bloco { box-shadow: 0 1px 0 rgba(5, 17, 59, 0.06), 0 8px 24px -16px rgba(5, 17, 59, 0.25); }
-:root[data-tema="claro"] .item.e-saida .item-valor { opacity: 0.85; }
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
