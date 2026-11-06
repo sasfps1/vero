@@ -1116,3 +1116,8 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .inicio .por-dia { overflow: hidden; -webkit-mask-image: none; mask-image: none; padding-bottom: 14px; }
   .inicio .por-dia .barras { flex: 1 1 auto; min-height: 0; height: auto; }
 }
+@media (min-width: 1180px) and (min-height: 640px) {
+  /* 8.a volta (06/11): na vista Mês não há a linha "No mês…" e ficava uma faixa vazia
+     de ~45 px no pé do herói. Sem essa linha, o conteúdo centra-se na altura da caixa. */
+  .inicio .heroi:not(:has(.heroi-mes)) { grid-template-rows: auto auto; align-content: center; }
+}
