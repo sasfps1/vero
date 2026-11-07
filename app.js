@@ -653,7 +653,20 @@ function secaoDetalhe(p) {
     });
   }
   if (!linhas) return '';
-  return '<section class="bloco"><h2 class="titulo-cartao">' + (periodoTipo === 'ano' ? 'Mês a mês' : 'Dia a dia') + '</h2>' + linhas + '</section>';
+  return '<section class="bloco detalhe" data-paginar=".lista-pag" data-chave="detalhe"><h2 class="titulo-cartao">' + (periodoTipo === 'ano' ? 'Mês a mês' : 'Dia a dia') + '</h2><div class="lista-pag">' + linhas + '</div></section>';
+}
+
+/* A rosca de Gastos (07/11): a mesma do Início, numa caixa ao lado da faixa azul. Só se
+   vê no computador; no celular a lista de destinos já faz esse papel. */
+function roscaDeGastos(g) {
+  const fatias = g.lista.slice(0, 5);
+  const resto = g.lista.slice(5).reduce(function (a, it) { return a + it.centavos; }, 0);
+  if (resto) fatias.push({ nome: 'Outras ' + (g.lista.length - 5), centavos: resto, resto: true });
+  const pcts = partesDe100(fatias.map(function (x) { return x.centavos; }));
+  const leg = fatias.slice(0, 3).map(function (it, i) {
+    return '<button class="g-leg" data-acao="filtrar" data-ref="' + esc(it.nome) + '"><span><i class="ponto ' + (['um', 'dois'][i] || 'resto') + '"></i>' + esc(it.nome) + '</span><small>' + pcts[i] + '%</small><b>' + dinheiro(it.centavos) + '</b></button>';
+  }).join('');
+  return '<section class="bloco g-rosca so-pc">' + roscaHtml(fatias, g.total, 'Divisão do que saiu. Os valores estão ao lado.') + '<div class="g-legs">' + leg + '</div></section>';
 }
 
 function telaGastos() {
@@ -694,11 +707,13 @@ function telaGastos() {
         : g.total ? 'Entrou ' + dinheiro(r.entradas) + ' neste período. O que saiu inclui as contas pagas e o que você emprestou.'
         : 'Nada saiu neste período ainda. Cada coisa que você lançar aparece aqui.') +
       '</p>' +
-      fraseComparacao(comparacao(p, corrente)) +
+      fraseComparacao(comparacao(p, corrente)).replace('<p class="frase">', '<p class="frase" data-cede="1">') +
     '</section>' +
+    // 07/11: no computador, a rosca ao lado da faixa azul, como no Início.
+    (g.lista.length > 1 ? roscaDeGastos(g) : '') +
     secaoDetalhe(p) +
-    (linhas ? '<section class="bloco grupos">' + linhas + '</section>' : '') +
-    '<section class="bloco lancamentos"><h2 class="titulo-cartao">Lançamentos</h2>' +
+    (linhas ? '<section class="bloco grupos" data-paginar=".lista-pag" data-chave="grupos"><h2 class="titulo-cartao so-pc">Por destino</h2><div class="lista-pag">' + linhas + '</div></section>' : '') +
+    '<section class="bloco lancamentos" data-paginar="#lista-lanc" data-chave="lanc"><h2 class="titulo-cartao">Lançamentos</h2>' +
       '<input type="search" id="busca" class="busca" value="' + esc(buscaTexto) + '" placeholder="Buscar: pneu, farmácia, 50…" autocomplete="off" aria-label="Buscar lançamentos">' +
       '<div id="lista-lanc">' + listaHtml() + '</div>' +
     '</section></div>';
@@ -771,6 +786,66 @@ function desenhar() {
   else tela.scrollTop = rolagem;
   rotaPintada = r;
   caberSemRolar();
+  paginarTudo();
+}
+
+/* PÁGINAS em vez de rolar (07/11, escolha dele: "Páginas 1 2 3 ›"). No computador, Gastos,
+   Contas e Pessoas seguem a regra do Início: NADA rola. Uma caixa de lista
+   (data-paginar) mostra só os itens que cabem inteiros; o resto vai para a página 2, 3…
+   É o padrão das tabelas dos painéis profissionais. Um título de dia ("Hoje") nunca
+   fica sozinho no fim de uma página: passa para a seguinte com os seus lançamentos. */
+const paginaDe = {};
+let paginaAssin = '';
+function paginarTudo() {
+  if (!telaUnica || !telaUnica.matches) return;
+  // Mudou de tela ou de período: todas as listas voltam à página 1.
+  const pp = rota() === 'gastos' ? periodoDaTela() : null;
+  const assin = rota() + (pp ? '|' + pp.de + '|' + pp.ate : '');
+  if (assin !== paginaAssin) { paginaAssin = assin; Object.keys(paginaDe).forEach(function (k) { delete paginaDe[k]; }); }
+  document.querySelectorAll('[data-paginar]').forEach(paginar);
+}
+function paginar(caixa) {
+  const lista = caixa.querySelector(caixa.dataset.paginar);
+  const velho = caixa.querySelector('.paginas');
+  if (velho) velho.remove();
+  if (!lista) return;
+  const itens = [].slice.call(lista.children).filter(function (el) { return !el.matches('.soma-busca, .tempo-busca, .vazio'); });
+  itens.forEach(function (el) { el.style.display = ''; });
+  const transborda = function () { return caixa.scrollHeight > caixa.clientHeight + 1; };
+  if (!transborda() || itens.length < 2) return;
+  const nav = document.createElement('nav');
+  nav.className = 'paginas';
+  nav.setAttribute('aria-label', 'Páginas');
+  nav.innerHTML = '<button class="pag-seta">' + icone('voltar') + '</button><button class="pag-n">1</button>';
+  caixa.appendChild(nav);
+  itens.forEach(function (el) { el.style.display = 'none'; });
+  const paginas = [];
+  let i = 0;
+  while (i < itens.length && paginas.length < 300) {
+    const pag = [];
+    while (i < itens.length) {
+      itens[i].style.display = '';
+      if (pag.length && transborda()) { itens[i].style.display = 'none'; break; }
+      pag.push(itens[i]); i++;
+    }
+    while (pag.length > 1 && i < itens.length && pag[pag.length - 1].matches('h3.dia')) { pag.pop().style.display = 'none'; i--; }
+    pag.forEach(function (el) { el.style.display = 'none'; });
+    paginas.push(pag);
+  }
+  const chave = caixa.dataset.chave, total = paginas.length;
+  const atual = Math.max(0, Math.min(paginaDe[chave] || 0, total - 1));
+  paginaDe[chave] = atual;
+  paginas[atual].forEach(function (el) { el.style.display = ''; });
+  // Até 5 números; com mais páginas, a primeira, a última e as vizinhas da atual.
+  const nums = [];
+  for (let k = 0; k < total; k++) if (total <= 5 || k === 0 || k === total - 1 || Math.abs(k - atual) <= 1) nums.push(k);
+  let html = '<button class="pag-seta" data-acao="pagina" data-ref="' + chave + '|' + (atual - 1) + '"' + (atual ? '' : ' disabled') + ' aria-label="Página anterior">' + icone('voltar') + '</button>';
+  nums.forEach(function (k, j) {
+    if (j && k - nums[j - 1] > 1) html += '<span class="pag-gap">…</span>';
+    html += '<button class="pag-n' + (k === atual ? ' activo' : '') + '" data-acao="pagina" data-ref="' + chave + '|' + k + '"' + (k === atual ? ' aria-current="page"' : '') + '>' + (k + 1) + '</button>';
+  });
+  html += '<button class="pag-seta" data-acao="pagina" data-ref="' + chave + '|' + (atual + 1) + '"' + (atual < total - 1 ? '' : ' disabled') + ' aria-label="Página seguinte">' + icone('avancar') + '</button>';
+  nav.innerHTML = html;
 }
 
 /* TELA ÚNICA no computador, 3.ª versão (06/11): nenhuma caixa do Início rola por
@@ -806,7 +881,7 @@ function caberSemRolar() {
 }
 if (telaUnica) {
   let espera = 0;
-  window.addEventListener('resize', function () { clearTimeout(espera); espera = setTimeout(function () { if (rotaPintada && (telaUnica.matches || document.querySelector('.mais-n'))) desenhar(); }, 150); });
+  window.addEventListener('resize', function () { clearTimeout(espera); espera = setTimeout(function () { if (rotaPintada && (telaUnica.matches || document.querySelector('.mais-n, .paginas'))) desenhar(); }, 150); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (rotaPintada) desenhar(); });
 }
 
@@ -1428,17 +1503,30 @@ function telaContas(n) {
     });
   }).join('');
 
-  return '<section class="bloco he">' +
+  // 07/11: no computador, a próxima conta ao lado da faixa azul, como no Início.
+  const prox = ordenadas.filter(function (c) { return !(c.pagos && c.pagos[mes]) && c.ativa !== false; })
+    .map(function (c) { return { c: c, venc: mes + '-' + p2(Math.min(c.dia, diasNoMes(mes))) }; })
+    .sort(function (a, b) { return a.venc < b.venc ? -1 : 1; })[0];
+  let proxHtml = '';
+  if (prox) {
+    const dd = diasEntre(h, prox.venc);
+    proxHtml = '<section class="bloco c-prox so-pc"><span class="rotulo">Próxima a vencer</span>' +
+      '<div class="c-prox-linha"><b>' + esc(prox.c.nome) + '</b><b>' + dinheiro(prox.c.centavos) + '</b></div>' +
+      '<small>' + (dd < 0 ? 'Venceu há ' + quantosDias(-dd) : dd === 0 ? 'Vence hoje' : dd === 1 ? 'Vence amanhã' : 'Vence em ' + quantosDias(dd) + ' · dia ' + prox.c.dia) + '</small>' +
+      '<button class="btn contorno" data-acao="pagar" data-ref="' + esc(prox.c.id) + '">Paguei ' + esc(prox.c.nome) + '</button></section>';
+  }
+  return '<div class="tela-grade contas"><section class="bloco he">' +
       '<span class="rotulo">Falta pagar</span>' +
       '<div class="numero-grande">' + numeroGrande(n.contasFalta) + '</div>' +
       '<p class="frase">' + contasPorPagar(mes).length + ' de ' + vistas.length + ' contas por pagar este mês.' +
         (atrasadas.length === 1 ? ' E 1 de mês passado.' : atrasadas.length ? ' E ' + atrasadas.length + ' de meses passados.' : '') + '</p>' +
     '</section>' +
-    (linhasAtrasadas ? '<section class="bloco"><h2 class="secao"><span class="rotulo">De meses passados</span></h2>' + linhasAtrasadas + '</section>' : '') +
-    '<section class="bloco"><h2 class="secao"><span class="rotulo">Todas as contas</span>' +
+    proxHtml +
+    (linhasAtrasadas ? '<section class="bloco c-atras" data-paginar=".lista-pag" data-chave="atras"><h2 class="secao"><span class="rotulo">De meses passados</span></h2><div class="lista-pag">' + linhasAtrasadas + '</div></section>' : '') +
+    '<section class="bloco c-todas" data-paginar=".lista-pag" data-chave="contas"><h2 class="secao"><span class="rotulo">Todas as contas</span>' +
       '<button class="btn pequeno" data-acao="nova-conta">Nova conta</button></h2>' +
-      (linhas || '<p class="vazio">Nenhuma conta fixa cadastrada. Comece pelas que se repetem todo mês: aluguel, luz, água, internet.</p>') +
-    '</section>';
+      (linhas ? '<div class="lista-pag grade-cartoes">' + linhas + '</div>' : '<p class="vazio">Nenhuma conta fixa cadastrada. Comece pelas que se repetem todo mês: aluguel, luz, água, internet.</p>') +
+    '</section></div>';
 }
 
 // ── Pessoas ──────────────────────────────────────────────────────────────────
@@ -1482,21 +1570,22 @@ function telaPessoas(n) {
         classes: (atrasado ? 'atrasada ' : '') + (quitado ? 'fraca' : '')
       });
     }
-    corpo += '<section class="bloco"><h2 class="secao"><span class="nome-pessoa">' + esc(nome) + '</span></h2>' + linhas + '</section>';
+    corpo += '<div class="pessoa-cartao"><h2 class="secao"><span class="nome-pessoa">' + esc(nome) + '</span></h2>' + linhas + '</div>';
   }
 
-  return '<section class="bloco he">' +
+  return '<div class="tela-grade pessoas"><section class="bloco he">' +
       '<span class="rotulo">Têm a devolver a você</span>' +
       '<div class="numero-grande">' + numeroGrande(n.aReceber) + '</div>' +
       '<p class="frase">Este dinheiro não entra no que sobrou — enquanto não voltar, não é seu para gastar.</p>' +
     '</section>' +
-    '<section class="bloco"><h2 class="secao"><span class="rotulo">Você deve</span>' +
+    '<section class="bloco p-deve"><h2 class="secao"><span class="rotulo">Você deve</span>' +
       '<span class="numero-medio" style="margin:0">' + numeroMedio(n.euDevo) + '</span></h2>' +
       '<div style="display:flex;gap:10px;margin-top:12px">' +
         '<button class="btn" style="flex:1" data-acao="novo-emprestimo" data-ref="emprestei">Emprestei a alguém</button>' +
         '<button class="btn" style="flex:1" data-acao="novo-emprestimo" data-ref="peguei">Peguei com alguém</button>' +
       '</div></section>' +
-    (corpo || '<section class="bloco"><p class="vazio">Nenhum empréstimo anotado.</p></section>');
+    (corpo ? '<section class="bloco p-todas" data-paginar=".lista-pag" data-chave="pessoas"><div class="lista-pag grade-cartoes">' + corpo + '</div></section>'
+      : '<section class="bloco p-todas"><p class="vazio">Nenhum empréstimo anotado.</p></section>') + '</div>';
 }
 
 // ── Configurações ────────────────────────────────────────────────────────────
@@ -2702,11 +2791,18 @@ document.addEventListener('click', function (ev) {
       return window.scrollTo(0, 0);
     // Do Início, a ficha leva a Gastos já filtrado por aquele destino.
     case 'roda-proximo':    return avancarRoda();
+    case 'pagina': {
+      const pr = ref.split('|');
+      paginaDe[pr[0]] = Number(pr[1]);
+      const cx = document.querySelector('[data-chave="' + pr[0] + '"]');
+      return cx ? paginar(cx) : undefined;
+    }
     case 'ver-destino':
       buscaTexto = ref;
       location.hash = '#/gastos';
       return;
     case 'filtrar':
+      paginaDe.lanc = 0;
       buscaTexto = ref;
       desenhar();
       return document.getElementById('busca').scrollIntoView({ block: 'start' });
@@ -2723,6 +2819,8 @@ document.addEventListener('input', function (ev) {
   if (ev.target.id === 'busca') {
     buscaTexto = ev.target.value;
     document.getElementById('lista-lanc').innerHTML = listaHtml();
+    paginaDe.lanc = 0;
+    paginarTudo();
   } else if (ev.target.id === 'lancar-frase') {
     preencherDaFrase(ev.target.value);
   } else if (ev.target.id === 'lancar-nota' && !categoriaEscolhida) {

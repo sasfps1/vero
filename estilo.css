@@ -1126,3 +1126,95 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 .roda-tempo i { display: block; height: 100%; width: 100%; border-radius: 99px; background: var(--on-surface-muted); transform-origin: left; animation: roda-enche 6s linear both; }
 .roda:hover .roda-tempo i, .roda:focus-within .roda-tempo i { animation-play-state: paused; }
 @keyframes roda-enche { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ── O PADRÃO DO INÍCIO EM TODAS AS TELAS (07/11, ordem dele) ──────────────────────
+   "Nos gastos, quando eu clico pro outro, deve acompanhar a mesma linha... deixa tudo
+   padrão." No computador, Gastos, Contas e Pessoas passam a ter a gramática do Início:
+   uma tela só, nada rola; a faixa azul à esquerda com uma caixa ao lado; as listas
+   embaixo, em caixas que mostram o que cabe inteiro e páginas "1 2 3 ›" para o resto
+   (escolha dele). Celular: igual ao que era (.so-pc some, .tela-grade não faz nada). */
+.so-pc { display: none; }
+@media (min-width: 1180px) and (min-height: 600px) {
+  body:has(.painel.gastos) main, body:has(.tela-grade) main { overflow: hidden; padding-bottom: 14px; }
+
+  /* a grade */
+  .painel.gastos, .tela-grade { height: 100%; gap: 10px; display: grid; align-items: stretch; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .painel.gastos { grid-template-rows: auto clamp(124px, 22vh, 190px) minmax(0, 1fr); grid-template-areas: "filtros mes mes" "heroi heroi rosca" "grupos lanc lanc"; }
+  .painel.gastos:has(.detalhe) { grid-template-areas: "filtros mes mes" "heroi heroi rosca" "detalhe grupos lanc"; }
+  .painel.gastos:not(:has(.g-rosca)) { grid-template-areas: "filtros mes mes" "heroi heroi heroi" "grupos lanc lanc"; }
+  .painel.gastos:has(.detalhe):not(:has(.g-rosca)) { grid-template-areas: "filtros mes mes" "heroi heroi heroi" "detalhe grupos lanc"; }
+  .painel.gastos:not(:has(.grupos)) { grid-template-areas: "filtros mes mes" "heroi heroi rosca" "lanc lanc lanc"; }
+  .painel.gastos:not(:has(.grupos)):not(:has(.g-rosca)) { grid-template-areas: "filtros mes mes" "heroi heroi heroi" "lanc lanc lanc"; }
+  .tela-grade { grid-template-rows: clamp(124px, 22vh, 190px) minmax(0, 1fr); }
+  .tela-grade.contas { grid-template-areas: "heroi heroi prox" "todas todas todas"; }
+  .tela-grade.contas:has(.c-atras) { grid-template-areas: "heroi heroi prox" "atras todas todas"; }
+  .tela-grade.contas:not(:has(.c-prox)) { grid-template-areas: "heroi heroi heroi" "todas todas todas"; }
+  .tela-grade.contas:has(.c-atras):not(:has(.c-prox)) { grid-template-areas: "heroi heroi heroi" "atras todas todas"; }
+  .tela-grade.pessoas { grid-template-areas: "heroi heroi deve" "todas todas todas"; }
+
+  .painel.gastos > .filtros { grid-area: filtros; align-self: center; margin: 0; }
+  .painel.gastos > .seletor-mes { grid-area: mes; justify-self: end; align-self: center; display: inline-flex; gap: 14px; margin: 0; padding: 4px; border-radius: 99px; background: var(--surface-raised); }
+  .painel.gastos > .seletor-mes span { min-width: 150px; text-align: center; }
+  .painel.gastos > .he, .tela-grade > .he { order: 0; grid-column: auto; grid-area: heroi; }
+  .painel.gastos > .g-rosca { grid-area: rosca; }
+  .painel.gastos > .detalhe { grid-area: detalhe; }
+  .painel.gastos > .grupos { order: 0; grid-column: auto; grid-area: grupos; align-self: stretch; }
+  .painel.gastos > .lancamentos { order: 0; grid-column: auto; grid-area: lanc; }
+  .c-prox { grid-area: prox; } .c-atras { grid-area: atras; } .c-todas { grid-area: todas; }
+  .p-deve { grid-area: deve; } .p-todas { grid-area: todas; }
+
+  /* NENHUMA caixa rola: o que não cabe vai para a página seguinte */
+  .painel.gastos > .bloco, .tela-grade > .bloco { min-height: 0; overflow: hidden; margin: 0; display: flex; flex-direction: column; padding-top: 14px; padding-bottom: 14px; }
+  .so-pc { display: flex; }
+  h2.so-pc { display: block; }
+
+  /* a faixa azul: número à esquerda, a frase ao lado (a mesma do Início) */
+  .painel.gastos > .he, .tela-grade > .he { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: auto 1fr; column-gap: 28px; align-content: center; padding: 14px 24px; }
+  .painel.gastos > .he > .rotulo, .tela-grade > .he > .rotulo { grid-column: 1; grid-row: 1; }
+  .painel.gastos > .he > .numero-grande, .tela-grade > .he > .numero-grande { grid-column: 1; grid-row: 2; align-self: center; font-size: 58px; margin: 0; }
+  .painel.gastos > .he > .frase, .tela-grade > .he > .frase { grid-column: 2; grid-row: 1; align-self: end; margin: 0; font-size: 14px; }
+  .painel.gastos > .he > .frase + .frase { grid-row: 2; align-self: start; margin-top: 6px; }
+  .painel.gastos > .he > .frase:only-of-type, .tela-grade > .he > .frase:only-of-type { grid-row: 1 / 3; align-self: center; }
+
+  /* Gastos: a rosca ao lado da faixa */
+  .painel.gastos > .g-rosca { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 16px; align-items: center; }
+  .g-rosca .rosca { width: 104px; height: 104px; margin: 0; }
+  .g-rosca .rosca-centro span { font-size: 10px; max-width: 70px; }
+  .g-rosca .rosca-centro b { font-size: 21px; }
+  .g-legs { display: grid; gap: 2px; min-width: 0; }
+  .g-leg { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+  .g-leg span { display: flex; align-items: center; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .g-leg small { color: var(--on-surface-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .g-leg b { font-variant-numeric: tabular-nums; }
+  .g-leg:hover, .g-leg:focus-visible { background: rgba(var(--tinta-rgb), .06); }
+  .painel.gastos .grupos .titulo-cartao, .painel.gastos .detalhe .titulo-cartao { margin-bottom: 6px; }
+  .painel.gastos .lancamentos .busca { margin: 8px 0 4px; }
+  .painel.gastos .lancamentos h3.dia { margin: 6px 0 0; }
+  /* a caixa dos lançamentos é larga: duas colunas, o dobro de linhas por página */
+  .painel.gastos .lancamentos #lista-lanc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; align-content: start; }
+  .painel.gastos .lancamentos #lista-lanc > h3, .painel.gastos .lancamentos #lista-lanc > p { grid-column: 1 / -1; }
+  .painel.gastos .linha.dupla.compacta, .painel.gastos .grupos .linha { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+
+  /* Contas: a próxima a vencer ao lado da faixa */
+  .c-prox-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: auto; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .c-prox-linha b:first-child { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .c-prox small { margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); }
+  .c-prox .btn { margin-top: auto; min-height: 36px; }
+
+  /* as listas em cartões lado a lado */
+  .grade-cartoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; align-content: start; }
+  .grade-cartoes > .linha, .grade-cartoes > .pessoa-cartao { border-top: 0; border-radius: 16px; background: rgba(var(--tinta-rgb), .05); padding: 12px 14px; transition: background-color .2s; }
+  .grade-cartoes > .linha:hover, .grade-cartoes > .pessoa-cartao:hover { background: rgba(var(--tinta-rgb), .08); }
+  .pessoa-cartao > h2.secao { margin: 0 0 4px; }
+  .pessoa-cartao .linha { padding-left: 0; padding-right: 0; }
+  .p-deve > div { margin-top: auto !important; }
+
+  /* as páginas "1 2 3 ›" */
+  .paginas { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: auto; padding-top: 8px; }
+  .pag-n, .pag-seta { min-width: 30px; height: 30px; padding: 0 8px; display: inline-grid; place-items: center; border: 0; border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color .2s, color .2s; }
+  .pag-n:hover, .pag-seta:hover:not(:disabled), .pag-n:focus-visible, .pag-seta:focus-visible { background: rgba(var(--tinta-rgb), .08); color: var(--on-surface); }
+  .pag-n.activo { background: var(--on-surface); color: var(--surface); }
+  .pag-seta:disabled { opacity: .35; cursor: default; }
+  .pag-seta svg.traco { width: 16px; height: 16px; }
+  .pag-gap { color: var(--on-surface-muted); padding: 0 2px; }
+}
