@@ -853,8 +853,6 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
 .item-apagar { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--on-surface-muted); cursor: pointer; }
 .item-apagar svg.traco { width: 18px; height: 18px; }
 .item-apagar:hover, .item-apagar:focus-visible { background: rgba(var(--tinta-rgb), 0.08); color: var(--on-surface); }
-.item-editar { width: 36px; }
-.item-editar svg.traco { width: 17px; height: 17px; }
 .item-ico { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--tinta-rgb), 0.08); }
 .item-ico svg.traco { width: 17px; height: 17px; }
 .item-nome { min-width: 0; font-size: 14.5px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -1060,31 +1058,14 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .inicio .heroi .heroi-mes { grid-column: 1 / -1; grid-row: 3; margin-top: 6px; }
   .inicio .heroi:not(:has(.heroi-mes)) { grid-template-rows: auto auto; align-content: center; }
 
-  /* para onde foi (07/11, 2.ª mão, pedido dele: "mais clean, mais estrategicamente
-     pensado"). Lente: Stephen Few e Tufte, desenho de painéis. Cada pixel que não é
-     dado sai: o ícone, a barrinha e o fundo de cada cartão repetiam o que a rosca já
-     diz. Fica uma LEGENDA-TABELA: ponto da cor da fatia, nome, % e valor alinhados à
-     direita em algarismos de largura fixa, para os valores se lerem de cima a baixo.
-     E os 2 maiores + "Outras" (no app.js): as 3 cores da rosca, cabe sempre, sem "+N". */
-  /* a rosca ocupa a altura toda à esquerda; o título vai por cima da legenda, à direita
-     (título + rosca empilhados passavam a altura da caixa e cortavam a legenda) */
-  .inicio .para-onde { display: grid; grid-template-columns: 92px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 20px; row-gap: 6px; align-content: center; }
-  .inicio .para-onde > .titulo-cartao { grid-column: 2; grid-row: 1; margin: 0; }
-  .inicio .para-onde .rosca-destinos { display: contents; }
-  .inicio .para-onde .rosca-destinos > .rosca { grid-column: 1; grid-row: 1 / 3; align-self: center; margin: 0; }
-  .inicio .para-onde .rosca-destinos > .destinos { grid-column: 2; grid-row: 2; align-self: start; }
-  .inicio .para-onde .rosca-destinos .rosca { width: 92px; height: 92px; }
-  .inicio .para-onde .rosca-destinos .rosca-centro span { font-size: 10px; max-width: 62px; }
-  .inicio .para-onde .rosca-destinos .rosca-centro b { font-size: 20px; }
-  .inicio .para-onde .destinos { gap: 0; align-self: center; }
-  .inicio .para-onde .destino-c { grid-template-columns: minmax(0, 1fr) auto; padding: 5px 6px; border-radius: 8px; background: none; }
-  .inicio .para-onde .destino-c + .destino-c { border-top: 1px solid var(--outline); border-radius: 0; }
-  .inicio .para-onde .destino-c:hover { background: rgba(var(--tinta-rgb), 0.05); }
-  .inicio .para-onde .destino-c .item-ico, .inicio .para-onde .destino-c .kpi-barra { display: none; }
-  .inicio .para-onde .destino-c-topo { gap: 0; }
-  .inicio .para-onde .destino-c-nome { font-size: 13.5px; font-weight: 600; }
-  .inicio .para-onde .destino-c-topo > small { display: inline; min-width: 38px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
-  .inicio .para-onde .destino-c .kpi-valor { min-width: 84px; text-align: right; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  /* para onde foi: rosca pequena ao lado dos destinos */
+  .inicio .para-onde .rosca-destinos { grid-template-columns: 84px minmax(0, 1fr); align-items: start; justify-items: stretch; gap: 14px; margin-top: 6px; }
+  .inicio .para-onde .rosca-destinos .rosca { width: 84px; height: 84px; }
+  .inicio .para-onde .rosca-destinos .rosca-centro span { font-size: 10px; }
+  .inicio .para-onde .rosca-destinos .rosca-centro b { font-size: 18px; }
+  .inicio .para-onde .destinos { gap: 4px; }
+  .inicio .para-onde .destino-c { padding: 6px 10px; }
+  .inicio .para-onde .destino-c .kpi-barra { margin-top: 4px; }
 
   /* lançamentos: título e filtros na mesma linha, linhas mais baixas */
   .inicio .lista-inicio .cabeca-linha { flex-wrap: nowrap; gap: 8px; }
@@ -1095,7 +1076,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .inicio .lista-inicio .pilula { min-height: 28px; padding: 0 9px; font-size: 12px; }
   .inicio .lista-inicio .item { min-height: 46px; padding: 4px; }
   .inicio .lista-itens { margin-top: 4px; }
-  .inicio .para-onde .destino-c .kpi-nota { display: none; }
+  .inicio .para-onde .destino-c .kpi-nota, .inicio .para-onde .destino-c-topo > small { display: none; }
 
   /* contas: o número e as fichas mais baixos */
   .inicio .contas-cartao .cabeca-linha .ver-todos { min-height: 28px; }

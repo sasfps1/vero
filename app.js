@@ -882,9 +882,7 @@ function linhaHtml(o) {
   // A lixeira (04/11): botão não pode ir dentro de botão, por isso fica FORA da
   // linha tocável, num invólucro.
   if (!o.apagar) return linha;
-  // O lápis (07/11) segue a lixeira: o toque na linha já corrigia, mas não se via.
-  const lapis = o.toque && o.toque.acao === 'editar' ? '<button class="item-apagar item-editar" data-acao="editar" data-ref="' + esc(o.toque.ref) + '" aria-label="Editar" title="Editar">' + icone('lapis') + '</button>' : '';
-  return '<div class="linha-com-apagar">' + linha + lapis +
+  return '<div class="linha-com-apagar">' + linha +
     '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + esc(o.apagar) + '" aria-label="Apagar">' + icone('lixo') + '</button></div>';
 }
 
@@ -1088,10 +1086,7 @@ function listaInicio(p) {
       '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
       '<span class="item-nome">' + nome + '<small>' + esc(sub) + '</small></span>' +
       '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>' +
-      // 07/11, pedido dele: "deve ter o botão de editar ali". Tocar na linha já corrigia,
-      // mas ninguém adivinha isso: o lápis torna visível o que estava escondido.
-      '<button class="item-apagar item-editar" data-acao="editar" data-ref="' + l.id + '" aria-label="Editar ' + nome + '" title="Editar">' + icone('lapis') + '</button>' +
-      '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '" title="Apagar">' + icone('lixo') + '</button></div>';
+      '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '">' + icone('lixo') + '</button></div>';
   }).join('');
   return '<section class="bloco lista-inicio">' +
     '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos<span class="titulo-periodo"> ' + p.curto + '</span></h2>' + pilulas + '</div>' +
@@ -1107,14 +1102,9 @@ function secaoParaOndeTiles(p) {
   // Com um destino só, a rosca é um anel inteiro que não diz nada: espera haver dois.
   if (!g.total || g.lista.length < 2) return '';
   // 04/11, pedido dele: "falta um gráfico de pizza para ver para onde vai MAIS o dinheiro".
-  // 07/11, pedido dele ("mais clean, mais estrategicamente pensado"): no computador a
-  // caixa é baixa. A rosca só tem TRÊS cores (os 2 maiores e um azul para o resto), por
-  // isso a legenda tem as mesmas três linhas: os 2 maiores e "Outras", que soma o resto.
-  // Cor e linha batem uma a uma, e cabe sempre inteiro, sem "+N". É o "top N + outros".
-  const n = telaUnica && telaUnica.matches ? (g.lista.length <= 3 ? 3 : 2) : 5;
-  const fatias = g.lista.slice(0, n);
-  const resto = g.lista.slice(n).reduce(function (a, it) { return a + it.centavos; }, 0);
-  if (resto) fatias.push({ nome: 'Outras ' + (g.lista.length - n), centavos: resto, resto: true });
+  const fatias = g.lista.slice(0, 5);
+  const resto = g.lista.slice(5).reduce(function (a, it) { return a + it.centavos; }, 0);
+  if (resto) fatias.push({ nome: 'Outras ' + (g.lista.length - 5), centavos: resto, resto: true });
   const pcts = partesDe100(fatias.map(function (x) { return x.centavos; }));
   const cartoes = fatias.map(function (it, i) {
     const pct = pcts[i], tom = ['um', 'dois'][i] || 'resto';
@@ -1169,10 +1159,9 @@ function roscaHtml(fatias, total, aria) {
       '" stroke-dashoffset="' + (-(andado * volta + vao / 2)).toFixed(2) + '" transform="rotate(-90 50 50)"><title>' + esc(it.nome) + ': ' + dinheiro(it.centavos) + '</title></circle>';
     andado += f;
   });
-  // A mesma conta da legenda (07/11): o centro dizia 56% e a linha ao lado 57%.
   const maior = fatias[0];
   return '<div class="rosca"><svg viewBox="0 0 100 100" role="img" aria-label="' + aria + '">' + arcos + '</svg>' +
-    '<div class="rosca-centro"><span>' + esc(maior.nome) + '</span><b>' + partesDe100(fatias.map(function (x) { return x.centavos; }))[0] + '%</b></div></div>';
+    '<div class="rosca-centro"><span>' + esc(maior.nome) + '</span><b>' + Math.round(maior.centavos / total * 100) + '%</b></div></div>';
 }
 
 /** O X do mês (05/11, fase 1 do plano): os dias em que ele lançou ficam acesos.
