@@ -1218,3 +1218,34 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .pag-seta svg.traco { width: 16px; height: 16px; }
   .pag-gap { color: var(--on-surface-muted); padding: 0 2px; }
 }
+
+/* 07/11: sem cartão de contas E com o aviso da cópia, a grade do Início não tinha desenho
+   e desmontava (achado ao testar com dados sem contas). As combinações que faltavam: */
+@media (min-width: 1180px) and (min-height: 600px) {
+  .painel.inicio:has(.avisos):not(:has(.contas-cartao)) { grid-template-areas: "filtros atalhos avisos" "heroi heroi onde" "lista lista cal" "conversa conversa conversa"; }
+  .painel.inicio:not(:has(.contas-cartao)):not(:has(.para-onde)) { grid-template-areas: "filtros atalhos atalhos" "heroi heroi heroi" "lista lista cal" "conversa conversa conversa"; }
+  .painel.inicio:has(.avisos):not(:has(.contas-cartao)):not(:has(.para-onde)) { grid-template-areas: "filtros atalhos avisos" "heroi heroi heroi" "lista lista cal" "conversa conversa conversa"; }
+}
+
+/* ── "PARA ONDE FOI", forma A (07/11, escolhida por ele) ──────────────────────────
+   O anel: o maior em creme contra o resto num azul, pontas retas, vão de 2 px. O %
+   no centro com o "%" pequeno (a mesma regra do R$). Ao lado, o valor do maior com a
+   assinatura do herói (.numero-grande). Sem subcartão, sem ícone, sem barra, sem pílula. */
+@media (min-width: 1180px) and (min-height: 600px) {
+  .inicio .para-onde.pa { display: flex; align-items: center; gap: 20px; }
+  .pa-anel { position: relative; width: 104px; height: 104px; flex: none; }
+  .pa-anel svg { display: block; width: 100%; height: 100%; }
+  .pa-arco { fill: none; stroke-width: 8; }
+  .pa-arco.um { stroke: var(--on-surface); }
+  .pa-arco.resto { stroke: var(--azul-fundo); }
+  .pa-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .pa-centro span { max-width: 70%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--on-surface-muted); }
+  .pa-centro b { margin-top: 3px; font-size: 28px; font-weight: 800; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .pa-centro b small { margin-left: 1px; font-size: .5em; font-weight: 700; color: var(--on-surface-muted); }
+  .pa-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .pa-tit { font-size: 13px; font-weight: 600; color: var(--on-surface-muted); }
+  .numero-grande.pa-valor { align-self: flex-start; margin: 6px 0 0; padding: 0; border: 0; background: none; color: inherit; font-family: inherit; font-size: 30px; line-height: 1; text-align: left; cursor: pointer; }
+  .pa-sub { margin-top: 4px; font-size: 12px; color: var(--on-surface-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pa-mais { align-self: flex-start; margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
+  .pa-mais span { color: var(--on-surface-muted); }
+}

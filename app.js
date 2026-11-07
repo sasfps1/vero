@@ -1177,6 +1177,7 @@ function secaoParaOndeTiles(p) {
   const g = paraOndeEntre(p.de, p.ate);
   // Com um destino só, a rosca é um anel inteiro que não diz nada: espera haver dois.
   if (!g.total || g.lista.length < 2) return '';
+  if (telaUnica && telaUnica.matches) return paraOndeA(p, g);
   // 04/11, pedido dele: "falta um gráfico de pizza para ver para onde vai MAIS o dinheiro".
   const fatias = g.lista.slice(0, 5);
   const resto = g.lista.slice(5).reduce(function (a, it) { return a + it.centavos; }, 0);
@@ -1293,6 +1294,35 @@ function avancarRoda() {
 document.addEventListener('animationend', function (ev) {
   if (ev.target.matches && ev.target.matches('.roda-tempo i')) avancarRoda();
 });
+
+/* "PARA ONDE FOI", forma A (07/11, escolhida por ele entre quatro, em imagem).
+   O diagnóstico dos três agentes: a caixa parecia de outra marca porque o dinheiro não
+   tinha a ASSINATURA do herói (R$ e centavos pequenos, inteiro grande), não havia um
+   número rei (56% e R$ 500 quase do mesmo tamanho), o anel de pontas redondas parecia
+   um "carregando", e era caixa dentro de caixa. A forma A: o anel diz só "o maior
+   contra o resto" (dois arcos, pontas retas), o % no centro, e o valor do maior com a
+   assinatura do herói ao lado. Vem das escolhas dele no Pinterest (sas-05, sas-06).
+   Só no computador; no celular a caixa continua a de antes. */
+function paraOndeA(p, g) {
+  const L = g.lista, T = g.total, maior = L[0], resto = T - maior.centavos;
+  const pct = partesDe100(L.map(function (x) { return x.centavos; }))[0];
+  const r = 48, C = 2 * Math.PI * r, vao = 2;
+  const arco = function (v, ini, cls) {
+    const tr = Math.max(0.01, v / T * C - vao);
+    return '<circle class="pa-arco ' + cls + '" cx="52" cy="52" r="' + r + '" stroke-dasharray="' + tr.toFixed(2) + ' ' + C.toFixed(2) +
+      '" stroke-dashoffset="' + (-(ini * C + vao / 2)).toFixed(2) + '" transform="rotate(-90 52 52)"/>';
+  };
+  const outros = L.length - 1;
+  return '<section class="bloco para-onde pa">' +
+    '<div class="pa-anel"><svg viewBox="0 0 104 104" role="img" aria-label="' + esc(maior.nome) + ': ' + pct + '% do que saiu">' +
+      arco(maior.centavos, 0, 'um') + (resto ? arco(resto, maior.centavos / T, 'resto') : '') + '</svg>' +
+      '<div class="pa-centro"><span>' + esc(maior.nome) + '</span><b>' + pct + '<small>%</small></b></div></div>' +
+    '<div class="pa-texto"><span class="pa-tit">Para onde foi ' + p.curto + '</span>' +
+      '<button class="numero-grande pa-valor" data-acao="ver-destino" data-ref="' + esc(maior.nome) + '" aria-label="Ver os gastos de ' + esc(maior.nome) + '">' + numeroGrande(maior.centavos) + '</button>' +
+      '<span class="pa-sub">' + esc(maior.nome) + ' · de ' + dinheiro(T) + ' que saiu</span>' +
+      '<a class="pa-mais" href="#/gastos">Mais ' + outros + (outros === 1 ? ' destino' : ' destinos') + ' <span>→</span></a></div>' +
+  '</section>';
+}
 
 /** A rosca responde "para onde foi": no centro vai o maior destino, não o total.
     ⚠️ Seis tons de azul não se distinguem (medido a 31/10: diferença 5,5, o
