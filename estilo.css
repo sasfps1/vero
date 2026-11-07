@@ -1249,3 +1249,13 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .pa-mais { align-self: flex-start; margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
   .pa-mais span { color: var(--on-surface-muted); }
 }
+
+
+/* ── CELULAR, 07/11 (pedido dele, aprovado em imagem) ─────────────────────────────
+   O herói com o Sobrou no topo e Entrou | Saiu lado a lado; o lápis ao lado da
+   lixeira. No computador o lápis não aparece (lá a linha já mostra a mão ao passar). */
+.heroi-cel .heroi-pode { display: block; margin-top: -2px; font-size: 13px; color: rgba(var(--tinta-rgb), .75); }
+.item-lapis { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--on-surface-muted); cursor: pointer; }
+.item-lapis svg.traco { width: 17px; height: 17px; }
+.item-lapis:hover, .item-lapis:focus-visible { background: rgba(var(--tinta-rgb), 0.08); color: var(--on-surface); }
+@media (min-width: 1180px) and (min-height: 600px) { .item-lapis { display: none; } }

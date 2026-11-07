@@ -958,6 +958,7 @@ function linhaHtml(o) {
   // linha tocável, num invólucro.
   if (!o.apagar) return linha;
   return '<div class="linha-com-apagar">' + linha +
+    (o.toque && o.toque.acao === 'editar' ? '<button class="item-lapis" data-acao="editar" data-ref="' + esc(o.toque.ref) + '" aria-label="Corrigir">' + icone('lapis') + '</button>' : '') +
     '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + esc(o.apagar) + '" aria-label="Apagar">' + icone('lixo') + '</button></div>';
 }
 
@@ -1021,7 +1022,25 @@ function telaInicio(n) {
   // Recompensa na hora (Hábitos Atômicos: o hábito pega quando o ganho é IMEDIATO): o
   // herói acende por um instante logo depois de um lançamento.
   const ultimo = S.lancamentos.reduce(function (m, l) { return Math.max(m, l.em || 0); }, 0);
-  const heroi = '<section class="bloco he heroi' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
+  /* 07/11, pedido dele, no celular: "lá em cima vai ser o total de hoje... o saiu é o
+     saiu e o entrou tem que estar do lado do saiu". O número grande passa a ser o
+     resultado do dia (o Sobrou); Entrou e Saiu ficam lado a lado por baixo. Aprovado em
+     imagem. No computador o herói continua o de antes. */
+  const celular = !(telaUnica && telaUnica.matches);
+  const textoPode = podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—';
+  const heroiCel = '<section class="bloco he heroi heroi-cel' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
+    '<span class="rotulo">Sobrou ' + p.quando + '</span>' +
+    '<div class="numero-grande">' + (ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou)) + '</div>' +
+    '<small class="heroi-pode">' + textoPode + '</small>' +
+    '<div class="heroi-dois">' +
+      '<div><span>' + icone('entrou') + 'Entrou</span><b>' + dinheiro(r.entradas) + '</b><small>tudo o que entrou</small></div>' +
+      '<div><span>' + icone('saiu') + 'Saiu</span><b>' + dinheiro(r.saidas) + '</b>' +
+        '<div class="barra-fina" role="img" aria-label="Saiu ' + pct + '% do que entrou"><i style="width:' + pct + '%"></i></div>' +
+        '<small>' + (r.entradas ? pct + '% do que entrou' : r.saidas ? 'Só saiu dinheiro' : 'Nada saiu') + '</small></div>' +
+    '</div>' +
+    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
+  '</section>';
+  const heroi = celular ? heroiCel : '<section class="bloco he heroi' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
     '<span class="rotulo">Entrou ' + p.quando + '</span>' +
     '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
     '<div class="heroi-dois">' +
@@ -1039,12 +1058,13 @@ function telaInicio(n) {
     atalhosHtml() +
     heroi +
     secaoParaOndeTiles(p) +
-    conversaCartao() +
+    (celular ? '' : conversaCartao()) +
     listaInicio(p) +
     cartaoContas(n) +
     calendarioDoMes() +
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     avisos() +
+    (celular ? conversaCartao() : '') +
   '</div>';
 }
 
@@ -1161,6 +1181,7 @@ function listaInicio(p) {
       '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
       '<span class="item-nome">' + nome + '<small>' + esc(sub) + '</small></span>' +
       '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>' +
+      '<button class="item-lapis" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' + icone('lapis') + '</button>' +
       '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '">' + icone('lixo') + '</button></div>';
   }).join('');
   return '<section class="bloco lista-inicio">' +
