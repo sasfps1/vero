@@ -1098,6 +1098,7 @@ function listaInicio(p) {
     com o valor fino e grande e a barra gelo da sua parte. As fichas antigas, quadradas e
     em negrito, eram o primeiro sítio onde se via que "não mudou nada". */
 function secaoParaOndeTiles(p) {
+  if (telaUnica && telaUnica.matches) { const roda = secaoRoda(); if (roda) return roda; }
   const g = paraOndeEntre(p.de, p.ate);
   // Com um destino só, a rosca é um anel inteiro que não diz nada: espera haver dois.
   if (!g.total || g.lista.length < 2) return '';
@@ -1117,6 +1118,106 @@ function secaoParaOndeTiles(p) {
   return '<section class="bloco para-onde"><h2 class="titulo-cartao">Para onde foi ' + p.curto + '</h2><div class="rosca-destinos">' + roscaHtml(fatias, g.total, 'Para onde foi o dinheiro. Os valores estão nos cartões ao lado.') +
     '<div class="destinos">' + cartoes + '</div></div></section>';
 }
+
+/* ── O AVISO QUE RODA (07/11, pedido dele) ─────────────────────────────────────────
+   No computador, a caixa da rosca passa a mostrar, um de cada vez, o que pede atenção:
+   conta que falta pagar, quem te deve e quem você deve. Troca sozinho a cada 6 s e
+   PARA com o mouse em cima. O que vence mais perto aparece MAIS VEZES (peso pela
+   proximidade), sem repetir o mesmo duas vezes seguidas quando há outro.
+   Lentes: a curva de "saliência" dos avisos (urgência sobe com a proximidade do prazo)
+   e o aviso do Nielsen Norman Group sobre carrosséis: rodam devagar, param com o mouse,
+   e mostram que há mais ("2 de 5"). O relógio é a própria barrinha: quando ela acaba
+   de encher, troca; com o mouse em cima, a barra pára e o aviso também.
+   Sem nada a avisar, volta a rosca de sempre. */
+function itensRoda() {
+  const h = hoje(), mes = mesDe(h), itens = [];
+  const prazo = function (data, venceu, hojeT, amanha, emN) {
+    if (!data) return null;
+    const dd = diasEntre(h, data);
+    return { dd: dd, txt: dd < 0 ? venceu + ' há ' + quantosDias(-dd) : dd === 0 ? hojeT : dd === 1 ? amanha : emN + ' ' + quantosDias(dd) };
+  };
+  contasAtrasadas().forEach(function (x) {
+    const pz = prazo(x.venc, 'Venceu', '', '', '');
+    itens.push({ k: 'c' + x.conta.id + x.mes, tipo: 'conta', rotulo: 'Falta pagar', nome: x.conta.nome, centavos: x.conta.centavos, dd: pz.dd, sub: pz.txt, ir: '#/contas' });
+  });
+  contasPorPagar(mes).forEach(function (c) {
+    const venc = vencimentoEm(c, mes), pz = prazo(venc, 'Venceu', 'Vence hoje', 'Vence amanhã', 'Vence em');
+    itens.push({ k: 'c' + c.id, tipo: 'conta', rotulo: 'Falta pagar', nome: c.nome, centavos: c.centavos, dd: pz.dd, sub: pz.txt + ' · dia ' + diaDe(venc), ir: '#/contas' });
+  });
+  abertos('emprestei').forEach(function (e) {
+    const pz = prazo(e.prometida, 'Prometeu e passou', 'Prometeu para hoje', 'Prometeu para amanhã', 'Prometeu para daqui a');
+    itens.push({ k: 'e' + e.id, tipo: 'recebe', rotulo: 'Te deve', nome: e.pessoa, centavos: falta(e), dd: pz ? pz.dd : null, sub: pz ? pz.txt : 'Sem data para devolver', ir: '#/pessoas' });
+  });
+  abertos('peguei').forEach(function (e) {
+    const pz = prazo(e.prometida, 'Passou do combinado', 'Combinou devolver hoje', 'Combinou devolver amanhã', 'Combinou devolver em');
+    itens.push({ k: 'e' + e.id, tipo: 'deve', rotulo: 'Você deve', nome: e.pessoa, centavos: falta(e), dd: pz ? pz.dd : null, sub: pz ? pz.txt : 'Sem data combinada', ir: '#/pessoas' });
+  });
+  // Peso pela proximidade: vencido e hoje 6, amanhã 5, até 3 dias 4, semana 3, quinzena 2, resto 1.
+  itens.forEach(function (it) {
+    const d = it.dd;
+    it.peso = d === null ? 1 : d <= 0 ? 6 : d === 1 ? 5 : d <= 3 ? 4 : d <= 7 ? 3 : d <= 15 ? 2 : 1;
+  });
+  // A ordem do "2 de 5": o mais urgente primeiro.
+  return itens.sort(function (a, b) { return (a.dd === null ? 999 : a.dd) - (b.dd === null ? 999 : b.dd); });
+}
+let rodaAtual = null;
+const rodaCredito = {};
+/* Rodízio com peso, "liso": cada volta todos ganham o seu peso, sai o que tem mais, e
+   paga o total. O de peso 6 sai 6 vezes em cada ciclo, espalhadas, nunca em bloco. */
+function proximoRoda(itens) {
+  let tot = 0, melhor = null;
+  itens.forEach(function (it) {
+    rodaCredito[it.k] = (rodaCredito[it.k] || 0) + it.peso;
+    tot += it.peso;
+    if (!melhor || rodaCredito[it.k] > rodaCredito[melhor.k]) melhor = it;
+  });
+  if (itens.length > 1 && melhor.k === rodaAtual) {
+    const outro = itens.filter(function (it) { return it.k !== rodaAtual; }).sort(function (a, b) { return rodaCredito[b.k] - rodaCredito[a.k]; })[0];
+    melhor = outro;
+  }
+  rodaCredito[melhor.k] -= tot;
+  return melhor;
+}
+function corpoRoda(itens, it) {
+  const pos = itens.indexOf(it) + 1;
+  return '<div class="roda-corpo">' +
+    '<div class="roda-topo"><span class="roda-rotulo ' + it.tipo + '">' + it.rotulo + '</span>' +
+      (itens.length > 1 ? '<span class="roda-conta">' + pos + ' de ' + itens.length + '</span>' +
+        '<button class="roda-prox" data-acao="roda-proximo" aria-label="Próximo aviso">' + icone('avancar') + '</button>' : '') + '</div>' +
+    '<a class="roda-meio" href="' + it.ir + '"><b class="roda-nome">' + esc(it.nome) + '</b><b class="roda-valor">' + dinheiro(it.centavos) + '</b></a>' +
+    '<span class="roda-sub' + (it.dd !== null && it.dd <= 1 ? ' perto' : '') + '">' + esc(it.sub) + '</span>' +
+    (itens.length > 1 ? '<span class="roda-tempo"><i></i></span>' : '') +
+  '</div>';
+}
+function secaoRoda() {
+  const itens = itensRoda();
+  if (!itens.length) return '';
+  let it = itens.filter(function (x) { return x.k === rodaAtual; })[0];
+  if (!it) { it = proximoRoda(itens); rodaAtual = it.k; }
+  return '<section class="bloco para-onde roda" aria-live="polite" aria-label="Avisos">' + corpoRoda(itens, it) + '</section>';
+}
+function avancarRoda() {
+  const caixa = document.querySelector('.roda');
+  if (!caixa) return;
+  const itens = itensRoda();
+  if (!itens.length) return desenhar();
+  const it = proximoRoda(itens);
+  rodaAtual = it.k;
+  const velho = caixa.querySelector('.roda-corpo');
+  const trocar = function () {
+    caixa.innerHTML = corpoRoda(itens, it);
+    const novo = caixa.querySelector('.roda-corpo');
+    if (novo.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      novo.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  };
+  if (velho && velho.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    velho.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-8px)' }], { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = trocar;
+  else trocar();
+}
+// O relógio é a barrinha: acabou de encher, troca. Com o mouse em cima ela pára.
+document.addEventListener('animationend', function (ev) {
+  if (ev.target.matches && ev.target.matches('.roda-tempo i')) avancarRoda();
+});
 
 /** A rosca responde "para onde foi": no centro vai o maior destino, não o total.
     ⚠️ Seis tons de azul não se distinguem (medido a 31/10: diferença 5,5, o
@@ -2600,6 +2701,7 @@ document.addEventListener('click', function (ev) {
       desenhar();
       return window.scrollTo(0, 0);
     // Do Início, a ficha leva a Gastos já filtrado por aquele destino.
+    case 'roda-proximo':    return avancarRoda();
     case 'ver-destino':
       buscaTexto = ref;
       location.hash = '#/gastos';

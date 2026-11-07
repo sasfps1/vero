@@ -1101,3 +1101,28 @@ input[type="text"], input[type="number"], input[type="date"], input[type="search
   .destinos > .mais-n { justify-self: start; margin-top: 0; }
   .mais-n { display: inline-flex; align-self: flex-start; align-items: center; min-height: 30px; margin-top: 6px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 13px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
 }
+
+/* ── O AVISO QUE RODA (07/11): só no computador, no lugar da rosca ────────────────
+   Uma etiqueta diz o que é (Falta pagar / Te deve / Você deve), o nome e o valor em
+   grande, o prazo por baixo, e uma barrinha que enche em 6 s: é ela o relógio.
+   Com o mouse em cima, a barra pára (e o aviso também). Gelo = ganho (te deve);
+   creme = o que pede a mão (pagar); nunca vermelho (P13). */
+.roda { display: flex; flex-direction: column; }
+.roda-corpo { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.roda-topo { display: flex; align-items: center; gap: 8px; }
+.roda-rotulo { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 99px; font-size: 12px; font-weight: 800; letter-spacing: .01em; border: 1px solid var(--outline-strong); color: var(--on-surface); }
+.roda-rotulo.conta { background: var(--on-surface); color: var(--surface); border-color: transparent; }
+.roda-rotulo.recebe { background: rgba(var(--sinal-rgb), .16); color: var(--signal); border-color: transparent; }
+.roda-conta { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--on-surface-muted); font-variant-numeric: tabular-nums; }
+.roda-prox { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--outline-strong); border-radius: 50%; background: none; color: var(--on-surface); cursor: pointer; }
+.roda-prox svg.traco { width: 15px; height: 15px; }
+.roda-prox:hover, .roda-prox:focus-visible { background: rgba(var(--tinta-rgb), .08); }
+.roda-meio { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: auto; color: inherit; text-decoration: none; }
+.roda-nome { min-width: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.roda-valor { flex: none; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.roda-sub { margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); }
+.roda-sub.perto { color: var(--on-surface); }
+.roda-tempo { display: block; height: 3px; margin-top: auto; border-radius: 99px; background: rgba(var(--tinta-rgb), .10); overflow: hidden; }
+.roda-tempo i { display: block; height: 100%; width: 100%; border-radius: 99px; background: var(--on-surface-muted); transform-origin: left; animation: roda-enche 6s linear both; }
+.roda:hover .roda-tempo i, .roda:focus-within .roda-tempo i { animation-play-state: paused; }
+@keyframes roda-enche { from { transform: scaleX(0); } to { transform: scaleX(1); } }
