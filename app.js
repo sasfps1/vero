@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 25;
+const VERSAO = 35;
 let soMemoria = false;
 
 const VAZIO = {
@@ -32,6 +32,7 @@ const VAZIO = {
   contas: [],
   emprestimos: [],
   categorias: [],
+  agenda: [],
   config: { folga: 0.10, redondo: 500, limite: null, copia: null, oculto: false, tema: 'auto' }
 };
 
@@ -58,6 +59,7 @@ function estrutura(d) {
   s.contas      = Array.isArray(d && d.contas) ? d.contas : [];
   s.emprestimos = Array.isArray(d && d.emprestimos) ? d.emprestimos : [];
   s.categorias  = Array.isArray(d && d.categorias) ? d.categorias : [];
+  s.agenda      = Array.isArray(d && d.agenda) ? d.agenda : [];
   s.config     = Object.assign({}, VAZIO.config, s.config || {});
   return s;
 }
@@ -442,6 +444,40 @@ const ICONES = {
 function icone(n) {
   return '<svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONES[n] + '"/></svg>';
 }
+/* ⭐ COR POR FAMÍLIA (10/11, pedido dele: "bater o olho no registro e já saber procurar por
+   cor"). A lente é da visualização de dados: o olho separa de relance poucas cores, e com
+   15 categorias 15 cores viravam ruído. Por isso a cor é da FAMÍLIA, e são cinco:
+     entrou = gelo · casa e contas = azul · comida = damasco · transporte = creme ·
+     cuidado (saúde, filhos, escola) = rosado. Lazer, pessoal e o resto ficam sem cor.
+   Medido a 10/11 (CIEDE2000): o par mais próximo, gelo × azul, está a 19; para quem não
+   distingue verde de vermelho (deuteranopia simulada), o mais próximo fica a 15.
+   ⚠️ A cor diz SÓ a família. Entrou e saiu continuam na seta e no sinal (DESIGN.md), e
+   nenhuma família é verde nem vermelha: cor de categoria não é juízo de valor.
+   Paleta declarada em _marca/DESIGN.md, onde o porteiro-de-cor a lê. */
+const FAMILIA_DA_CATEGORIA = {
+  'Moradia': 'casa', 'Contas fixas': 'casa', 'Alimentação': 'comida', 'Mercado': 'comida',
+  'Transporte': 'transporte', 'Saúde': 'cuidado', 'Filhos': 'cuidado', 'Educação': 'cuidado'
+};
+const FAMILIAS = [
+  ['entra', 'Entrou'], ['casa', 'Casa e contas'], ['comida', 'Comida'],
+  ['transporte', 'Transporte'], ['cuidado', 'Saúde, filhos e escola']
+];
+function familiaDe(nome, tipo) {
+  if (tipo === 'entrada' || CAT_ENTRADA.includes(nome)) return 'entra';
+  if (FAMILIA_DA_CATEGORIA[nome]) return FAMILIA_DA_CATEGORIA[nome];
+  const pista = categoriaSugerida(nome);
+  if (FAMILIA_DA_CATEGORIA[pista]) return FAMILIA_DA_CATEGORIA[pista];
+  if (/celular|telefone|internet|wi-?fi|g[aá]s/.test(String(nome).toLowerCase())) return 'casa';
+  return '';
+}
+/** A família do lançamento: o empréstimo não tem família, é uma transferência. */
+function familiaDoLancamento(l) {
+  if (l.emprestimo || emprestimoDeOrigem(l)) return '';
+  if (l.tipo === 'entrada') return 'entra';
+  return familiaDe(categoriaDe(l) || l.nota, l.tipo);
+}
+function classeCor(f) { return f ? ' cor-' + f : ''; }
+
 /** Só se reconhece a palavra, seja categoria ou nota, e o que não se conhece leva
     a caixa. */
 function iconeDoGasto(nome) {
@@ -589,6 +625,7 @@ function listaHtml() {
     const cat = categoriaDe(l), ligado = l.emprestimo || emprestimoDeOrigem(l);
     html += linhaHtml({
       marca: ligado ? 'transfer' : l.tipo === 'entrada' ? 'entrou' : 'saiu',
+      cor: familiaDoLancamento(l),
       titulo: esc(String(l.nota || '').trim() || cat || 'Sem nome'),
       // "Mercado / Mercado" não diz nada duas vezes.
       sub: [l.nota && cat && sinNorm(l.nota) !== sinNorm(cat) ? esc(cat) : '',
@@ -686,6 +723,7 @@ function telaGastos() {
     linhas += linhaHtml({
       marca: null,
       icone: iconeDoGasto(it.nome),
+      cor: familiaDe(it.nome),
       titulo: esc(it.nome),
       sub: pct + '% · ' + it.vezes + (it.vezes === 1 ? ' vez' : ' vezes'),
       extra: pct >= 10 ? medidaProporcao(it.centavos, g.total) : '',
@@ -941,7 +979,7 @@ function linhaHtml(o) {
   const toque = o.toque ? ' data-acao="' + o.toque.acao + '" data-ref="' + esc(o.toque.ref) + '"' : '';
   const linha = '<' + tag + toque + ' class="linha dupla' + (semMarca ? ' sem-marca' : '') + (o.icone ? ' com-icone' : '') +
       (o.toque ? ' tocavel' : '') + (o.classes ? ' ' + o.classes : '') + '">' +
-    (o.icone ? '<span class="ico">' + icone(o.icone) + '</span>' : '') +
+    (o.icone ? '<span class="ico' + classeCor(o.cor) + '">' + icone(o.icone) + '</span>' : '') +
     (semMarca ? '' : '<span class="marca ' + o.marca + '"></span>') +
     '<span class="nome"><span class="titulo">' + o.titulo + '</span>' +
       '<span class="sub-linha"><span class="sub">' + (o.sub || '') + '</span>' +
@@ -1057,6 +1095,7 @@ function telaInicio(n) {
     '<nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
     atalhosHtml() +
     heroi +
+    (celular ? faixaAgenda() : '') +
     secaoParaOndeTiles(p) +
     (celular ? '' : conversaCartao()) +
     listaInicio(p) +
@@ -1178,7 +1217,7 @@ function listaInicio(p) {
     // e o "Desfazer" que aparece em baixo salva o toque errado.
     return '<div class="item-linha">' +
       '<button class="item ' + (e ? 'e-entrada' : 'e-saida') + '" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' +
-      '<span class="item-ico">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
+      '<span class="item-ico' + classeCor(familiaDoLancamento(l)) + '">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
       '<span class="item-nome">' + nome + '<small>' + esc(sub) + '</small></span>' +
       '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>' +
       '<button class="item-lapis" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' + icone('lapis') + '</button>' +
@@ -1207,7 +1246,7 @@ function secaoParaOndeTiles(p) {
   const cartoes = fatias.map(function (it, i) {
     const pct = pcts[i], tom = ['um', 'dois'][i] || 'resto';
     return '<button class="destino-c ' + tom + '" data-acao="ver-destino" data-ref="' + esc(it.nome) + '">' +
-      '<span class="destino-c-topo"><span class="item-ico">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span><span class="destino-c-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '</span><small>' + pct + '%</small></span>' +
+      '<span class="destino-c-topo"><span class="item-ico' + (it.resto ? '' : classeCor(familiaDe(it.nome))) + '">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span><span class="destino-c-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '</span><small>' + pct + '%</small></span>' +
       '<span class="kpi-valor">' + dinheiro(it.centavos) + '</span>' +
       '<span class="kpi-barra"><i style="width:' + pct + '%"></i></span>' +
       '<small class="kpi-nota">' + (it.vezes ? it.vezes + (it.vezes === 1 ? ' vez' : ' vezes') : 'Somadas') + '</small></button>';
@@ -1365,7 +1404,7 @@ function secaoParaOnde(n) {
   let linhas = '';
   fatias.forEach(function (it, i) {
     const pct = Math.round(it.centavos / g.total * 100), tom = ['um', 'dois'][i] || 'resto';
-    linhas += '<div class="destino"><span class="ico">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span>' +
+    linhas += '<div class="destino"><span class="ico' + (it.resto ? '' : classeCor(familiaDe(it.nome))) + '">' + icone(it.resto ? 'outros' : iconeDoGasto(it.nome)) + '</span>' +
       '<span class="destino-nome"><i class="ponto ' + tom + '"></i>' + esc(it.nome) + '<small>' + pct + '%</small></span>' +
       '<b>' + dinheiro(it.centavos) + '</b></div>';
   });
@@ -1395,29 +1434,187 @@ function roscaHtml(fatias, total, aria) {
     Conta-se o TOTAL de dias, nunca a sequência: quem quebra uma corrente tende a
     largar tudo (o efeito "dane-se" da psicologia do hábito). Dia vazio fica neutro,
     sem vermelho. Tocar num dia aceso abre esse dia no topo. */
+/* ⭐ O CALENDÁRIO COM AGENDA (10/11, pedido dele: "posso clicar num dia e agendar: no dia 13
+   tem cabeleireiro tal horário, no dia 25 de dezembro tem Natal. Todo dia eu entro no app e
+   vejo ali"). O app que ele abre todo dia passa a lembrar também o que não é dinheiro.
+     · Todo dia é tocável. A folha do dia junta o feriado, o que ele marcou, as contas que
+       vencem nesse dia e, se houve, o atalho para os lançamentos.
+     · Cada marca é uma FORMA, não uma cor (DESIGN.md): dia com lançamento = cheio, como já
+       era; com compromisso = um ponto; feriado = anel tracejado.
+     · Os feriados nacionais são CALCULADOS (a Páscoa decide Carnaval, Sexta-feira Santa e
+       Corpus Christi): nunca ficam desactualizados e não pesam no banco.
+     · O compromisso de hoje e o de amanhã sobem para a frase do calendário e, no celular,
+       para uma faixa logo abaixo do número principal. */
+let calMes = null;
+
+function pascoa(ano) {
+  // Algoritmo anónimo gregoriano (Meeus/Jones/Butcher).
+  const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+const FERIADOS_CACHE = {};
+/** Feriados nacionais (Lei 662/1949 e Lei 14.759/2023, que fez nacional o 20 de novembro),
+    mais Carnaval e Corpus Christi, que são ponto facultativo. Os estaduais e municipais ele
+    marca como compromisso que se repete todo ano. */
+function feriadosDoAno(ano) {
+  if (FERIADOS_CACHE[ano]) return FERIADOS_CACHE[ano];
+  const f = {};
+  [['01-01', 'Confraternização Universal'], ['04-21', 'Tiradentes'], ['05-01', 'Dia do Trabalho'],
+   ['09-07', 'Independência do Brasil'], ['10-12', 'Nossa Senhora Aparecida'], ['11-02', 'Finados'],
+   ['11-15', 'Proclamação da República'], ['12-25', 'Natal']].forEach(function (x) { f[ano + '-' + x[0]] = x[1]; });
+  if (ano >= 2024) f[ano + '-11-20'] = 'Dia da Consciência Negra';
+  const p = pascoa(ano), mais = function (n) { return iso(new Date(p.getFullYear(), p.getMonth(), p.getDate() + n)); };
+  f[mais(-48)] = 'Carnaval (ponto facultativo)';
+  f[mais(-47)] = 'Carnaval (ponto facultativo)';
+  f[mais(-2)] = 'Sexta-feira Santa';
+  f[mais(60)] = 'Corpus Christi (ponto facultativo)';
+  return (FERIADOS_CACHE[ano] = f);
+}
+function feriadoEm(data) { return feriadosDoAno(Number(data.slice(0, 4)))[data] || ''; }
+
+/** O que ele marcou para um dia, já com os que se repetem, pela hora. */
+function agendaDoDia(data) {
+  const mes = data.slice(0, 7), dia = diaDe(data), md = data.slice(5);
+  return (S.agenda || []).filter(daVista).filter(function (a) {
+    if (!a || !a.data || a.data > data) return false;
+    if (a.data === data) return true;
+    if (a.repete === 'ano') {
+      const alvo = a.data.slice(5);
+      // 29 de fevereiro cai no 28 nos anos que não o têm.
+      return alvo === md || (alvo === '02-29' && md === '02-28' && diasNoMes(mes) === 28);
+    }
+    if (a.repete === 'mes') return Math.min(diaDe(a.data), diasNoMes(mes)) === dia;
+    return false;
+  }).sort(function (x, y) { return (x.hora || '99') < (y.hora || '99') ? -1 : 1; });
+}
+function textoCompromisso(a) { return (a.hora ? a.hora.replace(':00', 'h').replace(':', 'h') + ' · ' : '') + a.titulo; }
+
+/** Hoje e amanhã, numa frase: o feriado primeiro, depois o que ele marcou. */
+function lembretesProximos() {
+  const h = hoje(), am = dataMais(1), itens = [];
+  [[h, 'Hoje'], [am, 'Amanhã']].forEach(function (d) {
+    const fer = feriadoEm(d[0]);
+    if (fer) itens.push({ data: d[0], quando: d[1], texto: 'Feriado · ' + fer });
+    agendaDoDia(d[0]).forEach(function (a) { itens.push({ data: d[0], quando: d[1], texto: textoCompromisso(a) }); });
+  });
+  return itens;
+}
+
+/** No celular o calendário fica longe do topo: o que é de hoje e de amanhã sobe numa faixa. */
+function faixaAgenda() {
+  const itens = lembretesProximos();
+  if (!itens.length) return '';
+  return '<section class="bloco agenda-faixa" aria-label="Agenda de hoje e amanhã">' + itens.slice(0, 3).map(function (it) {
+    return '<button class="agenda-item" data-acao="dia-abrir" data-ref="' + it.data + '">' + icone('agenda') +
+      '<span><b>' + it.quando + '</b> ' + esc(it.texto) + '</span></button>';
+  }).join('') + (itens.length > 3 ? '<small class="agenda-mais">+' + (itens.length - 3) + ' na agenda</small>' : '') + '</section>';
+}
+
 function calendarioDoMes() {
-  const h = hoje(), mes = (inicioVista === 'dia' && inicioDia ? inicioDia : h).slice(0, 7);
+  const h = hoje(), base = (inicioVista === 'dia' && inicioDia ? inicioDia : h).slice(0, 7);
+  const mes = calMes || base;
   const total = diasNoMes(mes), atual = mes === h.slice(0, 7);
-  const ate = atual ? diaDe(h) : total;
+  const ate = mes < h.slice(0, 7) ? total : atual ? diaDe(h) : 0;
   const lancou = {};
   lancamentosVistos().forEach(function (l) { if (l.data.slice(0, 7) === mes) lancou[diaDe(l.data)] = true; });
   const acesos = Object.keys(lancou).filter(function (d) { return d <= ate; }).length;
-  if (!acesos && !atual) return '';
   const p = mes.split('-').map(Number), vazio = new Date(p[0], p[1] - 1, 1).getDay();
   let celulas = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (s) { return '<span class="sem" aria-hidden="true">' + s + '</span>'; }).join('');
   for (let i = 0; i < vazio; i++) celulas += '<span></span>';
   for (let d = 1; d <= total; d++) {
-    const data = mes + '-' + p2(d), classe = 'd' + (lancou[d] ? ' lancou' : '') + (d > ate ? ' futuro' : '') + (data === h ? ' hoje' : '');
-    celulas += lancou[d]
-      ? '<button class="' + classe + '" data-acao="inicio-abrir-dia" data-ref="' + data + '" aria-label="Dia ' + d + ', com lançamento">' + d + '</button>'
-      : '<span class="' + classe + '">' + d + '</span>';
+    const data = mes + '-' + p2(d), fer = feriadoEm(data), ag = agendaDoDia(data);
+    const classe = 'd' + (lancou[d] ? ' lancou' : '') + (data > h ? ' futuro' : '') + (data === h ? ' hoje' : '') +
+      (fer ? ' feriado' : '') + (ag.length ? ' tem-agenda' : '');
+    const diz = 'Dia ' + d + (lancou[d] ? ', com lançamento' : '') + (fer ? ', feriado: ' + fer : '') +
+      (ag.length ? ', ' + ag.map(function (a) { return a.titulo; }).join(', ') : '');
+    celulas += '<button class="' + classe + '" data-acao="dia-abrir" data-ref="' + data + '" aria-label="' + esc(diz) + '">' + d + '</button>';
   }
-  const frase = !acesos ? 'Quando você lançar, o dia acende aqui.'
-    : acesos === ate ? (atual ? 'Todos os dias até hoje têm lançamento.' : 'Todos os dias do mês tiveram lançamento.')
-    : quantosDias(acesos) + ' com lançamento' + (atual ? ' até hoje' : ' no mês') + '.';
-  return '<section class="bloco mes-cal"><h2 class="titulo-cartao">Seu mês</h2>' +
+  const prox = atual ? lembretesProximos() : [];
+  const frase = prox.length ? '<b>' + prox[0].quando + ':</b> ' + esc(prox[0].texto) + (prox.length > 1 ? ' <span class="mais">+' + (prox.length - 1) + '</span>' : '')
+    : !atual ? 'Toque num dia para marcar um compromisso.'
+    : !acesos ? 'Toque num dia para marcar um compromisso.'
+    : acesos === ate ? 'Todos os dias até hoje têm lançamento.'
+    : quantosDias(acesos) + ' com lançamento até hoje.';
+  const nome = MESES[p[1] - 1], titulo = nome.charAt(0).toUpperCase() + nome.slice(1) + (p[0] !== Number(h.slice(0, 4)) ? ' ' + p[0] : '');
+  return '<section class="bloco mes-cal"><div class="cal-cabeca"><h2 class="titulo-cartao">' + titulo + '</h2>' +
+      '<span class="cal-setas"><button class="cal-seta" data-acao="cal-mes" data-ref="-1" aria-label="Mês anterior">‹</button>' +
+      (calMes && calMes !== base ? '<button class="cal-volta" data-acao="cal-mes" data-ref="0">Hoje</button>' : '') +
+      '<button class="cal-seta" data-acao="cal-mes" data-ref="1" aria-label="Próximo mês">›</button></span></div>' +
     '<p class="frase" data-cede="1">' + frase + '</p>' +
-    '<div class="cal" role="group" aria-label="Dias do mês com lançamento">' + celulas + '</div></section>';
+    '<div class="cal" role="group" aria-label="Dias de ' + nome + '">' + celulas + '</div></section>';
+}
+
+function mudarMesCal(passo) {
+  const h = hoje().slice(0, 7);
+  if (Number(passo) === 0) calMes = null;
+  else {
+    const atual = calMes || (inicioVista === 'dia' && inicioDia ? inicioDia : hoje()).slice(0, 7);
+    // Dois anos para cada lado chegam para um calendário de casa.
+    const novo = mesSomado(atual, Number(passo));
+    if (novo >= mesSomado(h, -24) && novo <= mesSomado(h, 24)) calMes = novo;
+  }
+  desenhar();
+}
+
+const SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+function tituloDoDia(data) {
+  const x = dataDe(data);
+  return SEMANA[x.getDay()] + ', ' + x.getDate() + ' de ' + MESES[x.getMonth()] + (data.slice(0, 4) !== hoje().slice(0, 4) ? ' de ' + x.getFullYear() : '');
+}
+
+/** A folha do dia: o que há nele e, por baixo, marcar um compromisso novo. */
+function abrirDia(data) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return;
+  const fer = feriadoEm(data), ag = agendaDoDia(data), mes = data.slice(0, 7);
+  const vence = contasVistas().filter(function (c) {
+    return c.ativa !== false && vencimentoEm(c, mes) === data && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes);
+  });
+  const teveLanc = data <= hoje() && lancamentosVistos().some(function (l) { return l.data === data; });
+  let html = '';
+  if (fer) html += '<p class="dia-feriado"><span class="marca-feriado" aria-hidden="true"></span>Feriado · ' + esc(fer) + '</p>';
+  if (ag.length) {
+    html += '<div class="dia-lista">' + ag.map(function (a) {
+      const rep = a.repete === 'ano' ? 'todo ano' : a.repete === 'mes' ? 'todo mês' : '';
+      return '<div class="dia-item"><span class="ponto-agenda" aria-hidden="true"></span><span class="dia-item-txt"><b>' + esc(a.titulo) + '</b>' +
+        '<small>' + [a.hora ? 'às ' + a.hora : 'sem hora', rep].filter(Boolean).join(' · ') + '</small></span>' +
+        '<button class="btn pequeno fraco" data-acao="apagar-lembrete" data-ref="' + esc(a.id + '|' + data) + '">Apagar</button></div>';
+    }).join('') + '</div>';
+  }
+  if (vence.length) {
+    html += '<p class="dia-contas">Vence: ' + vence.map(function (c) {
+      return esc(c.nome) + ' (' + dinheiro(c.centavos) + ((c.pagos && c.pagos[mes]) ? ', paga' : '') + ')';
+    }).join(' · ') + '</p>';
+  }
+  if (teveLanc) html += '<button class="btn contorno dia-ver" data-acao="dia-ver" data-ref="' + data + '">Ver os lançamentos deste dia</button>';
+  html += '<h3 class="dia-novo">Marcar neste dia</h3>' +
+    campoTexto('ag-titulo', 'O que tem', 'maxlength="60" placeholder="cabeleireiro, aniversário, médico"') +
+    '<label class="campo"><span class="rotulo">Hora (se tiver)</span><input type="time" id="ag-hora"></label>' +
+    '<label class="campo"><span class="rotulo">Repetir</span><select id="ag-repete">' +
+      '<option value="">Só neste dia</option><option value="mes">Todo mês, dia ' + diaDe(data) + '</option>' +
+      '<option value="ano">Todo ano, ' + diaDe(data) + ' de ' + MESES[Number(data.slice(5, 7)) - 1] + '</option></select></label>';
+  abrirForm(tituloDoDia(data), html, function () {
+    const titulo = document.getElementById('ag-titulo').value.trim().slice(0, 60);
+    if (!titulo) { fecharFolhas(); return; }
+    const hora = document.getElementById('ag-hora').value;
+    const antes = JSON.stringify(S);
+    S.agenda.push({ id: id(), data: data, hora: /^\d{2}:\d{2}$/.test(hora) ? hora : '', titulo: titulo,
+      repete: document.getElementById('ag-repete').value, vaga: donoPadrao() });
+    guardar(); fecharFolhas(); desenhar();
+    oferecerDesfazer('Marcado: ' + titulo + ' em ' + porExtensoData(data), reporDe(antes));
+  }, 'Marcar');
+}
+
+function apagarLembrete(ref) {
+  const p = String(ref).split('|'), antes = JSON.stringify(S);
+  const a = S.agenda.find(function (x) { return x.id === p[0]; });
+  if (!a) return;
+  S.agenda = S.agenda.filter(function (x) { return x.id !== p[0]; });
+  guardar(); desenhar();
+  abrirDia(p[1] || a.data);
+  oferecerDesfazer('Apagado: ' + a.titulo + (a.repete ? ' (todas as vezes)' : ''), reporDe(antes));
 }
 
 function secaoPorDia(n) {
@@ -1527,10 +1724,12 @@ function telaContas(n) {
     const faltam = diasEntre(h, venc);
     linhas += linhaHtml({
       icone: pago ? 'certo' : iconeDoGasto(c.nome),
+      cor: familiaDe(c.nome) || 'casa',
       titulo: tituloEditavel('editar-conta', c.id, esc(c.nome)),
       sub: pago ? 'Pago em ' + porExtensoData(pago.data)
         : atrasada ? 'Venceu dia ' + c.dia
         : faltam === 0 ? 'Vence hoje' : faltam === 1 ? 'Vence amanhã' : 'Vence dia ' + c.dia + ' · em ' + faltam + ' dias',
+      extra: linhaDivisao(c, mes),
       acaoDireita: pago ? botao('despagar', c.id, 'Desfazer', true) : botao('pagar', c.id, 'Paguei'),
       centavos: valor,
       classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (pago ? 'fraca' : '')
@@ -1545,7 +1744,9 @@ function telaContas(n) {
     jaTemBotao[x.conta.id] = true;
     return linhaHtml({
       icone: iconeDoGasto(x.conta.nome),
+      cor: familiaDe(x.conta.nome) || 'casa',
       titulo: tituloEditavel('editar-conta', x.conta.id, esc(x.conta.nome)),
+      extra: linhaDivisao(x.conta, x.mes),
       sub: 'De ' + nomeDoMes(x.mes) + ' · venceu ' + porExtensoData(x.venc),
       acaoDireita: botao('pagar', x.conta.id + '|' + x.mes, 'Paguei') +
         (primeira ? botao('dispensar-conta', x.conta.id + '|' + x.mes, 'Não devo', true) : ''),
@@ -1715,7 +1916,11 @@ function ajustesCategorias() {
   const linhas = S.categorias.slice().sort().map(function (c) {
     return linhaAjuste(esc(c), '', botao('editar-categoria', esc(c), 'Editar'));
   }).join('');
-  return blocoAjuste('Suas categorias',
+  // A legenda das cores (10/11): é aqui que ele aprende que azul é casa e damasco é comida.
+  const legenda = '<p class="frase" style="margin-top:4px">Cada família de gasto tem uma cor, para achar na lista de relance:</p>' +
+    '<div class="legenda-cor">' + FAMILIAS.map(function (f) { return '<span><i class="cor-' + f[0] + '"></i>' + f[1] + '</span>'; }).join('') +
+    '<span><i style="background:rgba(var(--tinta-rgb),.12)"></i>O resto</span></div>';
+  return blocoAjuste('Suas categorias', legenda +
     (linhas || '<p class="frase">Nenhuma ainda. As categorias padrão, como Mercado e Moradia, estão sempre disponíveis.</p>') +
     '<div style="margin-top:10px">' + botao('nova-categoria', '', 'Nova categoria') + '</div>');
 }
@@ -2225,10 +2430,10 @@ function reporDe(antes) {
   return function () { reverter(JSON.parse(antes), JSON.parse(depois)); guardar(); desenhar(); };
 }
 function reverter(a, d) {
-  for (const t of ['lancamentos', 'contas', 'emprestimos']) {
+  for (const t of ['lancamentos', 'contas', 'emprestimos', 'agenda']) {
     const A = {}, D = {};
-    a[t].forEach(function (x) { A[x.id] = x; });
-    d[t].forEach(function (x) { D[x.id] = x; });
+    (a[t] || []).forEach(function (x) { A[x.id] = x; });
+    (d[t] || []).forEach(function (x) { D[x.id] = x; });
     Object.keys(Object.assign({}, A, D)).forEach(function (k) {
       if (JSON.stringify(A[k]) === JSON.stringify(D[k])) return;
       S[t] = S[t].filter(function (x) { return x.id !== k; });
@@ -2389,6 +2594,98 @@ function botaoAgenda(href) {
   return '<a class="btn agenda" href="' + esc(href) + '" target="_blank" rel="noopener">' + icone('agenda') + 'Lembrar na agenda</a>';
 }
 
+/* ⭐ CONTA DIVIDIDA (10/11, pedido dele: "eu tenho conta fixa junto com a minha mulher, eu
+   pago metade e ela paga metade"). A lente é a de quem divide conta (Splitwise e afins): o
+   erro comum é lançar só a metade, e aí o app perde o preço real da conta e ninguém sabe se
+   a outra parte foi paga. Aqui guarda-se a conta INTEIRA (`total`) e a sua parte fica em
+   `centavos`, que é o que sai do seu bolso. Por isso o "Sobrou", o limite do dia, o
+   "Paguei" e o atraso não mudam uma linha: todos já liam `centavos`.
+   `com` é o nome de quem paga o resto, e `outroPagou` os meses em que essa pessoa já pagou.
+   Saber se ela pagou é só registro: o dinheiro dela não entra nas suas contas. */
+function eDividida(c) { return !!(c && c.total && c.total > c.centavos); }
+function parteDe(total, pct) { return Math.max(1, Math.min(total - 1, Math.round(total * pct / 100))); }
+function pctDe(c) { return eDividida(c) ? Math.round(c.centavos / c.total * 100) : 50; }
+function nomeOutro(c) { return String(c.com || '').trim() || 'A outra pessoa'; }
+
+function linhaDivisao(c, mes) {
+  if (!eDividida(c)) return '';
+  const pagou = (c.outroPagou || []).includes(mes), pct = pctDe(c);
+  return '<span class="divisao">Sua ' + (pct === 50 ? 'metade' : 'parte (' + pct + '%)') +
+    ' de ' + dinheiro(c.total) + ' · ' + esc(nomeOutro(c)) + ' paga ' + dinheiro(c.total - c.centavos) + '</span>' +
+    '<button class="btn pequeno fraco outro-pagou' + (pagou ? ' feito' : '') + '" data-acao="outro-pagou" data-ref="' + esc(c.id + '|' + mes) + '" aria-pressed="' + pagou + '">' +
+      (pagou ? icone('certo') + esc(nomeOutro(c)) + ' pagou' : 'Marcar que ' + esc(nomeOutro(c)) + ' pagou') + '</button>';
+}
+
+/** Quem mais aparece nas contas divididas: a próxima já nasce com esse nome. */
+function nomeMaisUsado() {
+  const n = {};
+  S.contas.forEach(function (c) { if (eDividida(c) && c.com) n[c.com] = (n[c.com] || 0) + 1; });
+  return Object.keys(n).sort(function (a, b) { return n[b] - n[a]; })[0] || '';
+}
+
+function camposDivisao(c) {
+  const ligada = eDividida(c), pct = pctDe(c);
+  const opcoes = [[50, 'Metade'], [40, '40%'], [60, '60%'], [30, '30%'], [70, '70%']];
+  if (!opcoes.some(function (o) { return o[0] === pct; })) opcoes.push([pct, pct + '%']);
+  return '<label class="campo-marcar"><input type="checkbox" id="c-divide"' + (ligada ? ' checked' : '') + '>' +
+      '<span>Divido esta conta com alguém</span></label>' +
+    '<div id="c-divisao"' + (ligada ? '' : ' hidden') + '>' +
+      '<label class="campo"><span class="rotulo">Com quem</span><input type="text" id="c-com" maxlength="40" placeholder="nome da pessoa" autocomplete="off"></label>' +
+      '<label class="campo"><span class="rotulo">Sua parte</span><select id="c-pct">' +
+        opcoes.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === pct ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') +
+      '</select></label>' +
+      '<p class="frase" id="c-conta-divisao"></p>' +
+    '</div>';
+}
+
+/** Liga a caixa e o resumo ao vivo: o valor do formulário é sempre a conta INTEIRA. */
+function ligarDivisao(c) {
+  const caixa = document.getElementById('c-divide'), bloco = document.getElementById('c-divisao');
+  const com = document.getElementById('c-com'), pct = document.getElementById('c-pct'), valor = document.getElementById('c-valor');
+  if (!caixa || !bloco || !com || !pct || !valor) return;
+  com.value = (c && c.com) || nomeMaisUsado();
+  const resumo = function () {
+    const total = lerValor('c-valor');
+    const minha = total > 1 ? parteDe(total, Number(pct.value)) : 0;
+    const saida = document.getElementById('c-conta-divisao');
+    if (saida) saida.textContent = total > 1
+      ? 'Você paga ' + dinheiroReal(minha) + '. ' + (com.value.trim() || 'A outra pessoa') + ' paga ' + dinheiroReal(total - minha) + '. Só a sua parte entra no que sobrou.'
+      : 'Escreva acima o valor da conta inteira.';
+  };
+  caixa.addEventListener('change', function () { bloco.hidden = !caixa.checked; resumo(); });
+  [com, pct, valor].forEach(function (x) { x.addEventListener('input', resumo); x.addEventListener('change', resumo); });
+  resumo();
+}
+
+/** O que o formulário diz, em centavos: {centavos, total, com}. Sem divisão, total = 0. */
+function lerDivisao() {
+  const total = lerValor('c-valor');
+  const caixa = document.getElementById('c-divide');
+  if (!total) return null;
+  if (!caixa || !caixa.checked || total < 2) return { centavos: total, total: 0, com: '' };
+  return { centavos: parteDe(total, Number(document.getElementById('c-pct').value || 50)), total: total,
+    com: document.getElementById('c-com').value.trim().slice(0, 40) };
+}
+function aplicarDivisao(c, d) {
+  c.centavos = d.centavos;
+  if (d.total) { c.total = d.total; c.com = d.com; c.outroPagou = c.outroPagou || []; }
+  // ⚠️ Desfazer a divisão manda total = valor, nunca nulo: nulo é o que um celular com a
+  // versão antiga manda, e o banco ignora-o para não apagar a divisão marcada no outro.
+  else if (c.total) { c.total = d.centavos; c.com = ''; c.outroPagou = []; }
+}
+
+function marcarOutroPagou(ref) {
+  const p = String(ref).split('|'), c = S.contas.find(function (x) { return x.id === p[0]; });
+  if (!c || !p[1]) return;
+  const ja = (c.outroPagou || []).includes(p[1]);
+  comDesfazer(ja ? 'Desmarcado' : nomeOutro(c) + ' pagou a parte de ' + nomeDoMes(p[1]), function () {
+    const lista = (c.outroPagou || []).filter(function (m) { return m !== p[1]; });
+    if (!ja) lista.push(p[1]);
+    c.outroPagou = lista.sort();
+    guardar();
+  });
+}
+
 /** Os pagamentos já feitos continuam nos lançamentos: o dinheiro saiu mesmo. */
 function removerConta(ref) {
   S.contas = S.contas.filter(function (c) { return c.id !== ref; });
@@ -2400,28 +2697,31 @@ function editarConta(ref) {
   if (!c) return;
   abrirForm('Editar conta fixa',
     campoTexto('c-nome', 'Qual conta', 'maxlength="40"') +
-    campoValor('c-valor', 'Quanto costuma ser') +
+    campoValor('c-valor', 'Quanto é a conta inteira') +
     '<label class="campo"><span class="rotulo">Vence todo dia</span><input type="number" id="c-dia" min="1" max="31"></label>' +
+    camposDivisao(c) +
     campoDono('c-dono', c.vaga || minhaVaga()) +
     botaoAgenda(linkAgendaConta(c)) +
     botaoApagar('apagar-conta', c.id, 'Apagar esta conta'),
     function () {
       const nome = document.getElementById('c-nome').value.trim();
-      const centavos = lerValor('c-valor');
+      const div = lerDivisao();
       const dia = Math.min(31, Math.max(1, Number(document.getElementById('c-dia').value || c.dia)));
-      if (!nome || !centavos) return;
+      if (!nome || !div) return;
       // ⚠️ Procurar de novo: se o outro celular lançou com a folha aberta, a sincronização
       // trocou os objetos e esta correcção ia para um que já não existe.
       const atual = S.contas.find(function (x) { return x.id === ref; });
       if (!atual) { fecharFolhas(); desenhar(); return; }
       const antes = JSON.stringify(S);
-      atual.nome = nome; atual.centavos = centavos; atual.dia = dia; atual.vaga = lerDono('c-dono', atual.vaga);
+      atual.nome = nome; atual.dia = dia; atual.vaga = lerDono('c-dono', atual.vaga);
+      aplicarDivisao(atual, div);
       guardar(); fecharFolhas(); desenhar();
       oferecerDesfazer('Conta corrigida', reporDe(antes));
     });
   document.getElementById('c-nome').value = c.nome;
-  document.getElementById('c-valor').value = (c.centavos / 100).toFixed(2);
+  document.getElementById('c-valor').value = ((eDividida(c) ? c.total : c.centavos) / 100).toFixed(2);
   document.getElementById('c-dia').value = c.dia;
+  ligarDivisao(c);
 }
 
 /** Quem abriu o empréstimo muda junto, para o livro e a dívida nunca dizerem coisas
@@ -2482,22 +2782,26 @@ function comDesfazer(texto, acao) {
 function novaConta() {
   abrirForm('Nova conta fixa',
     campoTexto('c-nome', 'Qual conta', 'placeholder="aluguel, luz, internet" maxlength="40"') +
-    campoValor('c-valor', 'Quanto costuma ser') +
+    campoValor('c-valor', 'Quanto é a conta inteira') +
     '<label class="campo"><span class="rotulo">Vence todo dia</span>' +
     '<input type="number" id="c-dia" min="1" max="31" value="5"></label>' +
+    camposDivisao(null) +
     campoDono('c-dono', donoPadrao()),
     function () {
       const nome = document.getElementById('c-nome').value.trim();
-      const centavos = lerValor('c-valor');
+      const div = lerDivisao();
       const dia = Math.min(31, Math.max(1, Number(document.getElementById('c-dia').value || 1)));
-      if (!nome || !centavos) return;
+      if (!nome || !div) return;
       // Conta criada depois do vencimento deste mês só cobra a partir do próximo: a de agora
       // provavelmente já foi paga antes de existir aqui, e viraria atrasada na virada do mês.
       const mes = mesDe(hoje());
-      S.contas.push({ id: id(), nome: nome, centavos: centavos, dia: dia, ativa: true, pagos: {}, vaga: lerDono('c-dono'),
-        desde: dia >= diaDe(hoje()) ? mes : mesSeguinte(mes) });
+      const nova = { id: id(), nome: nome, centavos: div.centavos, dia: dia, ativa: true, pagos: {}, vaga: lerDono('c-dono'),
+        desde: dia >= diaDe(hoje()) ? mes : mesSeguinte(mes) };
+      aplicarDivisao(nova, div);
+      S.contas.push(nova);
       guardar(); fecharFolhas(); desenhar();
     });
+  ligarDivisao(null);
 }
 
 function novoEmprestimo(direcao) {
@@ -2560,8 +2864,9 @@ function pagarConta(alvo) {
   const c = S.contas.find(function (x) { return x.id === ref; });
   if (!c) return;
   abrirForm('Paguei ' + c.nome + (mesAtrasado ? ' de ' + nomeDoMes(mesAtrasado) : ''),
-    campoValor('p-valor', 'Quanto saiu') +
-    '<p class="frase">Deixe como está se foi ' + dinheiro(c.centavos) + '.</p>',
+    campoValor('p-valor', eDividida(c) ? 'Quanto saiu do seu bolso' : 'Quanto saiu') +
+    '<p class="frase">Deixe como está se foi ' + dinheiro(c.centavos) + '.' +
+      (eDividida(c) ? ' É a sua parte: a conta inteira é ' + dinheiro(c.total) + '.' : '') + '</p>',
     function () {
       const centavos = lerValor('p-valor') || c.centavos;
       const mes = mesAtrasado || mesDe(hoje());
@@ -2680,6 +2985,10 @@ function juntarCopia(d) {
   for (const c of Array.isArray(d.categorias) ? d.categorias : []) {
     if (typeof c === 'string' && c && !S.categorias.includes(c)) S.categorias.push(c);
   }
+  for (const a of Array.isArray(d.agenda) ? d.agenda : []) {
+    if (!a || !a.id || !dia.test(a.data) || !a.titulo || tem(S.agenda, a)) continue;
+    S.agenda.push(a); n++;
+  }
   return n;
 }
 
@@ -2766,6 +3075,7 @@ document.addEventListener('click', function (ev) {
     case 'novo-emprestimo': return novoEmprestimo(ref);
     case 'pagar':           return pagarConta(ref);
     case 'despagar':        return despagar(ref);
+    case 'outro-pagou':     return marcarOutroPagou(ref);
     case 'dispensar-conta': return dispensarConta(ref);
     case 'devolvi':         return devolucao(ref);
     case 'perdoar':         return perdoar(ref);
@@ -2835,6 +3145,16 @@ document.addEventListener('click', function (ev) {
     case 'inicio-filtro':
       inicioFiltro = ref;
       return desenhar();
+    case 'dia-abrir':       return abrirDia(ref);
+    case 'cal-mes':         return mudarMesCal(ref);
+    case 'apagar-lembrete': return apagarLembrete(ref);
+    case 'dia-ver':
+      fecharFolhas();
+      calMes = null;
+      inicioVista = ref === hoje() ? 'hoje' : 'dia';
+      inicioDia = ref;
+      desenhar();
+      return window.scrollTo(0, 0);
     case 'inicio-abrir-dia':
       inicioVista = ref === hoje() ? 'hoje' : 'dia';
       inicioDia = ref;

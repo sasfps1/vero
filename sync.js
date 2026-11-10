@@ -19,16 +19,25 @@
   const K_FILA = 'vero.fila', K_ESPELHO = 'vero.espelho', K_EU = 'vero.eu', K_SEM_CONTA = 'vero.semConta';
   const CAMPOS = {
     lancamentos: ['id', 'data', 'tipo', 'valor', 'categoria', 'conta', 'nota', 'fixa', 'emprestimo', 'origem', 'em'],
-    fixas: ['id', 'nome', 'valor', 'conta', 'dia', 'ativa', 'desde'],
+    fixas: ['id', 'nome', 'valor', 'conta', 'dia', 'ativa', 'desde', 'total', 'dividida_com', 'outro_pagou'],
     emprestimos: ['id', 'direcao', 'pessoa', 'valor', 'data', 'prometido', 'conta', 'nota', 'estado'],
-    categorias: ['tipo', 'nome']
+    categorias: ['tipo', 'nome'],
+    agenda: ['id', 'data', 'hora', 'titulo', 'repete', 'conta']
   };
+  /* 10/11: a divisão da conta fixa e a agenda vieram depois (005_divisao_e_agenda.sql). Banco
+     sem elas não pode derrubar a leitura inteira nem apagar do aparelho o que só vive lá:
+     até o banco as ter, ficam neste aparelho e não vão ao servidor. */
+  const DIVISAO = ['total', 'dividida_com', 'outro_pagou'];
+  // Lembrados entre aberturas: sem sinal, um envio antes da primeira leitura não pode
+  // tirar da linha a divisão que o banco já sabe guardar.
+  let bancoTemDivisao = false, bancoTemAgenda = false;
   const TABELAS = Object.keys(CAMPOS);
 
   function ler(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* segue em memória */ } }
 
   let sb = null, sessao = null, eu = ler(K_EU), espelho = ler(K_ESPELHO), fila = ler(K_FILA) || [];
+  bancoTemDivisao = !!(eu && eu.temDivisao); bancoTemAgenda = !!(eu && eu.temAgenda);
   let enviando = false, enviados = 0, recusados = 0, semRede = false, puxando = false, repuxar = false;
   let relerNoFim = false, relogioFila = null, relogioPuxar = null, canal = null, nomes = {}, codigo = eu ? eu.codigo : null;
   let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null, bancoTemDesde = false;
@@ -54,7 +63,7 @@
   }
 
   function linhasDe(s) {
-    const d = { lancamentos: {}, fixas: {}, emprestimos: {}, categorias: {} };
+    const d = { lancamentos: {}, fixas: {}, emprestimos: {}, categorias: {}, agenda: {} };
     const vaga = eu ? eu.vaga : 'sas';
     for (const l of s.lancamentos) {
       d.lancamentos[l.id] = canon('lancamentos', {
@@ -66,7 +75,10 @@
       });
     }
     for (const c of s.contas) {
-      d.fixas[c.id] = canon('fixas', { id: c.id, nome: String(c.nome).slice(0, 40), valor: c.centavos, conta: c.vaga || vaga, dia: c.dia, ativa: c.ativa !== false, desde: c.desde || null });
+      d.fixas[c.id] = canon('fixas', { id: c.id, nome: String(c.nome).slice(0, 40), valor: c.centavos, conta: c.vaga || vaga, dia: c.dia, ativa: c.ativa !== false, desde: c.desde || null,
+        total: c.total || null, dividida_com: c.total ? String(c.com || '').slice(0, 40) : null,
+        // Ordenado: o banco devolve a lista como a recebeu, e outra ordem pareceria mudança.
+        outro_pagou: c.total ? (c.outroPagou || []).slice().sort() : null });
     }
     for (const e of s.emprestimos) {
       d.emprestimos[e.id] = canon('emprestimos', {
@@ -76,6 +88,9 @@
     }
     for (const n of s.categorias) {
       d.categorias['saida|' + n] = canon('categorias', { tipo: 'saida', nome: String(n).slice(0, 28) });
+    }
+    for (const a of s.agenda || []) {
+      d.agenda[a.id] = canon('agenda', { id: a.id, data: a.data, hora: a.hora || null, titulo: String(a.titulo).slice(0, 60), repete: a.repete || '', conta: a.vaga || vaga });
     }
     return d;
   }
@@ -94,23 +109,36 @@
       lancamentos.forEach(function (l) {
         if (l.conta === r.id) pagos[mesDoPagamento(l)] = { data: l.data, centavos: l.centavos, lanc: l.id };
       });
-      return { id: r.id, nome: r.nome, centavos: r.valor, dia: r.dia, ativa: r.ativa, pagos: pagos, vaga: r.conta, desde: r.desde };
+      const c = { id: r.id, nome: r.nome, centavos: r.valor, dia: r.dia, ativa: r.ativa, pagos: pagos, vaga: r.conta, desde: r.desde };
+      if (bancoTemDivisao) {
+        if (r.total) { c.total = r.total; c.com = r.dividida_com || ''; c.outroPagou = Array.isArray(r.outro_pagou) ? r.outro_pagou : []; }
+      } else {
+        // Banco ainda sem a coluna: a divisão continua a valer neste aparelho.
+        const aqui = S.contas.find(function (x) { return x.id === r.id; });
+        if (aqui && aqui.total) { c.total = aqui.total; c.com = aqui.com; c.outroPagou = aqui.outroPagou; }
+      }
+      return c;
     });
     const emprestimos = Object.values(d.emprestimos).map(function (r) {
       return { id: r.id, direcao: r.direcao, pessoa: r.pessoa, centavos: r.valor, data: r.data, prometida: r.prometido, estado: r.estado, nota: r.nota, vaga: r.conta };
     });
     const categorias = Object.values(d.categorias).map(function (r) { return r.nome; });
-    return estrutura({ v: 1, lancamentos: lancamentos, contas: contas, emprestimos: emprestimos, categorias: categorias, config: config });
+    const agenda = bancoTemAgenda
+      ? Object.values(d.agenda || {}).map(function (r) { return { id: r.id, data: r.data, hora: r.hora || '', titulo: r.titulo, repete: r.repete || '', vaga: r.conta }; })
+      : (S.agenda || []);
+    return estrutura({ v: 1, lancamentos: lancamentos, contas: contas, emprestimos: emprestimos, categorias: categorias, agenda: agenda, config: config });
   }
 
   function diferenca(antes, depois) {
     const ops = [];
     for (const t of TABELAS) {
-      for (const k of Object.keys(depois[t])) {
-        if (JSON.stringify(depois[t][k]) !== JSON.stringify(antes[t][k])) ops.push({ op: 'poe', t: t, k: k, linha: depois[t][k] });
+      // Espelho gravado por uma versão anterior não tem as tabelas novas.
+      const A = antes[t] || {}, D = depois[t] || {};
+      for (const k of Object.keys(D)) {
+        if (JSON.stringify(D[k]) !== JSON.stringify(A[k])) ops.push({ op: 'poe', t: t, k: k, linha: D[k] });
       }
-      for (const k of Object.keys(antes[t])) {
-        if (!depois[t][k]) ops.push({ op: 'tira', t: t, k: k, linha: antes[t][k] });
+      for (const k of Object.keys(A)) {
+        if (!D[k]) ops.push({ op: 'tira', t: t, k: k, linha: A[k] });
       }
     }
     return ops;
@@ -130,6 +158,9 @@
   window.veroAoGuardar = function () {
     if (!eu || !espelho) return;
     const novo = linhasDe(S);
+    // Sem a tabela no banco a agenda fica fora do espelho: assim, quando ela aparecer, o
+    // que foi marcado neste aparelho ainda conta como "nunca enviado" e sobe.
+    if (!bancoTemAgenda) novo.agenda = {};
     const ops = diferenca(espelho, novo);
     if (!ops.length) return;
     espelho = novo;
@@ -144,9 +175,14 @@
       // ⚠️ Aparelho que ainda não leu o `desde` não pode apagar o que o banco já sabe, e
       // banco sem a coluna recusaria a linha inteira: a conta nova se perdia.
       if (op.t === 'fixas' && (!linha.desde || !bancoTemDesde)) delete linha.desde;
+      // A mesma regra para a divisão: um aparelho que ainda não a leu manda nulo, e nulo
+      // apagaria a divisão marcada no outro. Desfazer a divisão manda total = valor.
+      if (op.t === 'fixas') DIVISAO.forEach(function (k) { if (linha[k] === null || !bancoTemDivisao) delete linha[k]; });
+      if (op.t === 'agenda' && !bancoTemAgenda) return Promise.resolve({ error: null, status: 200 });
       return sb.from(op.t).upsert(linha,
         op.t === 'categorias' ? { onConflict: 'casa_id,tipo,nome' } : undefined);
     }
+    if (op.t === 'agenda' && !bancoTemAgenda) return Promise.resolve({ error: null, status: 200 });
     const q = sb.from(op.t).delete().eq('casa_id', eu.casa);
     return op.t === 'categorias' ? q.eq('tipo', op.linha.tipo).eq('nome', op.linha.nome) : q.eq('id', op.k);
   }
@@ -190,16 +226,27 @@
     // O servidor entrega no máximo 1000 linhas por pedido.
     for (let de = 0; ; de += 1000) {
       const r = await sb.from(t).select('*').eq('casa_id', eu.casa).range(de, de + 999);
-      if (r.error) throw r.error;
+      if (r.error) throw Object.assign(new Error(r.error.message || 'erro'), { status: r.status });
       linhas.push.apply(linhas, r.data);
       if (r.data.length < 1000) return linhas;
     }
   }
 
   async function lerTudo() {
-    const d = { lancamentos: {}, fixas: {}, emprestimos: {}, categorias: {} }, autores = {};
+    const d = { lancamentos: {}, fixas: {}, emprestimos: {}, categorias: {}, agenda: {} }, autores = {};
+    const prova = await sb.from('fixas').select('id,total,dividida_com,outro_pagou').eq('casa_id', eu.casa).range(0, 0);
+    if (prova.error && !vaiPassar(prova.status)) bancoTemDivisao = false;
+    else if (prova.error) throw prova.error;
+    else bancoTemDivisao = true;
     for (const t of TABELAS) {
-      for (const r of await lerTabela(t)) {
+      let linhas;
+      try { linhas = await lerTabela(t); } catch (e) {
+        // Tabela que o banco ainda não tem: o resto lê-se na mesma.
+        if (t === 'agenda' && !vaiPassar(e.status)) { bancoTemAgenda = false; continue; }
+        throw e;
+      }
+      if (t === 'agenda') bancoTemAgenda = true;
+      for (const r of linhas) {
         if (t === 'fixas') bancoTemDesde = 'desde' in r;
         const k = t === 'categorias' ? r.tipo + '|' + r.nome : r.id;
         d[t][k] = canon(t, r);
@@ -250,6 +297,7 @@
       if (!espelho) {
         const local = linhasDe(S), novos = [];
         for (const t of TABELAS) {
+          if (t === 'agenda' && !bancoTemAgenda) continue;
           for (const k of Object.keys(local[t])) {
             if (!lido.d[t][k]) novos.push({ op: 'poe', t: t, k: k, linha: local[t][k] });
           }
@@ -260,7 +308,20 @@
         // Casa só dele, recém-criada: não há com quem dividir, então o que lançou antes sobe sem perguntar.
         if (!registros || pessoas.length <= 1 || await perguntarSeJunta(registros)) enfileirar(novos);
       }
+      if (bancoTemAgenda) {
+        // Marcado neste aparelho e nunca enviado (o banco ainda não tinha a agenda): sobe agora.
+        const jaFoi = (espelho && espelho.agenda) || {}, local = linhasDe(S).agenda, sobe = [];
+        Object.keys(local).forEach(function (k) {
+          if (!lido.d.agenda[k] && !jaFoi[k] && !fila.some(function (x) { return x.t === 'agenda' && x.k === k; })) sobe.push({ op: 'poe', t: 'agenda', k: k, linha: local[k] });
+        });
+        if (sobe.length) enfileirar(sobe);
+      }
+      if (eu.temDivisao !== bancoTemDivisao || eu.temAgenda !== bancoTemAgenda) {
+        eu.temDivisao = bancoTemDivisao; eu.temAgenda = bancoTemAgenda;
+        gravar(K_EU, eu);
+      }
       for (const op of fila) {
+        if (!lido.d[op.t]) continue;
         if (op.op === 'poe') lido.d[op.t][op.k] = op.linha; else delete lido.d[op.t][op.k];
       }
       espelho = lido.d;
@@ -324,7 +385,7 @@
       gravar(K_ESPELHO, null); gravar(K_FILA, []);
     }
     eu = { uid: user.id, casa: r.data[0].casa_id, vaga: r.data[0].vaga, codigo: codigo,
-      carteiras: carteiras, pessoas: pessoas, nomesVaga: nomesVaga };
+      carteiras: carteiras, pessoas: pessoas, nomesVaga: nomesVaga, temDivisao: bancoTemDivisao, temAgenda: bancoTemAgenda };
     gravar(K_EU, eu);
     assinar();
     await puxar();
