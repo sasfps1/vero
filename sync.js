@@ -107,7 +107,8 @@
     const contas = Object.values(d.fixas).map(function (r) {
       const pagos = {};
       lancamentos.forEach(function (l) {
-        if (l.conta === r.id) pagos[mesDoPagamento(l)] = { data: l.data, centavos: l.centavos, lanc: l.id };
+        // v36: a saída da outra pessoa também aponta para a conta, mas "pago" é só a do dono.
+        if (l.conta === r.id && (!l.vaga || !r.conta || l.vaga === r.conta)) pagos[mesDoPagamento(l)] = { data: l.data, centavos: l.centavos, lanc: l.id };
       });
       const c = { id: r.id, nome: r.nome, centavos: r.valor, dia: r.dia, ativa: r.ativa, pagos: pagos, vaga: r.conta, desde: r.desde };
       if (bancoTemDivisao) {

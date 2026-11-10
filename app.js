@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 35;
+const VERSAO = 36;
 let soMemoria = false;
 
 const VAZIO = {
@@ -163,7 +163,63 @@ function daVista(x) {
   return v === 'todos' || (x.vaga || minhaVaga()) === v;
 }
 function lancamentosVistos() { return S.lancamentos.filter(daVista); }
-function contasVistas() { return S.contas.filter(daVista); }
+function contasVistas() { return S.contas.filter(function (c) { return papelNaVista(c) !== null; }); }
+
+/* 10/11 noite: a conta dividida existe UMA vez, na carteira de quem a cadastrou, mas pesa
+   em três sítios. Na vista do dono pesa a parte dele (`centavos`); na vista de quem paga o
+   resto, a parte dessa pessoa (`total - centavos`); no Total, a conta INTEIRA. Antes disto o
+   Total só via a metade do dono e a vista da outra pessoa via zero: a casa parecia pagar
+   R$ 1.115 quando paga R$ 2.230. A outra pessoa acha-se pelo nome (`com`) contra as carteiras
+   da casa, porque é o que já está guardado: nenhuma coluna nova, nenhuma migração.
+   Uma função decide o peso (`faltaDaConta`); calc() e todas as telas leem dela. */
+function semAcentoMin(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase(); }
+function vagaDoOutro(c) {
+  if (!haContas() || !eDividida(c) || !c.com) return null;
+  const alvo = semAcentoMin(c.com);
+  const k = carteiras().find(function (x) { return semAcentoMin(x.nome) === alvo; });
+  return k && k.id !== (c.vaga || minhaVaga()) ? k.id : null;
+}
+/** 'tudo' no Total, 'dono' na carteira da conta, 'outro' na de quem paga o resto, ou null. */
+function papelNaVista(c) {
+  const v = contaVista();
+  if (v === 'todos') return 'tudo';
+  if ((c.vaga || minhaVaga()) === v) return 'dono';
+  if (vagaDoOutro(c) === v) return 'outro';
+  return null;
+}
+function parteDoOutro(c) { return eDividida(c) ? c.total - c.centavos : 0; }
+function donoPagou(c, mes) { return !!(c.pagos && c.pagos[mes]); }
+/* A parte do outro só passou a pesar na v36 (nov/2026). Antes era registro opcional e
+   ninguém marcou os meses que passaram: contá-los agora inventaria atrasos que não houve. */
+const DIVISAO_PESA_DESDE = '2026-11';
+function outroJaPagou(c, mes) { return eDividida(c) && (mes < DIVISAO_PESA_DESDE || (c.outroPagou || []).includes(mes)); }
+/** Quanto desta conta ainda falta pagar no mês, na vista aberta. */
+function faltaDaConta(c, mes) {
+  const p = papelNaVista(c);
+  const a = donoPagou(c, mes) ? 0 : c.centavos;
+  const b = outroJaPagou(c, mes) ? 0 : parteDoOutro(c);
+  // O Total é a soma das carteiras da casa: a parte de quem não tem carteira aqui (ou de
+  // quem usa o app sem conta) não é dinheiro desta casa, e não entra.
+  return p === 'tudo' ? a + (vagaDoOutro(c) ? b : 0) : p === 'dono' ? a : p === 'outro' ? b : 0;
+}
+/** O valor da conta na vista aberta, pago ou não: o que a linha mostra. */
+function valorNaVista(c) {
+  const p = papelNaVista(c);
+  return p === 'tudo' ? (vagaDoOutro(c) ? c.total : c.centavos) : p === 'outro' ? parteDoOutro(c) : c.centavos;
+}
+/** Na vista de quem paga o resto, "Paguei" marca a parte dessa pessoa (o registro que a v35
+    já tinha), nunca a do dono: senão a Ana tocava em Paguei e quitava a metade do SAS. */
+function acaoDePagar(c, mes) {
+  const p = papelNaVista(c);
+  if (p === 'outro') return 'outro-pagou';
+  // No Total, se o dono já pagou, o que falta é a parte do outro: "Paguei" não pode pagar o dono de novo.
+  if (p === 'tudo' && donoPagou(c, mes) && !outroJaPagou(c, mes) && vagaDoOutro(c)) return 'outro-pagou';
+  return 'pagar';
+}
+/** A ref que acompanha a ação: 'outro-pagou' leva sempre o mês; 'pagar' só quando é de mês passado. */
+function refDePagar(c, mes) {
+  return acaoDePagar(c, mes) === 'outro-pagou' || mes !== mesDe(hoje()) ? c.id + '|' + mes : c.id;
+}
 function emprestimosVistos() { return S.emprestimos.filter(daVista); }
 
 function nomeDaVaga(v) { return window.veroNomeDaVaga ? window.veroNomeDaVaga(v) : ''; }
@@ -205,7 +261,7 @@ function falta(e) {
 
 function contasPorPagar(mes) {
   return contasVistas().filter(function (c) {
-    return c.ativa !== false && !(c.pagos && c.pagos[mes]);
+    return c.ativa !== false && faltaDaConta(c, mes) > 0;
   });
 }
 
@@ -231,7 +287,7 @@ function contasAtrasadas() {
   contasVistas().forEach(function (c) {
     if (c.ativa === false || !/^\d{4}-\d{2}$/.test(c.desde || '')) return;
     for (let m = c.desde; m < atual; m = mesSeguinte(m)) {
-      if (!(c.pagos && c.pagos[m])) lista.push({ conta: c, mes: m, venc: vencimentoEm(c, m) });
+      if (faltaDaConta(c, m) > 0) lista.push({ conta: c, mes: m, venc: vencimentoEm(c, m), centavos: faltaDaConta(c, m) });
     }
   });
   return lista.sort(function (a, b) { return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
@@ -299,8 +355,8 @@ function calc() {
   const mes = mesDe(hoje());
   const { entradas, saidas } = resumoDoMes(mes);
   // A conta atrasada ainda vai sair: sem ela aqui, o limite do dia prometia esse dinheiro.
-  const contasFalta = contasPorPagar(mes).reduce(function (a, c) { return a + c.centavos; }, 0) +
-    contasAtrasadas().reduce(function (a, x) { return a + x.conta.centavos; }, 0);
+  const contasFalta = contasPorPagar(mes).reduce(function (a, c) { return a + faltaDaConta(c, mes); }, 0) +
+    contasAtrasadas().reduce(function (a, x) { return a + x.centavos; }, 0);
   const euDevo = euDevoNoMes(mes);
   const livre = entradas - saidas - contasFalta - euDevo;
   return {
@@ -1190,7 +1246,7 @@ function cartaoContas(n) {
     (n.aReceber ? '<small class="nota" data-cede="2">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
     (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="nota">Nada vence nos próximos 7 dias.</p>') +
     cobre +
-    (primeira ? '<button class="btn contorno" data-acao="' + (primeira.tipo === 'conta' ? 'pagar' : 'devolvi') + '" data-ref="' + esc(primeira.ref) + '">' +
+    (primeira ? '<button class="btn contorno" data-acao="' + (primeira.acao || (primeira.tipo === 'conta' ? 'pagar' : 'devolvi')) + '" data-ref="' + esc(primeira.ref) + '">' +
       (primeira.tipo === 'conta' ? 'Paguei ' + esc(primeira.nome) : esc(primeira.nome.replace(/^Devolver/, 'Já devolvi'))) + '</button>' : '') +
   '</section>';
 }
@@ -1274,11 +1330,11 @@ function itensRoda() {
   };
   contasAtrasadas().forEach(function (x) {
     const pz = prazo(x.venc, 'Venceu', '', '', '');
-    itens.push({ k: 'c' + x.conta.id + x.mes, tipo: 'conta', rotulo: 'Falta pagar', nome: x.conta.nome, centavos: x.conta.centavos, dd: pz.dd, sub: pz.txt, ir: '#/contas' });
+    itens.push({ k: 'c' + x.conta.id + x.mes, tipo: 'conta', rotulo: 'Falta pagar', nome: x.conta.nome, centavos: x.centavos, dd: pz.dd, sub: pz.txt, ir: '#/contas' });
   });
   contasPorPagar(mes).forEach(function (c) {
     const venc = vencimentoEm(c, mes), pz = prazo(venc, 'Venceu', 'Vence hoje', 'Vence amanhã', 'Vence em');
-    itens.push({ k: 'c' + c.id, tipo: 'conta', rotulo: 'Falta pagar', nome: c.nome, centavos: c.centavos, dd: pz.dd, sub: pz.txt + ' · dia ' + diaDe(venc), ir: '#/contas' });
+    itens.push({ k: 'c' + c.id, tipo: 'conta', rotulo: 'Falta pagar', nome: c.nome, centavos: faltaDaConta(c, mes), dd: pz.dd, sub: pz.txt + ' · dia ' + diaDe(venc), ir: '#/contas' });
   });
   abertos('emprestei').forEach(function (e) {
     const pz = prazo(e.prometida, 'Prometeu e passou', 'Prometeu para hoje', 'Prometeu para amanhã', 'Prometeu para daqui a');
@@ -1585,7 +1641,7 @@ function abrirDia(data) {
   }
   if (vence.length) {
     html += '<p class="dia-contas">Vence: ' + vence.map(function (c) {
-      return esc(c.nome) + ' (' + dinheiro(c.centavos) + ((c.pagos && c.pagos[mes]) ? ', paga' : '') + ')';
+      return esc(c.nome) + ' (' + dinheiro(valorNaVista(c)) + (faltaDaConta(c, mes) === 0 ? ', paga' : '') + ')';
     }).join(' · ') + '</p>';
   }
   if (teveLanc) html += '<button class="btn contorno dia-ver" data-acao="dia-ver" data-ref="' + data + '">Ver os lançamentos deste dia</button>';
@@ -1653,7 +1709,7 @@ function secaoVence() {
       '<strong>' + dinheiro(it.centavos) + '</strong>' +
       '<small>' + (atrasada ? 'venceu ' + porExtensoData(it.data)
         : it.semData ? 'sem data marcada' : it.data === h ? 'vence hoje' : 'vence ' + porExtensoData(it.data)) + '</small>' +
-      botao(it.tipo === 'conta' ? 'pagar' : 'devolvi', it.ref, 'Paguei') +
+      botao(it.acao || (it.tipo === 'conta' ? 'pagar' : 'devolvi'), it.ref, 'Paguei') +
     '</div>';
   }).join('');
   return '<section class="bloco vence"><h2 class="titulo-cartao">Vence a seguir</h2>' +
@@ -1675,8 +1731,8 @@ function itensProximos() {
 
   contasAtrasadas().forEach(function (x) {
     itens.push({
-      data: x.venc, nome: x.conta.nome, centavos: x.conta.centavos, tipo: 'conta',
-      ref: x.conta.id + '|' + x.mes, marca: 'vencida'
+      data: x.venc, nome: x.conta.nome, centavos: x.centavos, tipo: 'conta',
+      ref: x.conta.id + '|' + x.mes, marca: 'vencida', acao: acaoDePagar(x.conta, x.mes)
     });
   });
 
@@ -1684,7 +1740,8 @@ function itensProximos() {
     const venc = mes + '-' + p2(Math.min(c.dia, diasNoMes(mes)));
     if (venc > limite) return;
     itens.push({
-      data: venc, nome: c.nome, centavos: c.centavos, tipo: 'conta', ref: c.id,
+      data: venc, nome: c.nome, centavos: faltaDaConta(c, mes), tipo: 'conta',
+      ref: refDePagar(c, mes), acao: acaoDePagar(c, mes),
       marca: venc < h ? 'vencida' : ''
     });
   });
@@ -1717,22 +1774,28 @@ function telaContas(n) {
      "Paguei" debaixo do valor, à direita. Antes o botão flutuava no meio da linha e o
      quadradinho parecia uma caixa a marcar. Paga, o ícone vira o visto. */
   for (const c of ordenadas) {
-    const pago = c.pagos && c.pagos[mes];
+    // Na vista do dono, igual à v35. No Total e na vista de quem paga o resto, "paga" é
+    // faltaDaConta = 0: a conta só fecha quando as duas partes estão pagas.
+    const papel = papelNaVista(c), pago = c.pagos && c.pagos[mes];
+    const quitada = faltaDaConta(c, mes) === 0;
     const venc = mes + '-' + p2(Math.min(c.dia, diasNoMes(mes)));
-    const atrasada = !pago && venc < h;
-    const valor = pago ? pago.centavos : c.centavos;
+    const atrasada = !quitada && venc < h;
+    const valor = papel === 'dono' ? (pago ? pago.centavos : c.centavos) : valorNaVista(c);
     const faltam = diasEntre(h, venc);
     linhas += linhaHtml({
-      icone: pago ? 'certo' : iconeDoGasto(c.nome),
+      icone: quitada ? 'certo' : iconeDoGasto(c.nome),
       cor: familiaDe(c.nome) || 'casa',
       titulo: tituloEditavel('editar-conta', c.id, esc(c.nome)),
-      sub: pago ? 'Pago em ' + porExtensoData(pago.data)
+      sub: quitada ? (pago && papel !== 'outro' ? 'Pago em ' + porExtensoData(pago.data) : 'Pago')
+        : papel === 'tudo' && pago ? 'Falta a parte de ' + nomeOutro(c)
         : atrasada ? 'Venceu dia ' + c.dia
         : faltam === 0 ? 'Vence hoje' : faltam === 1 ? 'Vence amanhã' : 'Vence dia ' + c.dia + ' · em ' + faltam + ' dias',
       extra: linhaDivisao(c, mes),
-      acaoDireita: pago ? botao('despagar', c.id, 'Desfazer', true) : botao('pagar', c.id, 'Paguei'),
+      acaoDireita: papel === 'outro' ? botao('outro-pagou', c.id + '|' + mes, quitada ? 'Desfazer' : 'Paguei', quitada)
+        : papel === 'tudo' && pago && !quitada && vagaDoOutro(c) ? botao('outro-pagou', c.id + '|' + mes, 'Paguei')
+        : pago ? botao('despagar', c.id, 'Desfazer', true) : botao('pagar', c.id, 'Paguei'),
       centavos: valor,
-      classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (pago ? 'fraca' : '')
+      classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (quitada ? 'fraca' : '')
     });
   }
 
@@ -1748,24 +1811,24 @@ function telaContas(n) {
       titulo: tituloEditavel('editar-conta', x.conta.id, esc(x.conta.nome)),
       extra: linhaDivisao(x.conta, x.mes),
       sub: 'De ' + nomeDoMes(x.mes) + ' · venceu ' + porExtensoData(x.venc),
-      acaoDireita: botao('pagar', x.conta.id + '|' + x.mes, 'Paguei') +
-        (primeira ? botao('dispensar-conta', x.conta.id + '|' + x.mes, 'Não devo', true) : ''),
-      centavos: x.conta.centavos,
+      acaoDireita: botao(acaoDePagar(x.conta, x.mes), x.conta.id + '|' + x.mes, 'Paguei') +
+        (primeira && papelNaVista(x.conta) !== 'outro' ? botao('dispensar-conta', x.conta.id + '|' + x.mes, 'Não devo', true) : ''),
+      centavos: x.centavos,
       classes: 'conta-linha atrasada '
     });
   }).join('');
 
   // 07/11: no computador, a próxima conta ao lado da faixa azul, como no Início.
-  const prox = ordenadas.filter(function (c) { return !(c.pagos && c.pagos[mes]) && c.ativa !== false; })
+  const prox = ordenadas.filter(function (c) { return faltaDaConta(c, mes) > 0 && c.ativa !== false; })
     .map(function (c) { return { c: c, venc: mes + '-' + p2(Math.min(c.dia, diasNoMes(mes))) }; })
     .sort(function (a, b) { return a.venc < b.venc ? -1 : 1; })[0];
   let proxHtml = '';
   if (prox) {
     const dd = diasEntre(h, prox.venc);
     proxHtml = '<section class="bloco c-prox so-pc"><span class="rotulo">Próxima a vencer</span>' +
-      '<div class="c-prox-linha"><b>' + esc(prox.c.nome) + '</b><b>' + dinheiro(prox.c.centavos) + '</b></div>' +
+      '<div class="c-prox-linha"><b>' + esc(prox.c.nome) + '</b><b>' + dinheiro(faltaDaConta(prox.c, mes)) + '</b></div>' +
       '<small>' + (dd < 0 ? 'Venceu há ' + quantosDias(-dd) : dd === 0 ? 'Vence hoje' : dd === 1 ? 'Vence amanhã' : 'Vence em ' + quantosDias(dd) + ' · dia ' + prox.c.dia) + '</small>' +
-      '<button class="btn contorno" data-acao="pagar" data-ref="' + esc(prox.c.id) + '">Paguei ' + esc(prox.c.nome) + '</button></section>';
+      '<button class="btn contorno" data-acao="' + acaoDePagar(prox.c, mes) + '" data-ref="' + esc(refDePagar(prox.c, mes)) + '">Paguei ' + esc(prox.c.nome) + '</button></section>';
   }
   return '<div class="tela-grade contas"><section class="bloco he">' +
       '<span class="rotulo">Falta pagar</span>' +
@@ -2419,6 +2482,10 @@ function removerLancamento(ref) {
     if (c && c.pagos) {
       Object.keys(c.pagos).forEach(function (m) { if (c.pagos[m].lanc === l.id) delete c.pagos[m]; });
     }
+    if (c && l.vaga && l.vaga !== c.vaga && l.vaga === vagaDoOutro(c)) {
+      const mes = mesDoPagamento(l);
+      c.outroPagou = (c.outroPagou || []).filter(function (m) { return m !== mes; });
+    }
   }
   guardar();
 }
@@ -2610,6 +2677,15 @@ function nomeOutro(c) { return String(c.com || '').trim() || 'A outra pessoa'; }
 function linhaDivisao(c, mes) {
   if (!eDividida(c)) return '';
   const pagou = (c.outroPagou || []).includes(mes), pct = pctDe(c);
+  // Na vista de quem paga o resto, a frase vira do lado dela, e o "Paguei" da linha já é dela.
+  if (papelNaVista(c) === 'tudo' && vagaDoOutro(c)) {
+    return '<span class="divisao">Dividida: ' + esc(nomeDaVaga(c.vaga) || 'Você') + ' ' + dinheiro(c.centavos) + ' · ' +
+      esc(nomeOutro(c)) + ' ' + dinheiro(c.total - c.centavos) + '</span>';
+  }
+  if (papelNaVista(c) === 'outro') {
+    return '<span class="divisao">Sua ' + (pct === 50 ? 'metade' : 'parte (' + (100 - pct) + '%)') + ' de ' + dinheiro(c.total) + ' · ' +
+      esc(nomeDaVaga(c.vaga) || 'A outra pessoa') + ' paga ' + dinheiro(c.centavos) + '</span>';
+  }
   return '<span class="divisao">Sua ' + (pct === 50 ? 'metade' : 'parte (' + pct + '%)') +
     ' de ' + dinheiro(c.total) + ' · ' + esc(nomeOutro(c)) + ' paga ' + dinheiro(c.total - c.centavos) + '</span>' +
     '<button class="btn pequeno fraco outro-pagou' + (pagou ? ' feito' : '') + '" data-acao="outro-pagou" data-ref="' + esc(c.id + '|' + mes) + '" aria-pressed="' + pagou + '">' +
@@ -2677,11 +2753,25 @@ function aplicarDivisao(c, d) {
 function marcarOutroPagou(ref) {
   const p = String(ref).split('|'), c = S.contas.find(function (x) { return x.id === p[0]; });
   if (!c || !p[1]) return;
-  const ja = (c.outroPagou || []).includes(p[1]);
-  comDesfazer(ja ? 'Desmarcado' : nomeOutro(c) + ' pagou a parte de ' + nomeDoMes(p[1]), function () {
-    const lista = (c.outroPagou || []).filter(function (m) { return m !== p[1]; });
-    if (!ja) lista.push(p[1]);
+  const mes = p[1], ja = (c.outroPagou || []).includes(mes);
+  /* 10/11 noite (achado da revisão): na v36 a parte do outro pesa no Total e na vista dele,
+     logo marcar "pagou" sem lançamento fazia R$ 500 aparecerem do nada no Sobrou. Quando o
+     outro tem carteira na casa, a marca leva junto a SAÍDA na carteira dele, ligada à conta;
+     desmarcar tira as duas. Sem carteira, continua só registro, como na v35. */
+  const vagaB = vagaDoOutro(c), dela = papelNaVista(c) === 'outro';
+  const texto = ja ? (dela ? 'Sua parte de ' + nomeDoMes(mes) + ' voltou a por pagar' : 'Desmarcado')
+    : (dela ? 'Sua parte de ' + nomeDoMes(mes) + ': paga' : nomeOutro(c) + ' pagou a parte de ' + nomeDoMes(mes));
+  comDesfazer(texto, function () {
+    const lista = (c.outroPagou || []).filter(function (m) { return m !== mes; });
+    if (!ja) lista.push(mes);
     c.outroPagou = lista.sort();
+    if (vagaB && ja) {
+      S.lancamentos = S.lancamentos.filter(function (l) { return !(l.conta === c.id && l.vaga === vagaB && mesDoPagamento(l) === mes); });
+    } else if (vagaB) {
+      const l = { id: id(), tipo: 'saida', centavos: parteDoOutro(c), data: hoje(), nota: c.nome, conta: c.id, emprestimo: null, em: Date.now(), vaga: vagaB };
+      if (mes !== mesDe(hoje())) l.origem = 'mes:' + mes;
+      S.lancamentos.push(l);
+    }
     guardar();
   });
 }
