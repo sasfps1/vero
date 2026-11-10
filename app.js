@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 36;
+const VERSAO = 37;
 let soMemoria = false;
 
 const VAZIO = {
@@ -341,8 +341,14 @@ function limiteDoDia(livre) {
     nunca poderem divergir. */
 function resumoEntre(de, ate) {
   let entradas = 0, saidas = 0;
+  /* 10/11 noite, pedido dele: "essas coisas que eu paguei não devem aparecer lá em cima...
+     aquela parada do dia não deve afetar". Pagar o aluguel hoje não é o resultado do DIA:
+     a conta fixa pertence ao mês, já saiu do Sobrou do mês e do limite do dia quando foi
+     cadastrada (é a mesma regra do gastoDeHoje). Num dia só, ela fica fora; no mês, conta. */
+  const umDia = de === ate;
   for (const l of lancamentosVistos()) {
     if (l.data < de || l.data > ate) continue;
+    if (umDia && l.tipo === 'saida' && l.conta) continue;
     if (l.tipo === 'entrada') entradas += l.centavos; else saidas += l.centavos;
   }
   return { entradas: entradas, saidas: saidas, resultado: entradas - saidas };
