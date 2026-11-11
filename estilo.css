@@ -39,7 +39,31 @@
   --surface:            #03091F;
   --surface-raised:     #05113B;
   --surface-dim:        #02071A;
+  /* 10/11, queixa dele: "quase nenhuma diferença". Medido: só o chão e os cartões mudavam
+     um degrau; texto, gelo, degradê, ícones e o botão + saíam IGUAIS ao dia. A lente é a
+     da cabine de avião e do painel de carro: o modo noite não escurece o fundo, BAIXA O
+     REOSTATO de tudo o que brilha, e o que brilha mais desce mais (encandeia e fecha a
+     pupila). Hierarquia por contraste, não por luz. Sem cor nova: o creme e o gelo só
+     perdem força. */
+  --on-surface:         rgba(var(--tinta-rgb), 0.86);
+  --on-surface-muted:   rgba(var(--tinta-rgb), 0.64);
+  --on-surface-faint:   rgba(var(--tinta-rgb), 0.30);
+  --outline:            rgba(var(--sinal-rgb), 0.12);
+  --outline-strong:     rgba(var(--sinal-rgb), 0.22);
+  /* gelo a 78%, não o azul #4F79BF: esse dava 3,9:1 no "Hoje" activo, abaixo dos 4,5:1. */
+  --signal:             rgba(var(--sinal-rgb), 0.78);
 }
+/* O cartão principal era o que mais brilhava: perde o canto gelo e fica só no azul fundo. */
+:root[data-tema="escuro"] section.bloco.he {
+  background: radial-gradient(125% 150% at 100% 0%, var(--azul-fundo) 0%, var(--surface-raised) 62%, var(--surface-raised) 100%);
+  box-shadow: inset 0 0 0 1px var(--outline);
+}
+/* Os cartões da noite separam-se do chão por um fio, não por luz (o ponto fraco de 05/11). */
+:root[data-tema="escuro"] section.bloco { box-shadow: inset 0 0 0 1px var(--outline); }
+/* Cores de família: a mesma cor, com o reostato em baixo. */
+:root[data-tema="escuro"] .ico[class*="cor-"],
+:root[data-tema="escuro"] .item-ico[class*="cor-"],
+:root[data-tema="escuro"] .legenda-cor i { filter: brightness(0.72) saturate(0.85); }
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
