@@ -25,7 +25,7 @@
   --tinta-rgb: 242, 235, 210;
   --sinal-rgb: 158, 197, 232;
 
-  --gutter: 14px;
+  --gutter: 16px;
 }
 
 /* ── DIA E NOITE (05/11, decisão dele: "o nosso de dia é esse azul e o nosso à noite é
@@ -260,7 +260,7 @@ section.bloco {
   padding: 16px 15px;
   margin-bottom: 12px;
   background: var(--surface-raised);
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 /* O cartão principal de cada tela, em degradê do azul da marca. O claro fica no
@@ -268,7 +268,7 @@ section.bloco {
 section.bloco.he {
   --on-surface-muted: var(--on-surface);
   padding: 20px 18px 16px;
-  border-radius: 26px;
+  border-radius: 24px;
   background: radial-gradient(125% 150% at 100% 0%, var(--signal) 0%, var(--azul-medio) 24%, var(--azul-fundo) 54%, var(--surface-raised) 100%);
 }
 .he .rotulo { font-size: 13.5px; font-weight: 600; text-transform: none; letter-spacing: 0; }
@@ -336,7 +336,7 @@ section.bloco.he {
 /* O que vence: rola para o lado dentro do cartão, nunca a tela inteira. */
 .fila { display: grid; grid-auto-flow: column; grid-auto-columns: 152px; gap: 10px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .fila::-webkit-scrollbar { display: none; }
-.vence-item { display: flex; flex-direction: column; align-items: flex-start; border-radius: 18px; padding: 13px; background: rgba(var(--tinta-rgb), 0.07); }
+.vence-item { display: flex; flex-direction: column; align-items: flex-start; border-radius: 16px; padding: 13px; background: rgba(var(--tinta-rgb), 0.07); }
 /* Trocar os tokens troca de uma vez o texto, a marca e o traço do botão. */
 .vence-item.aceso { --on-surface: #05113B; --on-surface-muted: #05113B; background: var(--signal); color: #05113B; }
 .vence-nome { display: flex; align-items: center; gap: 7px; max-width: 100%; font-size: 14.5px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -460,7 +460,7 @@ h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); pa
    O azulejo de saída é creme apagado, o de entrada é o gelo da marca; o valor fica
    creme nos dois, porque o sentido já vai na seta e no sinal (DESIGN.md: forma, não cor). */
 .linha[class*="seta-"] { grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; }
-.linha[class*="seta-"] .ico { width: 32px; height: 32px; border-radius: 10px; }
+.linha[class*="seta-"] .ico { width: 32px; height: 32px; border-radius: 12px; }
 .linha[class*="seta-"] .ico svg.traco { width: 17px; height: 17px; }
 .linha.seta-saiu .ico { background: rgba(var(--tinta-rgb), 0.09); color: var(--on-surface); }
 .linha.seta-transfer .ico { background: rgba(var(--tinta-rgb), 0.09); color: var(--on-surface-muted); }
@@ -588,7 +588,7 @@ nav.barra {
   /* 4 destinos e o botao de lancar ao centro. */
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end;
   background: var(--surface-dim);
-  border-radius: 22px 22px 0 0;
+  border-radius: 24px 24px 0 0;
   padding: 8px 4px calc(9px + env(safe-area-inset-bottom));
 }
 nav.barra a {
@@ -635,7 +635,7 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
 .teclado button {
   background: var(--surface-raised);
   border: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   min-height: 56px;
   font-size: 21px; font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -721,7 +721,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   .folha {
     inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: min(560px, calc(100vw - 48px)); max-height: min(920px, calc(100vh - 40px));
-    border: 1px solid var(--outline-strong); border-radius: 22px; overflow: hidden;
+    border: 1px solid var(--outline-strong); border-radius: 24px; overflow: hidden;
     box-shadow: 0 0 0 100vmax rgba(3, 9, 31, 0.72);
   }
   .folha .mostrador, .folha .corpo { padding-left: 22px; padding-right: 22px; }
@@ -771,7 +771,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
     height: 100%; padding: 22px 14px 0;
   }
   .logo-rail { display: flex; font-size: 22px; padding: 0 10px 20px; }
-  nav.barra a { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 0 12px; min-height: 44px; border-radius: 14px; font-size: 14.5px; }
+  nav.barra a { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 0 12px; min-height: 44px; border-radius: 16px; font-size: 14.5px; }
   nav.barra a.activo { background: var(--surface-raised); }
   .lancar-centro { display: none; }
   main { grid-area: obra; max-width: 1188px; width: 100%; margin: 0; padding: 0 28px 28px; overflow-y: auto; height: 100%; }
@@ -865,7 +865,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .pilula span { margin-left: 4px; font-weight: 800; }
 .pilula.activo { background: var(--on-surface); color: var(--surface); }
 .lista-itens { display: flex; flex-direction: column; }
-.item { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 8px 4px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 14px; }
+.item { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 8px 4px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 16px; }
 .item:hover { background: rgba(var(--tinta-rgb), 0.04); }
 .item-linha { position: relative; display: flex; align-items: center; gap: 4px; }
 .item-linha .item { flex: 1; min-width: 0; }
@@ -888,7 +888,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .rosca-destinos .rosca { width: 150px; height: 150px; }
 .rosca-destinos .rosca-centro b { font-size: 30px; }
 .destinos { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; width: 100%; }
-.destino-c { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; min-width: 0; padding: 10px 12px; border: 0; border-radius: 14px; background: rgba(var(--tinta-rgb), 0.05); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.destino-c { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; min-width: 0; padding: 10px 12px; border: 0; border-radius: 16px; background: rgba(var(--tinta-rgb), 0.05); color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .destino-c-topo { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .destino-c-topo .item-ico { width: 30px; height: 30px; }
 .destino-c-nome { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -1349,3 +1349,76 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .extra-linha .outro-pagou { display: inline-flex; align-items: center; gap: 6px; }
 .extra-linha .outro-pagou svg.traco { width: 15px; height: 15px; }
 .extra-linha .outro-pagou.feito { color: var(--on-surface); border-color: var(--outline-strong); }
+
+/* ══ ACABAMENTO, ETAPA 1 · FOLGA E ENCAIXE (10/11, v39, aprovada por ele) ═══════════════
+   Plano em "PLANO - acabamento premium.md". Lente: qualidade percebida (folga, encaixe,
+   material, resposta). Esta etapa só mexe em folga e encaixe; cor, fonte e a posição das
+   caixas ficam como estavam.
+   1. Régua de espaços em múltiplos de 4 (Satori Graphics, "4-8-16 e o eco espacial",
+      Método Destilado §3.2): a margem lateral passou de 14 para 16, as folgas da grade
+      de 10 para 12, o respiro das caixas de 14 para 16.
+   2. Três raios de canto e a pílula: 24 (cartão), 16 (peça dentro do cartão), 12 (azulejo).
+      Eram 14 valores. Feito por substituição no ficheiro inteiro, não aqui.
+   3. Computador: o topo deixa de ter dois andares (menu em cima, título e botões em baixo)
+      e passa a UM: logo, título, menu, sol/olho, engrenagem, Novo lançamento. Ganha ~50 px
+      de altura para o que importa, numa tela útil de 641 px. As duas barras continuam a
+      existir no HTML; aqui só emprestam os filhos à grade do body (display: contents). */
+@media (min-width: 1180px) {
+  body {
+    grid-template-areas: none;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: max(28px, calc(50% - 612px)) auto auto auto minmax(0, 1fr) auto auto auto max(28px, calc(50% - 612px));
+  }
+  nav.barra, header.topo { display: contents; }
+  main { grid-area: 2 / 1 / 3 / -1; }
+  .logo-rail, .topo-texto, .seletor-conta, .nav-pilulas, .controles-topo, nav.barra a.so-rail, .btn.lancar-topo { grid-row: 1; align-self: center; margin-top: 12px; margin-bottom: 12px; }
+  .logo-rail { grid-column: 2; margin-left: 0; margin-right: 24px; padding: 0; }
+  .topo-texto { grid-column: 3; display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+  .topo-texto h1 { font-size: 22px; line-height: 1.2; white-space: nowrap; }
+  .topo-texto span { margin-top: 0; white-space: nowrap; }
+  .seletor-conta { grid-column: 4; margin-left: 16px; }
+  .nav-pilulas { grid-column: 5; justify-self: center; margin-left: 16px; margin-right: 16px; }
+  .controles-topo { grid-column: 6; margin-left: 0; margin-right: 8px; }
+  nav.barra a.so-rail { grid-column: 7; width: 44px; min-height: 44px; margin-left: 0; margin-right: 12px; }
+  .btn.lancar-topo { grid-column: 8; }
+}
+@media (min-width: 1180px) and (max-width: 1339px) { .topo-texto span { display: none; } }
+@media (min-width: 1180px) and (min-height: 600px) {
+  .painel.inicio, .painel.gastos, .tela-grade { gap: 12px; }
+  .painel.inicio > .bloco, .painel.gastos > .bloco, .tela-grade > .bloco { padding-top: 16px; padding-bottom: 16px; }
+  .inicio .heroi, .painel.gastos > .he, .tela-grade > .he { padding: 16px 24px; }
+  .grade-cartoes { gap: 12px; margin-top: 12px; }
+  .grade-cartoes > .linha, .grade-cartoes > .pessoa-cartao { padding: 12px 16px; }
+  body:has(.painel.inicio) main, body:has(.painel.gastos) main, body:has(.tela-grade) main { padding-bottom: 16px; }
+}
+/* 4. Contas e Pessoas no computador: a caixa da lista abraça o que tem dentro em vez de
+      esticar até o fim da tela (com poucas contas ficava mais de metade vazia). Cheia,
+      pára no fim da tela como antes e as páginas "1 2 3" continuam a funcionar, porque o
+      teto é a altura da fila (max-height) e é o transbordo que as dispara. */
+@media (min-width: 1180px) and (min-height: 600px) {
+  .tela-grade > .c-todas, .tela-grade > .p-todas { align-self: start; max-height: 100%; }
+}
+/* 5. Reparos do segundo par de olhos (10/11 23h10, sobre os fotogramas):
+      · a 360 px o botão "Peguei com alguém" saía da caixa: os dois passam a quebrar de linha;
+      · no celular o nome da pessoa seguinte colava nos botões da anterior;
+      · o menu do computador mudava de lugar a cada aba (o título tem largura diferente):
+        agora centra-se na PÁGINA, não no espaço que sobra. Com o seletor de carteira à
+        vista não há lugar para isso sem sobrepor, e ele volta a centrar-se na sobra;
+      · o topo do computador numa altura só (44) e os três ícones iguais, sem o anel só
+        na engrenagem;
+      · "Próxima a vencer": a data deixava de respirar antes do botão. */
+.p-deve > div { flex-wrap: wrap; }
+.p-deve > div > .btn { flex: 1 1 132px !important; min-width: 0; }
+.pessoa-cartao + .pessoa-cartao { margin-top: 16px; }
+@media (min-width: 1180px) {
+  .nav-pilulas { grid-column: 2 / 9; padding: 4px; }
+  .nav-pilulas a { min-height: 36px; }
+  body:has(.seletor-conta:not([hidden])) .nav-pilulas { grid-column: 5; }
+  body:has(.seletor-conta:not([hidden])) .topo-texto span { display: none; }
+  body:has(.seletor-conta:not([hidden])) .topo-texto { min-width: 108px; }
+  nav.barra a.so-rail { width: 40px; min-height: 40px; border: 0; margin-right: 8px; }
+  nav.barra a.so-rail:hover { background: rgba(var(--tinta-rgb), 0.08); }
+  .controles-topo { margin-right: 2px; }
+  .grade-cartoes > .pessoa-cartao + .pessoa-cartao { margin-top: 0; }
+  .c-prox small { margin-bottom: 8px; }
+}
