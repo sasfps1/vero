@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 39;
+const VERSAO = 40;
 let soMemoria = false;
 
 const VAZIO = {
