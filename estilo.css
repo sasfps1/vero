@@ -1485,3 +1485,23 @@ section.bloco.he {
    casa; 600 em tudo o que era 700/800 (valores, títulos de cartão, estados ativos, botões);
    400/500 ficam como estavam. Os ativos continuam a ler-se pela cor e pelo fundo, não pelo peso.
    Feito por substituição linha a linha (python), não por regra por cima: a camada velha morre. */
+/* ══ ACABAMENTO, ETAPA 4 · UM BOTÃO PRINCIPAL POR CAIXA (11/11, v42) ════════════════════
+   Quando todos os botões têm o mesmo contorno, o olho não sabe onde tocar. Regra: em cada
+   caixa, a ação que pede a mão fica CHEIA de creme (o cargo do creme, P13 do catálogo);
+   as outras viram texto, sem contorno, e continuam com 40 px de alvo para o dedo.
+   · Falta pagar (Início) e Próxima a vencer (Contas): o "Paguei …" / "Já devolvi …" é a
+     única ação da caixa, por isso fica cheio.
+   · Pessoas: "Recebi"/"Paguei" cheio; "Lembrar" e "Deixa pra lá" passam a texto.
+   · Listas (Todas as contas): o "Paguei" de cada linha continua de contorno, porque numa
+     lista repetida o cheio em todas as linhas voltava a ser "tudo grita". */
+.contas-cartao > .btn.contorno, .c-prox .btn.contorno {
+  background: var(--on-surface); border-color: var(--on-surface); color: var(--surface);
+}
+.linha .btn.pequeno[data-acao="devolvi"] {
+  background: var(--on-surface); border-color: var(--on-surface); color: var(--surface);
+}
+.linha .btn.pequeno[data-acao="lembrar"], .linha .btn.pequeno[data-acao="perdoar"] {
+  border-color: transparent; background: none; padding: 0 6px; min-width: 0;
+}
+.linha .btn.pequeno[data-acao="lembrar"] { color: var(--on-surface); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--outline-strong); }
+.linha .btn.pequeno[data-acao="lembrar"]:hover, .linha .btn.pequeno[data-acao="perdoar"]:hover { background: rgba(var(--tinta-rgb), 0.08); }
