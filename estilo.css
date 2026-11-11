@@ -140,10 +140,10 @@ body.oculto .anel-v circle { stroke-dasharray: 553 0; }
   line-height: 0.96;
   margin: 10px 0 12px;
 }
-.numero-grande .moeda { font-size: 0.42em; font-weight: 700; letter-spacing: -0.01em; margin-right: 0.14em; }
-.numero-grande .cent  { font-size: 0.46em; font-weight: 700; letter-spacing: -0.01em; }
+.numero-grande .moeda { font-size: 0.42em; font-weight: 600; letter-spacing: -0.01em; margin-right: 0.14em; }
+.numero-grande .cent  { font-size: 0.46em; font-weight: 600; letter-spacing: -0.01em; }
 
-.numero-medio { font-size: 23px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; }
+.numero-medio { font-size: 23px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; }
 .numero-medio .cent { font-size: 0.66em; }
 .numero-medio .moeda { font-size: 0.56em; font-weight: 600; color: var(--on-surface-muted); margin-right: 0.2em; }
 
@@ -156,7 +156,7 @@ header.topo {
   gap: 10px;
   padding: 16px var(--gutter) 12px;
 }
-.topo-texto h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.topo-texto h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
 .topo-texto span { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
 .btn.lancar-topo, .logo-rail { display: none; }
 
@@ -165,7 +165,7 @@ header.topo {
   display: inline-flex; align-items: center; gap: 5px;
   margin-left: auto; min-height: 40px; max-width: 42vw; padding: 0 10px 0 13px;
   background: var(--surface-raised); border: 1px solid var(--outline-strong); border-radius: 99px;
-  font-size: 13px; font-weight: 700;
+  font-size: 13px; font-weight: 600;
 }
 .seletor-conta[hidden] { display: none; }
 .seletor-conta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -175,7 +175,7 @@ header.topo {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; min-height: 62px; padding: 10px 14px; text-align: left;
   background: var(--surface-raised); border: 1px solid transparent; border-radius: 16px;
-  font-size: 15px; font-weight: 700;
+  font-size: 15px; font-weight: 600;
 }
 .opcao-conta small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
 .opcao-conta[aria-checked="true"] { border-color: var(--on-surface); }
@@ -205,11 +205,11 @@ nav.barra a.so-rail { display: none; }
 .sem-quebra { white-space: nowrap; }
 .codigo-casa-mini { font-weight: 800; letter-spacing: 0.08em; color: var(--on-surface); }
 .apagar-conta { display: block; width: 100%; min-height: 44px; margin-top: 6px; background: none; border: 0; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); text-decoration: underline; }
-.campo-marcar { display: flex; align-items: flex-start; gap: 12px; margin: 14px 0; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.campo-marcar { display: flex; align-items: flex-start; gap: 12px; margin: 14px 0; font-size: 14.5px; font-weight: 600; cursor: pointer; }
 .campo-marcar input { flex: none; width: 22px; height: 22px; margin-top: 1px; accent-color: var(--signal); }
 .campo-marcar small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
 .mais-opcoes { margin: 4px 0 8px; }
-.mais-opcoes summary { min-height: 44px; display: flex; align-items: center; font-size: 13.5px; font-weight: 700; cursor: pointer; color: var(--on-surface-muted); }
+.mais-opcoes summary { min-height: 44px; display: flex; align-items: center; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--on-surface-muted); }
 .sobre-vero { display: flex; align-items: center; gap: 8px; font-family: "Playfair Display", Georgia, serif; font-size: 20px; font-weight: 800; }
 @media (max-width: 430px) { header.topo > .logotipo .logo-nome { display: none; } }
 
@@ -282,7 +282,7 @@ section.bloco.he {
 .abas::-webkit-scrollbar { display: none; }
 .aba { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; background: none; border: 0; font-size: 14.5px; font-weight: 600; color: var(--on-surface-muted); cursor: pointer; }
 .aba svg.traco { width: 16px; height: 16px; }
-.aba.activo { color: var(--on-surface); font-weight: 800; }
+.aba.activo { color: var(--on-surface); font-weight: 600; }
 .aba.activo::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--on-surface); }
 .aba.escolher { margin-left: auto; }
 .aba.escolher input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; min-height: 0; }
@@ -291,7 +291,7 @@ section.bloco.he {
 .balao.na-ponta-dir { transform: translate(calc(-100% + 14px), -4px); }
 /* Saiu e Ficou em duas colunas de instrumento: rótulo pequeno em cima, valor em baixo,
    um fio entre elas. Antes iam numa frase corrida e o olho não sabia onde parar. */
-.he .frase b { font-weight: 800; }
+.he .frase b { font-weight: 600; }
 
 
 .legenda-dias { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 500; }
@@ -301,7 +301,7 @@ section.bloco.he {
 
 /* Bento (04/11): o ícone e o selo na mesma linha, por cima do número. */
 
-.titulo-cartao { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
+.titulo-cartao { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
 
 /* Rosca: os dois maiores destinos têm tom próprio, os outros partilham um azul. */
 .rosca-e-lista { display: grid; gap: 8px; margin-top: 12px; }
@@ -313,11 +313,11 @@ section.bloco.he {
 .arco.resto { stroke: var(--azul-rosca); }
 .rosca-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); line-height: 1.15; }
 .rosca-centro span { max-width: 118px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rosca-centro b { color: var(--on-surface); font-size: 39px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.rosca-centro b { color: var(--on-surface); font-size: 39px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05; }
 .destino { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; font-size: 14.5px; }
 .destino-nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .destino-nome small { color: var(--on-surface-muted); font-size: 12.5px; font-weight: 500; margin-left: 5px; }
-.destino b { font-weight: 700; }
+.destino b { font-weight: 600; }
 .ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
 .ponto.um { background: var(--on-surface); }
 .ponto.dois { background: var(--signal); }
@@ -327,11 +327,11 @@ section.bloco.he {
 .barras { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; align-items: end; height: 124px; margin-top: 30px; }
 .barras i { display: block; border-radius: 3px 3px 0 0; background: rgba(var(--sinal-rgb), 0.3); }
 .barras i.maior { background: var(--signal); }
-.balao { position: absolute; bottom: 100%; transform: translate(-50%, -4px); background: var(--on-surface); color: var(--surface); font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.balao { position: absolute; bottom: 100%; transform: translate(-50%, -4px); background: var(--on-surface); color: var(--surface); font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
 .eixo { position: relative; height: 22px; margin-top: 5px; padding-top: 3px; font-size: 12px; color: var(--on-surface-muted); border-top: 1px solid var(--outline); }
 .eixo span { position: absolute; }
 .eixo span:last-child { right: 0; }
-.eixo-hoje { transform: translateX(-50%); color: var(--on-surface); font-weight: 700; }
+.eixo-hoje { transform: translateX(-50%); color: var(--on-surface); font-weight: 600; }
 
 /* O que vence: rola para o lado dentro do cartão, nunca a tela inteira. */
 .fila { display: grid; grid-auto-flow: column; grid-auto-columns: 152px; gap: 10px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -339,13 +339,13 @@ section.bloco.he {
 .vence-item { display: flex; flex-direction: column; align-items: flex-start; border-radius: 16px; padding: 13px; background: rgba(var(--tinta-rgb), 0.07); }
 /* Trocar os tokens troca de uma vez o texto, a marca e o traço do botão. */
 .vence-item.aceso { --on-surface: #05113B; --on-surface-muted: #05113B; background: var(--signal); color: #05113B; }
-.vence-nome { display: flex; align-items: center; gap: 7px; max-width: 100%; font-size: 14.5px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.vence-nome { display: flex; align-items: center; gap: 7px; max-width: 100%; font-size: 14.5px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .vence-nome .marca { flex: none; }
-.vence-item strong { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+.vence-item strong { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin-top: 12px; }
 .vence-item small { font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); margin: 1px 0 10px; }
-.vence-item.atrasada small { font-weight: 800; }
+.vence-item.atrasada small { font-weight: 600; }
 
-h2.secao > .rotulo { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; color: var(--on-surface); }
+h2.secao > .rotulo { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--on-surface); }
 h2.secao {
   display: flex;
   align-items: center;
@@ -411,7 +411,7 @@ h2.secao {
 /* O período de Gastos: quatro destinos, um aceso. */
 .periodos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; padding: 3px; border-radius: 99px; background: rgba(5, 17, 59, 0.45); }
 .periodo { min-height: 36px; background: none; border: 0; border-radius: 99px; font-size: 13px; font-weight: 600; }
-.periodo.activo { background: var(--on-surface); color: var(--surface); font-weight: 800; }
+.periodo.activo { background: var(--on-surface); color: var(--surface); font-weight: 600; }
 
 /* A pergunta à IA. */
 .ia-conversa { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 6px; }
@@ -420,11 +420,11 @@ h2.secao {
 .fala.dele { align-self: flex-start; background: var(--surface-raised); }
 
 /* Lançamentos: mês, busca e o cabeçalho de cada dia. */
-.seletor-mes { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -6px -4px; font-size: 15px; font-weight: 800; }
+.seletor-mes { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -6px -4px; font-size: 15px; font-weight: 600; }
 .seta { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; }
 .seta:disabled { opacity: 0.38; cursor: default; }
 input.busca { margin: 12px 0 6px; }
-.soma-busca { font-size: 13px; font-weight: 700; padding: 8px 0 2px; }
+.soma-busca { font-size: 13px; font-weight: 600; padding: 8px 0 2px; }
 .tempo-busca { font-size: 13px; color: var(--on-surface-muted); padding: 2px 0 4px; }
 
 /* Lançar por frase, por voz ou repetindo um gasto. */
@@ -440,12 +440,12 @@ input::placeholder { color: rgba(var(--tinta-rgb), 0.58); opacity: 1; }
 #frase-dica:empty { display: none; }
 .atalhos { display: flex; gap: 8px; width: 100%; overflow-x: auto; padding: 2px 0; }
 .atalho { flex: none; min-height: 40px; padding: 0 12px; background: var(--surface-raised); border: 1px solid var(--outline); border-radius: 99px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.atalho b { font-weight: 800; }
+.atalho b { font-weight: 600; }
 
 /* Agenda e cópia. */
 a.btn.agenda { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; color: var(--on-surface); text-decoration: none; }
 .botoes-aviso { display: flex; flex-wrap: wrap; gap: 8px; }
-h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); padding: 14px 0 4px; }
+h3.dia { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); padding: 14px 0 4px; }
 .linha.dupla { min-height: 60px; align-items: start; }
 .linha.dupla .marca { margin-top: 5px; }
 /* A celula do nome nao corta -- quem corta e o TITULO dentro dela. Se o corte
@@ -471,7 +471,7 @@ h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); pa
 .acao-direita { display: flex; gap: 6px; }
 .linha.conta-linha .sub-linha .sub { min-width: 0; }
 .linha.conta-linha.fraca .ico { color: var(--on-surface-muted); }
-.linha.conta-linha.atrasada .sub { color: var(--on-surface); font-weight: 700; }
+.linha.conta-linha.atrasada .sub { color: var(--on-surface); font-weight: 600; }
 /* `muted`, nao `faint`: esta linha leva a data que decide ("venceu 03/10"). */
 .linha .sub { font-size: 12px; color: var(--on-surface-muted); }
 /* A coluna do dinheiro alinha SEMPRE.
@@ -505,7 +505,7 @@ h3.dia { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); pa
    linha ("Paguei" a 84 numa e a 140 na outra) e a lista faz ziguezague. */
 .linha .sub-linha .sub { min-width: 104px; }
 .linha .extra-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 7px; }
-.linha.atrasada .nome, .linha.atrasada .valor { font-weight: 800; }
+.linha.atrasada .nome, .linha.atrasada .valor { font-weight: 600; }
 .linha.fraca { color: var(--on-surface-muted); }
 .linha.fraca .valor { font-weight: 500; }
 
@@ -576,7 +576,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* O nome de uma PESSOA nao e um rotulo de regiao. Em maiusculas com
    letter-spacing, "TIA ROSA" lia-se como o titulo de uma secção, nao como
    alguem. E eram mais duas caixas-altas na tela, no meu tique de sempre. */
-.nome-pessoa { display: block; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.nome-pessoa { display: block; font-size: 15px; font-weight: 600; margin-bottom: 8px; }
 .btn:disabled { opacity: 0.38; cursor: default; }
 .btn[hidden], .campo[hidden] { display: none; }
 .btn.apagar { width: 100%; margin: 4px 0 24px; }
@@ -598,7 +598,7 @@ nav.barra a {
   text-decoration: none;
   font-size: 11.5px; font-weight: 600;
 }
-nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
+nav.barra a.activo { color: var(--on-surface); font-weight: 600; }
 
 /* Lancar: a accao mais repetida da casa, sempre a um toque.
    ⚠️ Ja foi botao redondo a flutuar no canto, e tapava o valor da conta que vence
@@ -646,14 +646,14 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
    Ordem de banco: o tipo, o valor ao centro, o teclado, os detalhes, e um botão só,
    preso em baixo, que diz o que vai acontecer ("Lançar saída de R$ 45,90"). */
 .folha .cabeca { min-height: 60px; }
-.folha-titulo { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.folha-titulo { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .fechar-x { width: 40px; height: 40px; display: grid; place-items: center; background: var(--surface-raised); border: 0; border-radius: 50%; color: var(--on-surface); cursor: pointer; }
 .fechar-x svg.traco { width: 18px; height: 18px; }
 .tipo-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 99px; background: var(--surface-dim); max-width: 340px; margin: 0 auto; }
 .tipo-seg[hidden] { display: none; }
-.tipo-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; background: none; border: 0; border-radius: 99px; font-size: 14.5px; font-weight: 700; color: var(--on-surface-muted); cursor: pointer; }
+.tipo-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; background: none; border: 0; border-radius: 99px; font-size: 14.5px; font-weight: 600; color: var(--on-surface-muted); cursor: pointer; }
 .tipo-seg button svg.traco { width: 17px; height: 17px; }
-.tipo-seg button.activo { background: var(--on-surface); color: var(--surface); font-weight: 800; }
+.tipo-seg button.activo { background: var(--on-surface); color: var(--surface); font-weight: 600; }
 .valor-centro { text-align: center; padding: 22px 0 14px; }
 .valor-centro .numero-grande { margin: 6px 0 0; }
 .valor-centro .numero-grande.zero { opacity: 0.4; }
@@ -668,12 +668,12 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 800; }
 .chips::-webkit-scrollbar { display: none; }
 .ficha-op { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; background: var(--surface-raised); border: 1px solid var(--outline); border-radius: 99px; font-size: 13.5px; font-weight: 600; color: var(--on-surface); white-space: nowrap; cursor: pointer; }
 .ficha-op svg.traco { width: 16px; height: 16px; color: var(--on-surface-muted); }
-.ficha-op.activo { background: var(--on-surface); border-color: var(--on-surface); color: var(--surface); font-weight: 800; }
+.ficha-op.activo { background: var(--on-surface); border-color: var(--on-surface); color: var(--surface); font-weight: 600; }
 .ficha-op.activo svg.traco { color: var(--surface); }
 .escondido { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; opacity: 0; pointer-events: none; overflow: hidden; }
 #lancar-data:not(.escondido) { margin-top: 8px; }
 .rodape-folha { padding: 12px var(--gutter) 14px; border-top: 1px solid var(--outline); background: var(--surface); }
-.rodape-folha .btn { width: 100%; min-height: 54px; font-size: 15.5px; font-weight: 800; }
+.rodape-folha .btn { width: 100%; min-height: 54px; font-size: 15.5px; font-weight: 600; }
 
 /* campos */
 label.campo { display: block; margin: 14px 0; }
@@ -695,7 +695,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   border: 1px solid var(--outline-strong);
   font-size: 12.5px; color: var(--on-surface-muted);
 }
-.aviso.pesado { font-weight: 700; color: var(--on-surface); }
+.aviso.pesado { font-weight: 600; color: var(--on-surface); }
 .aviso .btn { margin-left: auto; flex: 0 0 auto; }
 
 .desfazer {
@@ -759,7 +759,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   .seletor-conta { max-width: 240px; min-height: 44px; font-size: 14px; }
   .icone-topo { display: none; }
   nav.barra a.so-rail { display: flex; }
-  .btn.lancar-topo { display: inline-flex; min-height: 44px; padding: 0 20px; font-size: 14px; font-weight: 800; }
+  .btn.lancar-topo { display: inline-flex; min-height: 44px; padding: 0 20px; font-size: 14px; font-weight: 600; }
   nav.barra {
     grid-area: rail;
     position: static;
@@ -816,10 +816,10 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .heroi-dois > div + div { padding-left: 18px; border-left: 1px solid rgba(var(--tinta-rgb), 0.24); }
 .heroi-dois span { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; }
 .heroi-dois span svg.traco { width: 15px; height: 15px; }
-.heroi-dois b { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+.heroi-dois b { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; }
 .heroi-dois small { font-size: 12.5px; font-weight: 500; opacity: 0.85; }
 .heroi-mes { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(var(--tinta-rgb), 0.2); font-size: 13.5px; }
-.heroi-mes b { font-weight: 800; }
+.heroi-mes b { font-weight: 600; }
 .barra-fina { height: 5px; margin: 8px 0 6px; max-width: 220px; border-radius: 99px; background: rgba(var(--tinta-rgb), 0.22); overflow: hidden; }
 .barra-fina i { display: block; height: 100%; border-radius: 99px; background: var(--on-surface); }
 
@@ -841,7 +841,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 
 /* cabeçalho de cartão com ação à direita */
 .cabeca-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.ver-todos { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 13px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
+.ver-todos { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 13px; font-weight: 600; color: var(--on-surface); text-decoration: none; }
 .nota { display: block; margin-top: 6px; font-size: 13px; font-weight: 500; color: var(--on-surface-muted); }
 .numero-grande.valor-medio { font-size: 40px; margin: 8px 0 0; }
 
@@ -850,19 +850,19 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .contas-fichas { min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0 14px; }
 .conta-ficha { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px; border-radius: 16px; background: rgba(var(--tinta-rgb), 0.06); }
 .conta-ficha small { font-size: 12px; font-weight: 600; color: var(--on-surface-muted); }
-.conta-ficha b { font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.conta-ficha b { font-size: 14px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .conta-ficha span { font-size: 13px; font-weight: 500; }
 .conta-ficha.acesa { background: var(--signal); color: var(--surface); }
 .conta-ficha.acesa small { color: var(--surface); opacity: 0.75; }
-.btn.acento { background: var(--signal); border-color: var(--signal); color: var(--surface); font-weight: 800; min-height: 46px; padding: 0 20px; }
-.btn.contorno { background: none; border: 1px solid var(--outline-strong); color: var(--on-surface); font-weight: 800; min-height: 46px; padding: 0 20px; }
+.btn.acento { background: var(--signal); border-color: var(--signal); color: var(--surface); font-weight: 600; min-height: 46px; padding: 0 20px; }
+.btn.contorno { background: none; border: 1px solid var(--outline-strong); color: var(--on-surface); font-weight: 600; min-height: 46px; padding: 0 20px; }
 .contas-cartao .btn.contorno { width: 100%; margin-top: auto; }
 
 /* a lista do período, em navy */
 .lista-inicio .cabeca-linha { margin-bottom: 8px; }
 .pilulas { display: inline-flex; gap: 2px; padding: 4px; border-radius: 99px; background: var(--surface); }
 .pilula { min-height: 34px; padding: 0 14px; border: 0; border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.pilula span { margin-left: 4px; font-weight: 800; }
+.pilula span { margin-left: 4px; font-weight: 600; }
 .pilula.activo { background: var(--on-surface); color: var(--surface); }
 .lista-itens { display: flex; flex-direction: column; }
 .item { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 8px 4px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 16px; }
@@ -879,9 +879,9 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .item-apagar:hover, .item-apagar:focus-visible { background: rgba(var(--tinta-rgb), 0.08); color: var(--on-surface); }
 .item-ico { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--tinta-rgb), 0.08); }
 .item-ico svg.traco { width: 17px; height: 17px; }
-.item-nome { min-width: 0; font-size: 14.5px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.item-nome { min-width: 0; font-size: 14.5px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .item-nome small { display: block; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
-.item-valor { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.item-valor { font-size: 15px; font-weight: 600; white-space: nowrap; }
 
 /* para onde foi: a rosca e uma linha por destino */
 .rosca-destinos { display: grid; gap: 14px; margin-top: 12px; justify-items: center; }
@@ -893,8 +893,8 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .destino-c-topo .item-ico { width: 30px; height: 30px; }
 .destino-c-nome { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .destino-c-nome .ponto { margin-right: 7px; }
-.destino-c-topo small { font-size: 12.5px; font-weight: 700; color: var(--on-surface-muted); }
-.destino-c .kpi-valor { margin: 0; font-size: 16px; font-weight: 700; white-space: nowrap; }
+.destino-c-topo small { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
+.destino-c .kpi-valor { margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
 .destino-c .kpi-barra { grid-column: 1 / -1; height: 4px; margin-top: 8px; border-radius: 99px; background: rgba(var(--tinta-rgb), 0.12); overflow: hidden; }
 .destino-c .kpi-barra i { display: block; height: 100%; border-radius: 99px; background: var(--signal); }
 .destino-c.um .kpi-barra i { background: var(--on-surface); }
@@ -915,12 +915,12 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .atalhos-rotulo { flex: none; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); margin-right: 2px; }
 .atalho { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--outline-strong); background: var(--surface-raised); color: var(--on-surface); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .atalho svg.traco { width: 15px; height: 15px; }
-.atalho b { font-weight: 800; }
+.atalho b { font-weight: 600; }
 .atalho.e-entrada svg.traco, .atalho.e-entrada b { color: var(--signal); }
 .atalho:active { transform: scale(0.97); }
 /* quanto da próxima conta o que sobrou hoje já cobre */
 .cobre { margin: -4px 0 14px; font-size: 13px; color: var(--on-surface-muted); }
-.cobre b { color: var(--signal); font-weight: 800; }
+.cobre b { color: var(--signal); font-weight: 600; }
 .barra-cobre { height: 4px; margin-top: 8px; border-radius: 99px; background: rgba(var(--tinta-rgb), 0.12); overflow: hidden; }
 .barra-cobre i { display: block; height: 100%; border-radius: 99px; background: var(--signal); }
 .painel.gastos > .filtros { justify-self: start; }
@@ -973,7 +973,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   .logo-rail { padding: 0; margin-right: auto; }
   .nav-pilulas { display: flex; gap: 2px; padding: 5px; border-radius: 99px; background: var(--surface-raised); }
   .nav-pilulas a { min-height: 40px; padding: 0 18px; border-radius: 99px; font-size: 14px; font-weight: 600; color: var(--on-surface-muted); }
-  nav.barra .nav-pilulas a.activo { background: rgba(var(--sinal-rgb), 0.18); color: var(--signal); font-weight: 800; }
+  nav.barra .nav-pilulas a.activo { background: rgba(var(--sinal-rgb), 0.18); color: var(--signal); font-weight: 600; }
   .nav-pilulas a svg.traco { width: 17px; height: 17px; }
   nav.barra a.so-rail { margin-left: auto; width: 46px; min-height: 46px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--outline-strong); font-size: 0; gap: 0; }
   nav.barra a.so-rail.activo { background: var(--surface-raised); }
@@ -1023,7 +1023,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .mes-cal .sem { font-size: 11px; font-weight: 600; color: var(--on-surface-faint); text-align: center; padding-bottom: 2px; }
 .mes-cal .d { aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--on-surface-muted); }
 .mes-cal .d.futuro { color: var(--on-surface-faint); }
-.mes-cal .d.lancou { background: var(--signal); color: var(--surface); font-weight: 700; cursor: pointer; }
+.mes-cal .d.lancou { background: var(--signal); color: var(--surface); font-weight: 600; cursor: pointer; }
 .mes-cal .d.hoje { box-shadow: 0 0 0 2px var(--signal); }
 .mes-cal .d.lancou.hoje { box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--signal); }
 /* ── TELA ÚNICA no computador, 3.ª versão (06/11 17h30) ─────────────────────────
@@ -1123,7 +1123,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 
   /* o "+N" que o caberSemRolar() põe no lugar do que não coube */
   .destinos > .mais-n { justify-self: start; margin-top: 0; }
-  .mais-n { display: inline-flex; align-self: flex-start; align-items: center; min-height: 30px; margin-top: 6px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 13px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
+  .mais-n { display: inline-flex; align-self: flex-start; align-items: center; min-height: 30px; margin-top: 6px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--outline-strong); font-size: 13px; font-weight: 600; color: var(--on-surface); text-decoration: none; }
 }
 
 /* ── O AVISO QUE RODA (07/11): só no computador, no lugar da rosca ────────────────
@@ -1134,16 +1134,16 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .roda { display: flex; flex-direction: column; }
 .roda-corpo { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .roda-topo { display: flex; align-items: center; gap: 8px; }
-.roda-rotulo { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 99px; font-size: 12px; font-weight: 800; letter-spacing: .01em; border: 1px solid var(--outline-strong); color: var(--on-surface); }
+.roda-rotulo { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: .01em; border: 1px solid var(--outline-strong); color: var(--on-surface); }
 .roda-rotulo.conta { background: var(--on-surface); color: var(--surface); border-color: transparent; }
 .roda-rotulo.recebe { background: rgba(var(--sinal-rgb), .16); color: var(--signal); border-color: transparent; }
-.roda-conta { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--on-surface-muted); font-variant-numeric: tabular-nums; }
+.roda-conta { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--on-surface-muted); font-variant-numeric: tabular-nums; }
 .roda-prox { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--outline-strong); border-radius: 50%; background: none; color: var(--on-surface); cursor: pointer; }
 .roda-prox svg.traco { width: 15px; height: 15px; }
 .roda-prox:hover, .roda-prox:focus-visible { background: rgba(var(--tinta-rgb), .08); }
 .roda-meio { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: auto; color: inherit; text-decoration: none; }
-.roda-nome { min-width: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.roda-valor { flex: none; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.roda-nome { min-width: 0; font-size: 24px; font-weight: 600; letter-spacing: -.01em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.roda-valor { flex: none; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .roda-sub { margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); }
 .roda-sub.perto { color: var(--on-surface); }
 .roda-tempo { display: block; height: 3px; margin-top: auto; border-radius: 99px; background: rgba(var(--tinta-rgb), .10); overflow: hidden; }
@@ -1220,7 +1220,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   .painel.gastos .linha.dupla.compacta, .painel.gastos .grupos .linha { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
 
   /* Contas: a próxima a vencer ao lado da faixa */
-  .c-prox-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: auto; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .c-prox-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: auto; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .c-prox-linha b:first-child { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .c-prox small { margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); }
   .c-prox .btn { margin-top: auto; min-height: 36px; }
@@ -1235,7 +1235,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 
   /* as páginas "1 2 3 ›" */
   .paginas { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: auto; padding-top: 8px; }
-  .pag-n, .pag-seta { min-width: 30px; height: 30px; padding: 0 8px; display: inline-grid; place-items: center; border: 0; border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color .2s, color .2s; }
+  .pag-n, .pag-seta { min-width: 30px; height: 30px; padding: 0 8px; display: inline-grid; place-items: center; border: 0; border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color .2s, color .2s; }
   .pag-n:hover, .pag-seta:hover:not(:disabled), .pag-n:focus-visible, .pag-seta:focus-visible { background: rgba(var(--tinta-rgb), .08); color: var(--on-surface); }
   .pag-n.activo { background: var(--on-surface); color: var(--surface); }
   .pag-seta:disabled { opacity: .35; cursor: default; }
@@ -1264,13 +1264,13 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   .pa-arco.resto { stroke: var(--azul-fundo); }
   .pa-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   .pa-centro span { max-width: 70%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--on-surface-muted); }
-  .pa-centro b { margin-top: 3px; font-size: 28px; font-weight: 800; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-  .pa-centro b small { margin-left: 1px; font-size: .5em; font-weight: 700; color: var(--on-surface-muted); }
+  .pa-centro b { margin-top: 3px; font-size: 28px; font-weight: 600; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .pa-centro b small { margin-left: 1px; font-size: .5em; font-weight: 600; color: var(--on-surface-muted); }
   .pa-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
   .pa-tit { font-size: 13px; font-weight: 600; color: var(--on-surface-muted); }
   .numero-grande.pa-valor { align-self: flex-start; margin: 6px 0 0; padding: 0; border: 0; background: none; color: inherit; font-family: inherit; font-size: 30px; line-height: 1; text-align: left; cursor: pointer; }
   .pa-sub { margin-top: 4px; font-size: 12px; color: var(--on-surface-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pa-mais { align-self: flex-start; margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--on-surface); text-decoration: none; }
+  .pa-mais { align-self: flex-start; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--on-surface); text-decoration: none; }
   .pa-mais span { color: var(--on-surface-muted); }
 }
 
@@ -1318,7 +1318,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .cal-volta { height: 30px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--outline-strong); background: none; color: var(--on-surface); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .cal-seta:hover, .cal-volta:hover { background: rgba(var(--tinta-rgb), 0.08); }
 .mes-cal .frase b { color: var(--on-surface); }
-.mes-cal .frase .mais { font-weight: 700; color: var(--on-surface); }
+.mes-cal .frase .mais { font-weight: 600; color: var(--on-surface); }
 .mes-cal .d { position: relative; cursor: pointer; }
 .mes-cal .d:hover { background: rgba(var(--tinta-rgb), 0.08); }
 .mes-cal .d.lancou:hover { background: var(--signal); }
@@ -1330,10 +1330,10 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .agenda-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 4px 6px; border: 0; border-radius: 12px; background: none; color: var(--on-surface); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .agenda-item svg.traco { width: 18px; height: 18px; color: var(--signal); }
 .agenda-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agenda-item b { font-weight: 800; }
+.agenda-item b { font-weight: 600; }
 .agenda-mais { padding: 0 6px 2px 34px; font-size: 12.5px; color: var(--on-surface-muted); }
 
-.dia-feriado { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; font-weight: 700; }
+.dia-feriado { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; font-weight: 600; }
 .marca-feriado { width: 16px; height: 16px; border-radius: 50%; border: 1.5px dashed var(--on-surface); flex: none; }
 .dia-lista { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .dia-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--outline); }
@@ -1342,7 +1342,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .dia-item-txt small { font-size: 12.5px; color: var(--on-surface-muted); }
 .dia-contas { margin: 4px 0 12px; font-size: 14px; color: var(--on-surface-muted); }
 .dia-ver { width: 100%; margin: 4px 0 6px; }
-.dia-novo { margin: 18px 0 0; font-size: 13px; font-weight: 700; color: var(--on-surface-muted); text-transform: none; }
+.dia-novo { margin: 18px 0 0; font-size: 13px; font-weight: 600; color: var(--on-surface-muted); text-transform: none; }
 
 /* ── CONTA DIVIDIDA (10/11) ── */
 .extra-linha .divisao { flex-basis: 100%; font-size: 12.5px; color: var(--on-surface-muted); }
@@ -1476,3 +1476,12 @@ section.bloco.he {
     background: linear-gradient(to top, var(--surface) 30%, transparent);
   }
 }
+
+
+/* ══ ACABAMENTO, ETAPA 3 · LETRA COM CARGOS (11/11, v41) ═════════════════════════════════
+   Satori Graphics, Método Destilado §4: "corpo 400 · subtítulo 600 · título 800", uma família
+   só, saltos pelo peso. Contados a 10/11: 72 de 120 pesos eram 700 ou 800 — quando tudo grita,
+   nada é principal. Agora: 800 só no número rei (.numero-grande), no logotipo e no código da
+   casa; 600 em tudo o que era 700/800 (valores, títulos de cartão, estados ativos, botões);
+   400/500 ficam como estavam. Os ativos continuam a ler-se pela cor e pelo fundo, não pelo peso.
+   Feito por substituição linha a linha (python), não por regra por cima: a camada velha morre. */
