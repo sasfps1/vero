@@ -1505,3 +1505,22 @@ section.bloco.he {
 }
 .linha .btn.pequeno[data-acao="lembrar"] { color: var(--on-surface); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--outline-strong); }
 .linha .btn.pequeno[data-acao="lembrar"]:hover, .linha .btn.pequeno[data-acao="perdoar"]:hover { background: rgba(var(--tinta-rgb), 0.08); }
+
+/* ══ ACABAMENTO, ETAPA 5 · RESPOSTA AO TOQUE (11/11, v43) ═══════════════════════════════
+   Uma curva só para tudo (sai depressa, pousa devagar), 140-240 ms. O botão afunda um
+   pouco ao toque; o que é tocável acende ao passar; as folhas sobem 12 px e aparecem; o
+   número rei conta (app.js, contarNumero). Com "reduzir movimento" no aparelho, nada
+   se mexe. */
+:root { --curva: cubic-bezier(.2, .8, .2, 1); }
+.btn, .controle, .aba, .pilula, .ficha-op, .nav-pilulas a, nav.barra a, .cal-seta, .roda-prox, .pag-n, .pag-seta, .lancar-centro, .item, .linha.tocavel {
+  transition: transform .14s var(--curva), background-color .2s var(--curva), color .2s var(--curva), border-color .2s var(--curva), box-shadow .2s var(--curva);
+}
+.btn:active, .controle:active, .aba:active, .pilula:active, .ficha-op:active, .cal-seta:active, .roda-prox:active, .pag-n:active, .lancar-centro:active { transform: scale(.96); }
+.item:active, .linha.tocavel:active { transform: scale(.99); }
+.folha:not([hidden]) { animation: folha-entra .24s var(--curva) both; }
+@keyframes folha-entra { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .controle, .aba, .pilula, .ficha-op, .nav-pilulas a, nav.barra a, .cal-seta, .roda-prox, .pag-n, .pag-seta, .lancar-centro, .item, .linha.tocavel { transition: none; }
+  .btn:active, .controle:active, .aba:active, .pilula:active, .ficha-op:active, .cal-seta:active, .roda-prox:active, .pag-n:active, .lancar-centro:active, .item:active, .linha.tocavel:active { transform: none; }
+  .folha:not([hidden]) { animation: none; }
+}

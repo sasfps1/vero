@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 42;
+const VERSAO = 43;
 let soMemoria = false;
 
 const VAZIO = {
@@ -3338,6 +3338,39 @@ document.addEventListener('visibilitychange', function () {
 
 if (!location.hash) location.hash = '#/inicio';
 desenhar();
+
+/* ── ACABAMENTO, ETAPA 5 · RESPOSTA (11/11, v42→v43) ─────────────────────────────────────
+   O número rei CONTA até o valor novo quando muda (não na primeira pintura nem ao trocar de
+   tela: só quando o mesmo número muda debaixo dos olhos dele, que é quando a contagem diz
+   "isto aconteceu"). 420 ms, a desacelerar. Com "reduzir movimento" no aparelho, ou com os
+   valores escondidos, salta direto. Mexe só no texto do inteiro, entre o R$ e os centavos. */
+const numeroAntes = {};
+function contarNumero() {
+  if (typeof document === 'undefined' || !document.querySelector) return;
+  const el = document.querySelector('.he .numero-grande');
+  if (!el || !el.childNodes) return;
+  let txt = null;
+  for (let i = 0; i < el.childNodes.length; i++) if (el.childNodes[i].nodeType === 3 && /\d/.test(el.childNodes[i].nodeValue)) { txt = el.childNodes[i]; break; }
+  const chave = (typeof location !== 'undefined' ? location.hash : '') || '#/inicio';
+  if (!txt) { delete numeroAntes[chave]; return; }
+  const sinal = /^[−-]/.test(txt.nodeValue) ? '−' : '';
+  const novo = Number(txt.nodeValue.replace(/\D/g, '')) * (sinal ? -1 : 1);
+  const antes = numeroAntes[chave];
+  numeroAntes[chave] = novo;
+  const calmo = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (antes === undefined || antes === novo || calmo || S.config.oculto || !window.requestAnimationFrame) return;
+  const t0 = performance.now(), dur = 420;
+  (function passo(t) {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    const v = Math.round(antes + (novo - antes) * e);
+    txt.nodeValue = (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('pt-BR');
+    if (k < 1 && txt.parentNode) requestAnimationFrame(passo);
+  })(t0);
+}
+if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+  const desenharSemConta = desenhar;
+  desenhar = function () { desenharSemConta.apply(this, arguments); try { contarNumero(); } catch (e) { /* o número fica, só não conta */ } };
+}
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(function () { /* abre igual sem isto */ });
