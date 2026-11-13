@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 43;
+const VERSAO = 44;
 let soMemoria = false;
 
 const VAZIO = {
@@ -96,13 +96,48 @@ function diasNoMes(mes) {
 }
 function diasRestantes() {
   const h = hoje();
-  return Math.max(1, diasNoMes(mesDe(h)) - diaDe(h) + 1);
+  return Math.max(1, diasEntre(h, cicloDe(h).ate) + 1);
 }
 function dataMais(dias) {
   const d = new Date();
   d.setDate(d.getDate() + dias);
   return iso(d);
 }
+
+/* ── O MÊS COMEÇA QUANDO O SALÁRIO CAI (11/11, pedido dele) ─────────────────────────────
+   "o mês ele vai começar a partir de quando ela recebe ... dia 5, só que tem vez que o dia
+   5 não cai no dia útil ... se ele tiver como calcular o dia útil que vai receber". Lente:
+   o fechamento da fatura do cartão, um "mês" que não começa no dia 1. A Ana recebe no 5º
+   dia útil: de segunda a sexta, sem os feriados nacionais que o Vero já calcula. Sábado
+   fica de fora (ele não sabia dizer; cada mês pode ser corrigido à mão). Desligado, o
+   ciclo É o mês do calendário, e tudo fica exatamente como era: as provas antigas são a
+   prova disso. Fica em S.config.ciclo = { ligado, corrigido: { 'AAAA-MM': 'AAAA-MM-DD' } }. */
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function cicloLigado() { return !!(S.config.ciclo && S.config.ciclo.ligado); }
+function quintoDiaUtil(mes) {
+  const a = Number(mes.slice(0, 4)), m = Number(mes.slice(5, 7)), fim = diasNoMes(mes);
+  let n = 0, d = 0, data = mes + '-01';
+  while (n < 5 && d < fim) {
+    d++; data = mes + '-' + p2(d);
+    const w = new Date(a, m - 1, d).getDay();
+    if (w === 0 || w === 6 || feriadoEm(data)) continue;
+    n++;
+  }
+  return data;
+}
+function salarioCorrigido(mes) { const c = S.config.ciclo && S.config.ciclo.corrigido; return (c && c[mes]) || ''; }
+function diaDoSalario(mes) { return salarioCorrigido(mes) || quintoDiaUtil(mes); }
+function vespera(data) { const x = dataDe(data); return iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() - 1)); }
+function dataCurta(data) { return diaDe(data) + ' ' + MESES_CURTOS[Number(data.slice(5, 7)) - 1]; }
+/** O período que contém `data`. `mes` é o mês em que o ciclo abre (o do salário). */
+function cicloDe(data) {
+  let mes = mesDe(data);
+  if (!cicloLigado()) return { de: mes + '-01', ate: mes + '-' + p2(diasNoMes(mes)), mes: mes, nome: MESES[Number(mes.slice(5, 7)) - 1] + ' de ' + mes.slice(0, 4) };
+  if (data < diaDoSalario(mes)) mes = mesSomado(mes, -1);
+  const de = diaDoSalario(mes), ate = vespera(diaDoSalario(mesSeguinte(mes)));
+  return { de: de, ate: ate, mes: mes, nome: dataCurta(de) + ' a ' + dataCurta(ate) };
+}
+function rotuloDoMes() { return cicloLigado() ? 'Desde o salário' : 'No mês'; }
 
 /** Centimos -> partes, para o numero poder ser grande e os centimos pequenos. */
 function partes(c) {
@@ -265,6 +300,30 @@ function contasPorPagar(mes) {
   });
 }
 
+/** Contas que vencem dentro do ciclo de hoje e ainda faltam, a mais perto primeiro. Com
+    o ciclo desligado é exatamente contasPorPagar(mês de hoje). O pagamento continua guardado
+    pelo mês do vencimento (pagos['2026-12']): nada migra, nada muda na sincronização. */
+function contasDoCiclo() {
+  const ci = cicloDe(hoje()), lista = [];
+  const meses = mesDe(ci.de) === mesDe(ci.ate) ? [mesDe(ci.de)] : [mesDe(ci.de), mesDe(ci.ate)];
+  meses.forEach(function (mes) {
+    contasPorPagar(mes).forEach(function (c) {
+      const venc = vencimentoEm(c, mes);
+      if (venc >= ci.de && venc <= ci.ate) lista.push({ c: c, mes: mes, venc: venc, centavos: faltaDaConta(c, mes) });
+    });
+  });
+  return lista.sort(function (a, b) { return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
+}
+
+/** Em que mês de conta cai a ocorrência desta conta dentro do ciclo de hoje. Desligado, é
+    sempre o mês de hoje (como era). Ligado, de 9/11 a 6/12, o aluguel do dia 5 é o de
+    DEZEMBRO (o de novembro venceu antes do salário e vai para "atrasadas"). */
+function mesDaContaNoCiclo(c) {
+  const ci = cicloDe(hoje()), m1 = mesDe(ci.de);
+  if (!cicloLigado()) return mesDe(hoje());
+  return vencimentoEm(c, m1) >= ci.de ? m1 : mesDe(ci.ate);
+}
+
 function mesSeguinte(mes) {
   const a = Number(mes.slice(0, 4)), m = Number(mes.slice(5, 7));
   return m === 12 ? (a + 1) + '-01' : a + '-' + p2(m + 1);
@@ -283,11 +342,18 @@ function mesDoPagamento(l) {
     `desde` é o primeiro mês que a conta cobra: quem o não tem nunca aparece atrasado,
     porque um alarme falso sobre dinheiro é pior do que nenhum. */
 function contasAtrasadas() {
-  const atual = mesDe(hoje()), lista = [];
+  // "Atrasada" = venceu antes de o ciclo de hoje abrir. Desligado, o ciclo abre no dia 1 e
+  // isto é o "mês passado" de sempre. Ligado, a conta do dia 2 que ficou por pagar antes do
+  // salário de dia 9 é atrasada, mesmo sem `desde`: senão sumia entre dois ciclos.
+  const ci = cicloDe(hoje()), ultimo = mesDe(ci.ate), lista = [];
   contasVistas().forEach(function (c) {
-    if (c.ativa === false || !/^\d{4}-\d{2}$/.test(c.desde || '')) return;
-    for (let m = c.desde; m < atual; m = mesSeguinte(m)) {
-      if (faltaDaConta(c, m) > 0) lista.push({ conta: c, mes: m, venc: vencimentoEm(c, m), centavos: faltaDaConta(c, m) });
+    if (c.ativa === false) return;
+    const temDesde = /^\d{4}-\d{2}$/.test(c.desde || '');
+    if (!temDesde && !cicloLigado()) return;
+    for (let m = temDesde ? c.desde : mesDe(ci.de); m <= ultimo; m = mesSeguinte(m)) {
+      const venc = vencimentoEm(c, m);
+      if (venc >= ci.de) break;
+      if (faltaDaConta(c, m) > 0) lista.push({ conta: c, mes: m, venc: venc, centavos: faltaDaConta(c, m) });
     }
   });
   return lista.sort(function (a, b) { return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
@@ -301,7 +367,9 @@ function abertos(direcao) {
 
 /** O que EU devo e que pesa neste mes: prometido ate ao fim do mes, ou sem data. */
 function euDevoNoMes(mes) {
-  const limite = mes + '-' + p2(diasNoMes(mes));
+  return euDevoAte(mes + '-' + p2(diasNoMes(mes)));
+}
+function euDevoAte(limite) {
   return abertos('peguei')
     .filter(function (e) { return !e.prometida || e.prometida <= limite; })
     .reduce(function (a, e) { return a + falta(e); }, 0);
@@ -358,15 +426,16 @@ function resumoDoMes(mes) {
 }
 
 function calc() {
-  const mes = mesDe(hoje());
-  const { entradas, saidas } = resumoDoMes(mes);
+  const mes = mesDe(hoje()), ciclo = cicloDe(hoje());
+  const { entradas, saidas } = resumoEntre(ciclo.de, ciclo.ate);
   // A conta atrasada ainda vai sair: sem ela aqui, o limite do dia prometia esse dinheiro.
-  const contasFalta = contasPorPagar(mes).reduce(function (a, c) { return a + faltaDaConta(c, mes); }, 0) +
+  const contasFalta = contasDoCiclo().reduce(function (a, x) { return a + x.centavos; }, 0) +
     contasAtrasadas().reduce(function (a, x) { return a + x.centavos; }, 0);
-  const euDevo = euDevoNoMes(mes);
+  const euDevo = euDevoAte(ciclo.ate);
   const livre = entradas - saidas - contasFalta - euDevo;
   return {
     mes: mes,
+    ciclo: ciclo,
     entradas: entradas,
     saidas: saidas,
     contasFalta: contasFalta,
@@ -383,6 +452,15 @@ function calc() {
 
 /** Quanto saiu em cada dia do mês. Conta as mesmas saídas de calc(), para as
     barras do Início somarem exactamente o "saiu". */
+function gastoPorDiaEntre(de, ate) {
+  const dias = [];
+  for (let d = de; d <= ate; d = diaSeguinte(d)) dias.push({ data: d, v: 0 });
+  const pos = {}; dias.forEach(function (x, i) { pos[x.data] = i; });
+  for (const l of lancamentosVistos()) {
+    if (l.tipo === 'saida' && pos[l.data] !== undefined) dias[pos[l.data]].v += l.centavos;
+  }
+  return dias;
+}
 function gastoPorDia(mes) {
   const dias = new Array(diasNoMes(mes)).fill(0);
   for (const l of lancamentosVistos()) {
@@ -584,6 +662,7 @@ function intervalo(tipo, ref) {
     return { de: de, ate: ate, nome: porExtensoData(de) + ' a ' + porExtensoData(ate) };
   }
   if (tipo === 'ano') return { de: ref.slice(0, 4) + '-01-01', ate: ref.slice(0, 4) + '-12-31', nome: ref.slice(0, 4) };
+  if (cicloLigado()) return cicloDe(ref);
   const mes = mesDe(ref);
   return { de: mes + '-01', ate: mes + '-' + p2(diasNoMes(mes)), nome: MESES[Number(mes.slice(5, 7)) - 1] + ' de ' + mes.slice(0, 4) };
 }
@@ -593,6 +672,7 @@ function refAndada(d) {
   if (periodoTipo === 'dia') return iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + d));
   if (periodoTipo === 'semana') return iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + d * 7));
   if (periodoTipo === 'ano') return iso(new Date(x.getFullYear() + d, 0, 1));
+  if (cicloLigado()) return diaDoSalario(mesSomado(cicloDe(ref).mes, d));
   return mesSomado(mesDe(ref), d) + '-01';
 }
 /** O dia mais antigo com lançamento: as setas não levam a períodos vazios. */
@@ -1081,6 +1161,7 @@ let inicioVista = 'hoje', inicioDia = null, inicioFiltro = 'todos';
 function periodoInicio() {
   if (inicioVista === 'mes') {
     const mes = mesDe(hoje());
+    if (cicloLigado()) { const ci = cicloDe(hoje()); return { de: ci.de, ate: ci.ate, quando: 'desde o salário (' + dataCurta(ci.de) + ')', curto: 'desde o salário' }; }
     return { de: mes + '-01', ate: mes + '-' + p2(diasNoMes(mes)), quando: 'em ' + MESES[Number(mes.slice(5, 7)) - 1], curto: 'este mês' };
   }
   const d = inicioVista === 'dia' && inicioDia ? inicioDia : hoje();
@@ -1138,7 +1219,7 @@ function telaInicio(n) {
         '<div class="barra-fina" role="img" aria-label="Saiu ' + pct + '% do que entrou"><i style="width:' + pct + '%"></i></div>' +
         '<small>' + (r.entradas ? pct + '% do que entrou' : r.saidas ? 'Só saiu dinheiro' : 'Nada saiu') + '</small></div>' +
     '</div>' +
-    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
+    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">' + rotuloDoMes() + ': entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
   '</section>';
   const heroi = celular ? heroiCel : '<section class="bloco he heroi' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
     '<span class="rotulo">Entrou ' + p.quando + '</span>' +
@@ -1150,7 +1231,7 @@ function telaInicio(n) {
       '<div class="sobrou"><span>Sobrou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b><small>' +
         (podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—') + '</small></div>' +
     '</div>' +
-    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">No mês: entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
+    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">' + rotuloDoMes() + ': entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
   '</section>';
 
   return '<div class="painel inicio">' +
@@ -1338,9 +1419,9 @@ function itensRoda() {
     const pz = prazo(x.venc, 'Venceu', '', '', '');
     itens.push({ k: 'c' + x.conta.id + x.mes, tipo: 'conta', rotulo: 'Falta pagar', nome: x.conta.nome, centavos: x.centavos, dd: pz.dd, sub: pz.txt, ir: '#/contas' });
   });
-  contasPorPagar(mes).forEach(function (c) {
-    const venc = vencimentoEm(c, mes), pz = prazo(venc, 'Venceu', 'Vence hoje', 'Vence amanhã', 'Vence em');
-    itens.push({ k: 'c' + c.id, tipo: 'conta', rotulo: 'Falta pagar', nome: c.nome, centavos: faltaDaConta(c, mes), dd: pz.dd, sub: pz.txt + ' · dia ' + diaDe(venc), ir: '#/contas' });
+  contasDoCiclo().forEach(function (x) {
+    const c = x.c, venc = x.venc, pz = prazo(venc, 'Venceu', 'Vence hoje', 'Vence amanhã', 'Vence em');
+    itens.push({ k: 'c' + c.id + (x.mes === mes ? '' : x.mes), tipo: 'conta', rotulo: 'Falta pagar', nome: c.nome, centavos: x.centavos, dd: pz.dd, sub: pz.txt + ' · dia ' + diaDe(venc), ir: '#/contas' });
   });
   abertos('emprestei').forEach(function (e) {
     const pz = prazo(e.prometida, 'Prometeu e passou', 'Prometeu para hoje', 'Prometeu para amanhã', 'Prometeu para daqui a');
@@ -1680,16 +1761,17 @@ function apagarLembrete(ref) {
 }
 
 function secaoPorDia(n) {
-  const dias = gastoPorDia(n.mes), d = diaDe(hoje());
+  const ci = n.ciclo || cicloDe(hoje()), h = hoje();
+  const lista = gastoPorDiaEntre(ci.de, ci.ate), dias = lista.map(function (x) { return x.v; });
   const maior = Math.max.apply(null, dias);
   if (!maior) return '';
   const iMaior = dias.indexOf(maior);
   let barras = '';
-  dias.forEach(function (v, i) {
-    const futuro = i + 1 > d;
+  lista.forEach(function (x, i) {
+    const v = x.v, futuro = x.data > h;
     const altura = futuro ? 0 : v ? Math.max(3, Math.round(v / maior * 100)) : 2;
     barras += '<i class="' + (i === iMaior ? 'maior' : '') + '" style="height:' + altura + '%"' +
-      (futuro ? '' : ' title="Dia ' + (i + 1) + ': ' + dinheiro(v) + '"') + '></i>';
+      (futuro ? '' : ' title="Dia ' + diaDe(x.data) + ': ' + dinheiro(v) + '"') + '></i>';
   });
   // O balão fica sempre em cima da barra. Nas pontas do mês muda de âncora em vez de
   // escorregar: escorregado, apontava para o vazio ao lado (olho-da-pagina, 03/11).
@@ -1697,7 +1779,7 @@ function secaoPorDia(n) {
   const ponta = x < 15 ? ' na-ponta-esq' : x > 85 ? ' na-ponta-dir' : '';
   return '<section class="bloco por-dia"><h2 class="titulo-cartao">Gasto por dia</h2>' +
     '<p class="frase">O dia aceso foi o maior do mês</p>' +
-    '<div class="barras">' + barras + '<span class="balao' + ponta + '" style="left:' + x.toFixed(1) + '%">Dia ' + (iMaior + 1) + ': ' + dinheiro(maior) + '</span></div>' +
+    '<div class="barras">' + barras + '<span class="balao' + ponta + '" style="left:' + x.toFixed(1) + '%">Dia ' + diaDe(lista[iMaior].data) + ': ' + dinheiro(maior) + '</span></div>' +
     // Nas pontas do mês o "Hoje" ocupa o lugar do dia 1 ou do último dia.
     '<div class="eixo"><span>' + (d > 3 ? 'Dia 1' : '') + '</span><span class="eixo-hoje" style="left:' + Math.min(95, Math.max(5, (d - 0.5) / dias.length * 100)).toFixed(1) + '%">Hoje</span><span>' + (d < dias.length - 2 ? dias.length : '') + '</span></div></section>';
 }
@@ -1742,12 +1824,12 @@ function itensProximos() {
     });
   });
 
-  contasPorPagar(mes).forEach(function (c) {
-    const venc = mes + '-' + p2(Math.min(c.dia, diasNoMes(mes)));
+  contasDoCiclo().forEach(function (x) {
+    const c = x.c, venc = x.venc, mesC = x.mes;
     if (venc > limite) return;
     itens.push({
-      data: venc, nome: c.nome, centavos: faltaDaConta(c, mes), tipo: 'conta',
-      ref: refDePagar(c, mes), acao: acaoDePagar(c, mes),
+      data: venc, nome: c.nome, centavos: x.centavos, tipo: 'conta',
+      ref: refDePagar(c, mesC), acao: acaoDePagar(c, mesC),
       marca: venc < h ? 'vencida' : ''
     });
   });
@@ -1774,7 +1856,10 @@ function itensProximos() {
 function telaContas(n) {
   const mes = n.mes, h = hoje();
   const vistas = contasVistas();
-  const ordenadas = vistas.slice().sort(function (a, b) { return a.dia - b.dia; });
+  // Com o ciclo, a ordem é a do vencimento DENTRO do ciclo: o aluguel do dia 5 de dezembro
+  // vem depois da luz de 15 de novembro, não antes.
+  const vencNoCiclo = function (c) { return vencimentoEm(c, mesDaContaNoCiclo(c)); };
+  const ordenadas = vistas.slice().sort(function (a, b) { return cicloLigado() ? (vencNoCiclo(a) < vencNoCiclo(b) ? -1 : vencNoCiclo(a) > vencNoCiclo(b) ? 1 : 0) : a.dia - b.dia; });
   let linhas = '';
   /* 04/11: cada conta com o ícone dela, o prazo dito como prazo ("em 4 dias") e o
      "Paguei" debaixo do valor, à direita. Antes o botão flutuava no meio da linha e o
@@ -1782,6 +1867,7 @@ function telaContas(n) {
   for (const c of ordenadas) {
     // Na vista do dono, igual à v35. No Total e na vista de quem paga o resto, "paga" é
     // faltaDaConta = 0: a conta só fecha quando as duas partes estão pagas.
+    const mes = mesDaContaNoCiclo(c);
     const papel = papelNaVista(c), pago = c.pagos && c.pagos[mes];
     const quitada = faltaDaConta(c, mes) === 0;
     const venc = mes + '-' + p2(Math.min(c.dia, diasNoMes(mes)));
@@ -1799,7 +1885,7 @@ function telaContas(n) {
       extra: linhaDivisao(c, mes),
       acaoDireita: papel === 'outro' ? botao('outro-pagou', c.id + '|' + mes, quitada ? 'Desfazer' : 'Paguei', quitada)
         : papel === 'tudo' && pago && !quitada && vagaDoOutro(c) ? botao('outro-pagou', c.id + '|' + mes, 'Paguei')
-        : pago ? botao('despagar', c.id, 'Desfazer', true) : botao('pagar', c.id, 'Paguei'),
+        : pago ? botao('despagar', refDePagar(c, mes), 'Desfazer', true) : botao('pagar', refDePagar(c, mes), 'Paguei'),
       centavos: valor,
       classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (quitada ? 'fraca' : '')
     });
@@ -1825,25 +1911,23 @@ function telaContas(n) {
   }).join('');
 
   // 07/11: no computador, a próxima conta ao lado da faixa azul, como no Início.
-  const prox = ordenadas.filter(function (c) { return faltaDaConta(c, mes) > 0 && c.ativa !== false; })
-    .map(function (c) { return { c: c, venc: mes + '-' + p2(Math.min(c.dia, diasNoMes(mes))) }; })
-    .sort(function (a, b) { return a.venc < b.venc ? -1 : 1; })[0];
+  const doCiclo = contasDoCiclo(), prox = doCiclo[0];
   let proxHtml = '';
   if (prox) {
     const dd = diasEntre(h, prox.venc);
     proxHtml = '<section class="bloco c-prox so-pc"><span class="rotulo">Próxima a vencer</span>' +
-      '<div class="c-prox-linha"><b>' + esc(prox.c.nome) + '</b><b>' + dinheiro(faltaDaConta(prox.c, mes)) + '</b></div>' +
+      '<div class="c-prox-linha"><b>' + esc(prox.c.nome) + '</b><b>' + dinheiro(prox.centavos) + '</b></div>' +
       '<small>' + (dd < 0 ? 'Venceu há ' + quantosDias(-dd) : dd === 0 ? 'Vence hoje' : dd === 1 ? 'Vence amanhã' : 'Vence em ' + quantosDias(dd) + ' · dia ' + prox.c.dia) + '</small>' +
-      '<button class="btn contorno" data-acao="' + acaoDePagar(prox.c, mes) + '" data-ref="' + esc(refDePagar(prox.c, mes)) + '">Paguei ' + esc(prox.c.nome) + '</button></section>';
+      '<button class="btn contorno" data-acao="' + acaoDePagar(prox.c, prox.mes) + '" data-ref="' + esc(refDePagar(prox.c, prox.mes)) + '">Paguei ' + esc(prox.c.nome) + '</button></section>';
   }
   return '<div class="tela-grade contas"><section class="bloco he">' +
       '<span class="rotulo">Falta pagar</span>' +
       '<div class="numero-grande">' + numeroGrande(n.contasFalta) + '</div>' +
-      '<p class="frase">' + contasPorPagar(mes).length + ' de ' + vistas.length + ' contas por pagar este mês.' +
-        (atrasadas.length === 1 ? ' E 1 de mês passado.' : atrasadas.length ? ' E ' + atrasadas.length + ' de meses passados.' : '') + '</p>' +
+      '<p class="frase">' + doCiclo.length + ' de ' + vistas.length + ' contas por pagar ' + (cicloLigado() ? 'até ' + dataCurta(n.ciclo.ate) : 'este mês') + '.' +
+        (atrasadas.length === 1 ? (cicloLigado() ? ' E 1 de antes do salário.' : ' E 1 de mês passado.') : atrasadas.length ? ' E ' + atrasadas.length + (cicloLigado() ? ' de antes do salário.' : ' de meses passados.') : '') + '</p>' +
     '</section>' +
     proxHtml +
-    (linhasAtrasadas ? '<section class="bloco c-atras" data-paginar=".lista-pag" data-chave="atras"><h2 class="secao"><span class="rotulo">De meses passados</span></h2><div class="lista-pag">' + linhasAtrasadas + '</div></section>' : '') +
+    (linhasAtrasadas ? '<section class="bloco c-atras" data-paginar=".lista-pag" data-chave="atras"><h2 class="secao"><span class="rotulo">' + (cicloLigado() ? 'Venceram antes do salário' : 'De meses passados') + '</span></h2><div class="lista-pag">' + linhasAtrasadas + '</div></section>' : '') +
     '<section class="bloco c-todas" data-paginar=".lista-pag" data-chave="contas"><h2 class="secao"><span class="rotulo">Todas as contas</span>' +
       '<button class="btn pequeno" data-acao="nova-conta">Nova conta</button></h2>' +
       (linhas ? '<div class="lista-pag grade-cartoes">' + linhas + '</div>' : '<p class="vazio">Nenhuma conta fixa cadastrada. Comece pelas que se repetem todo mês: aluguel, luz, água, internet.</p>') +
@@ -1981,6 +2065,42 @@ function ajustesLimite(n) {
     '<p class="frase" style="margin-top:10px">Com esta folga, o limite de hoje é ' + dinheiro(n.limite) + '.</p>');
 }
 
+function ajustesCiclo() {
+  const lig = cicloLigado(), ci = cicloDe(hoje()), prox = mesSeguinte(ci.mes);
+  const salario = function (mes) {
+    return dataCurta(diaDoSalario(mes)) + (salarioCorrigido(mes) ? ' (corrigido à mão)' : ' (5º dia útil)');
+  };
+  // 10 = o exemplo dele ("sentar com a minha mulher, dia 10"); muda-se na própria agenda.
+  const diaContas = Math.min(28, Number((S.config.ciclo && S.config.ciclo.diaContas) || 10));
+  const primeira = (mesDe(hoje()) + '-' + p2(diaContas)) >= hoje() ? mesDe(hoje()) + '-' + p2(diaContas) : mesSomado(mesDe(hoje()), 1) + '-' + p2(diaContas);
+  return blocoAjuste('Começo do mês',
+    '<p class="frase">O mês do Vero pode começar quando o salário cai, e não no dia 1. O Vero calcula o 5º dia útil (segunda a sexta, sem feriados nacionais). Vale neste aparelho.</p>' +
+    linhaAjuste('Começar o mês no salário', lig ? 'Este mês: ' + ci.nome : 'Hoje o mês vai do dia 1 ao último', botao('ciclo', lig ? 'desligar' : 'ligar', lig ? 'Desligar' : 'Ligar', lig)) +
+    (lig ? linhaAjuste('Salário deste mês', salario(ci.mes), botao('corrigir-salario', ci.mes, 'Corrigir', true)) +
+      linhaAjuste('Próximo salário', salario(prox), botao('corrigir-salario', prox, 'Corrigir', true)) +
+      linhaAjuste('Dia de sentar e pagar as contas', 'Dia ' + diaContas + ', todo mês, na sua agenda', botaoAgenda(linkAgenda('Sentar e pagar as contas', primeira, 'RRULE:FREQ=MONTHLY;BYMONTHDAY=' + diaContas))) : ''));
+}
+/** Ligar ou desligar refaz o limite do dia: o congelado foi feito com o outro mês. */
+function definirCiclo(ligar) {
+  const antes = S.config.ciclo || {};
+  S.config.ciclo = { ligado: !!ligar, corrigido: antes.corrigido || {}, diaContas: antes.diaContas || 10 };
+  Object.keys(S.config).forEach(function (k) { if (k === 'limite' || k.indexOf('limite_') === 0) S.config[k] = null; });
+  guardar();
+}
+function corrigirSalario(mes) {
+  if (typeof prompt !== 'function') return;
+  const nome = MESES[Number(mes.slice(5, 7)) - 1];
+  const r = prompt('Em que dia o salário caiu (ou vai cair) em ' + nome + '? Deixe vazio para voltar ao 5º dia útil.', String(diaDe(diaDoSalario(mes))));
+  if (r === null) return;
+  const d = Number(String(r).replace(/\D/g, ''));
+  const c = S.config.ciclo || (S.config.ciclo = { ligado: true, corrigido: {} });
+  c.corrigido = c.corrigido || {};
+  if (!d) delete c.corrigido[mes];
+  else c.corrigido[mes] = mes + '-' + p2(Math.min(Math.max(1, d), diasNoMes(mes)));
+  Object.keys(S.config).forEach(function (k) { if (k === 'limite' || k.indexOf('limite_') === 0) S.config[k] = null; });
+  guardar();
+}
+
 function ajustesCategorias() {
   const linhas = S.categorias.slice().sort().map(function (c) {
     return linhaAjuste(esc(c), '', botao('editar-categoria', esc(c), 'Editar'));
@@ -2019,7 +2139,7 @@ function ajustesAparelho() {
 
 function telaAjustes(n) {
   const c = window.veroConta ? window.veroConta() : { disponivel: false };
-  return ajustesConta(c) + ajustesCasa(c) + ajustesLimite(n) + ajustesCategorias() + ajustesDados() +
+  return ajustesConta(c) + ajustesCasa(c) + ajustesCiclo() + ajustesLimite(n) + ajustesCategorias() + ajustesDados() +
     (c.ligado && c.conversa ? blocoAjuste('Conversa com a IA', linhaAjuste('Mensagens guardadas neste aparelho', String(c.conversa), botao('apagar-conversa', '', 'Apagar'))) : '') +
     ajustesAparelho() +
     '<section class="bloco"><div class="sobre-vero">Vero</div><p class="frase">Feito pela SAS. O app calcula e os números são seus.</p></section>';
@@ -2992,9 +3112,10 @@ function dispensarConta(alvo) {
   comDesfazer(c.nome + ' de ' + nomeDoMes(mes) + ' dispensada', function () { c.desde = mesSeguinte(mes); guardar(); });
 }
 
-function despagar(ref) {
+function despagar(alvo) {
+  const ref = String(alvo).split('|')[0];
   const c = S.contas.find(function (x) { return x.id === ref; });
-  const mes = mesDe(hoje());
+  const mes = String(alvo).split('|')[1] || mesDe(hoje());
   if (!c || !c.pagos || !c.pagos[mes]) return;
   const guardado = c.pagos[mes];
   const linha = S.lancamentos.find(function (x) { return x.id === guardado.lanc; });
@@ -3202,6 +3323,13 @@ document.addEventListener('click', function (ev) {
     case 'enviar-codigo':   return enviarCodigo(window.veroConta().codigo);
     case 'folga':
       definirFolga(ref);
+      return desenhar();
+    case 'ciclo':
+      definirCiclo(ref === 'ligar');
+      oferecerDesfazer(ref === 'ligar' ? 'O mês agora começa quando o salário cai' : 'O mês voltou a começar no dia 1', null);
+      return desenhar();
+    case 'corrigir-salario':
+      corrigirSalario(ref);
       return desenhar();
     case 'nova-categoria':  return novaCategoria();
     case 'editar-categoria': return editarCategoria(ref);
