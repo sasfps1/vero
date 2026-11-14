@@ -1524,3 +1524,14 @@ section.bloco.he {
   .btn:active, .controle:active, .aba:active, .pilula:active, .ficha-op:active, .cal-seta:active, .roda-prox:active, .pag-n:active, .lancar-centro:active, .item:active, .linha.tocavel:active { transform: none; }
   .folha:not([hidden]) { animation: none; }
 }
+
+/* v45 (14/11, pedido dele: "aproximar os ícones"). No celular o topo espalhava os quatro
+   ícones (space-between). Agora o texto empurra e os ícones formam UM grupo à direita. */
+@media (max-width: 1179px) {
+  header.topo { justify-content: flex-start; gap: 0; }
+  .topo-texto { margin-right: auto; }
+  .seletor-conta { margin-left: 0; margin-right: 4px; }
+  /* os quatro na mesma caixa de 42px, lado a lado: espaços iguais */
+  header.topo > .logotipo, .controle, .icone-topo { width: 42px; height: 42px; min-height: 42px; padding: 0; justify-content: center; gap: 0; }
+  .controles-topo { gap: 0; }
+}

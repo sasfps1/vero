@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 44;
+const VERSAO = 45;
 let soMemoria = false;
 
 const VAZIO = {
@@ -518,6 +518,28 @@ const PISTAS = [
   [/fralda|creche|brinquedo/, 'Filhos'],
   [/cinema|show|viagem|netflix|bar\b/, 'Lazer']
 ];
+/* ⭐ A CATEGORIA APRENDE COM ELE (14/11, pedido dele: "quando eu começar a escrever bistrô
+   ... a categoria já sabe que é para aquela lá ... deve ser auto-inteligente").
+   A lente é a do autocompletar dos bancos digitais: a melhor pista para "bistrô" não é uma
+   lista de palavras minha, é o que ELE escolheu da última vez que escreveu bistrô.
+   Ordem: (1) a mesma descrição já lançada → a categoria que ele mais lhe deu;
+   (2) uma descrição que começa com o que ele está a escrever (3+ letras) → a mais recente;
+   (3) só então a lista fixa de pistas. Só conta onde ELE escolheu a categoria. */
+function categoriaAprendida(nota) {
+  const t = semAcentoMin(nota);
+  if (t.length < 3) return '';
+  const iguais = {}, ordenados = S.lancamentos.filter(function (l) { return l.categoria && l.nota && !l.emprestimo; })
+    .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; });
+  let doComeco = '';
+  ordenados.forEach(function (l) {
+    const n = semAcentoMin(l.nota);
+    if (n === t) iguais[l.categoria] = (iguais[l.categoria] || 0) + 1;
+    else if (!doComeco && n.indexOf(t) === 0) doComeco = l.categoria;
+  });
+  const melhor = Object.keys(iguais).sort(function (a, b) { return iguais[b] - iguais[a]; })[0];
+  return melhor || doComeco;
+}
+function categoriaParaNota(nota) { return categoriaAprendida(nota) || categoriaSugerida(nota); }
 function categoriaSugerida(nota) {
   const t = String(nota || '').toLowerCase();
   for (const p of PISTAS) if (p[0].test(t)) return p[1];
@@ -2260,7 +2282,7 @@ function preencherDaFrase(texto) {
   else if (valorDaFrase) { digitos = ''; valorDaFrase = false; }
   document.getElementById('lancar-nota').value = f.nota;
   document.getElementById('lancar-data').value = f.data;
-  if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaSugerida(f.nota);
+  if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaParaNota(f.nota);
   pintarValor();
 }
 
@@ -3242,7 +3264,7 @@ document.getElementById('lancar-tipo').addEventListener('click', function (ev) {
   if (!b) return;
   tipoFolha = b.dataset.tipo;
   // A categoria de saída não serve a uma entrada: volta a sugerir pela descrição.
-  if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaSugerida(document.getElementById('lancar-nota').value);
+  if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaParaNota(document.getElementById('lancar-nota').value);
   pintarValor();
 });
 document.getElementById('chips-categoria').addEventListener('click', function (ev) {
@@ -3419,7 +3441,7 @@ document.addEventListener('input', function (ev) {
   } else if (ev.target.id === 'lancar-frase') {
     preencherDaFrase(ev.target.value);
   } else if (ev.target.id === 'lancar-nota' && !categoriaEscolhida) {
-    document.getElementById('lancar-categoria').value = categoriaSugerida(ev.target.value);
+    document.getElementById('lancar-categoria').value = categoriaParaNota(ev.target.value);
     pintarFichas();
   }
 });
