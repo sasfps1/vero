@@ -45,6 +45,8 @@
   <div class="nav-pilulas">
   <a href="#/inicio" data-rota="inicio">
     <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Início</a>
+  <a href="#/painel" data-rota="painel">
+    <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg>Painel</a>
   <a href="#/gastos" data-rota="gastos">
     <svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9"/></svg>Gastos</a>
   <button class="lancar-centro" data-acao="lancar" aria-label="Novo lançamento">
@@ -108,6 +110,16 @@
       <label class="campo" id="campo-nova" hidden>
         <span class="rotulo">Nome da categoria nova</span>
         <input type="text" id="lancar-nova" maxlength="28" autocomplete="off">
+      </label>
+      <!-- v46 (14/11): o porquê e a ocasião. Os dois aprendem com a descrição; nenhum obriga. -->
+      <div class="campo" id="campo-natureza">
+        <span class="rotulo">Foi necessário ou pela emoção?</span>
+        <div class="chips" id="chips-natureza"></div>
+      </div>
+      <label class="campo" id="campo-ocasiao">
+        <span class="rotulo">Ocasião (se quiser)</span>
+        <input type="text" id="lancar-ocasiao" maxlength="40" autocomplete="off" list="lista-ocasioes" placeholder="Ex.: Festa do fim de semana">
+        <datalist id="lista-ocasioes"></datalist>
       </label>
       <div class="campo" id="campo-data">
         <span class="rotulo">Quando</span>

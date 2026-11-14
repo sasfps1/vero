@@ -31,13 +31,18 @@
   // Lembrados entre aberturas: sem sinal, um envio antes da primeira leitura não pode
   // tirar da linha a divisão que o banco já sabe guardar.
   let bancoTemDivisao = false, bancoTemAgenda = false;
+  /* v46 (14/11): o porquê (natureza) e a ocasião do lançamento (006_natureza_e_ocasiao.sql).
+     Mesma regra da divisão: até o banco ter as colunas, ficam neste aparelho. Só vão na linha
+     quando o lançamento as tem, para os lançamentos antigos não subirem todos de novo. */
+  const MARCAS = ['natureza', 'ocasiao'];
+  let bancoTemMarcas = false;
   const TABELAS = Object.keys(CAMPOS);
 
   function ler(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* segue em memória */ } }
 
   let sb = null, sessao = null, eu = ler(K_EU), espelho = ler(K_ESPELHO), fila = ler(K_FILA) || [];
-  bancoTemDivisao = !!(eu && eu.temDivisao); bancoTemAgenda = !!(eu && eu.temAgenda);
+  bancoTemDivisao = !!(eu && eu.temDivisao); bancoTemAgenda = !!(eu && eu.temAgenda); bancoTemMarcas = !!(eu && eu.temMarcas);
   let enviando = false, enviados = 0, recusados = 0, semRede = false, puxando = false, repuxar = false;
   let relerNoFim = false, relogioFila = null, relogioPuxar = null, canal = null, nomes = {}, codigo = eu ? eu.codigo : null;
   let nomesVaga = (eu && eu.nomesVaga) || {}, decidirLocal = null, bancoTemDesde = false;
@@ -73,6 +78,8 @@
         nota: String(l.nota || '').slice(0, 120), fixa: l.conta || '', emprestimo: l.emprestimo || '',
         origem: l.origem || '', em: l.em || 0
       });
+      if (l.natureza !== undefined) d.lancamentos[l.id].natureza = l.natureza || '';
+      if (l.ocasiao !== undefined) d.lancamentos[l.id].ocasiao = String(l.ocasiao || '').slice(0, 40);
     }
     for (const c of s.contas) {
       d.fixas[c.id] = canon('fixas', { id: c.id, nome: String(c.nome).slice(0, 40), valor: c.centavos, conta: c.vaga || vaga, dia: c.dia, ativa: c.ativa !== false, desde: c.desde || null,
@@ -103,6 +110,16 @@
         conta: r.fixa || null, emprestimo: r.emprestimo || null, origem: r.origem || null, em: r.em,
         vaga: r.conta, autor: autores[r.id] || null
       };
+    });
+    // v46: o porquê e a ocasião. Do banco quando ele os tem; senão, o que este aparelho já sabia.
+    const aquiPorId = {};
+    (S.lancamentos || []).forEach(function (l) { aquiPorId[l.id] = l; });
+    lancamentos.forEach(function (l) {
+      const r = d.lancamentos[l.id], aqui = aquiPorId[l.id];
+      MARCAS.forEach(function (k) {
+        if (r && r[k] !== undefined && r[k] !== null) l[k] = r[k];
+        else if (aqui && aqui[k] !== undefined) l[k] = aqui[k];
+      });
     });
     const contas = Object.values(d.fixas).map(function (r) {
       const pagos = {};
@@ -180,6 +197,7 @@
       // apagaria a divisão marcada no outro. Desfazer a divisão manda total = valor.
       if (op.t === 'fixas') DIVISAO.forEach(function (k) { if (linha[k] === null || !bancoTemDivisao) delete linha[k]; });
       if (op.t === 'agenda' && !bancoTemAgenda) return Promise.resolve({ error: null, status: 200 });
+      if (op.t === 'lancamentos' && !bancoTemMarcas) MARCAS.forEach(function (k) { delete linha[k]; });
       return sb.from(op.t).upsert(linha,
         op.t === 'categorias' ? { onConflict: 'casa_id,tipo,nome' } : undefined);
     }
@@ -239,6 +257,10 @@
     if (prova.error && !vaiPassar(prova.status)) bancoTemDivisao = false;
     else if (prova.error) throw prova.error;
     else bancoTemDivisao = true;
+    const provaMarcas = await sb.from('lancamentos').select('id,natureza,ocasiao').eq('casa_id', eu.casa).range(0, 0);
+    if (provaMarcas.error && !vaiPassar(provaMarcas.status)) bancoTemMarcas = false;
+    else if (provaMarcas.error) throw provaMarcas.error;
+    else bancoTemMarcas = true;
     for (const t of TABELAS) {
       let linhas;
       try { linhas = await lerTabela(t); } catch (e) {
@@ -251,7 +273,10 @@
         if (t === 'fixas') bancoTemDesde = 'desde' in r;
         const k = t === 'categorias' ? r.tipo + '|' + r.nome : r.id;
         d[t][k] = canon(t, r);
-        if (t === 'lancamentos') autores[r.id] = r.criado_por;
+        if (t === 'lancamentos') {
+          autores[r.id] = r.criado_por;
+          MARCAS.forEach(function (c) { if (r[c] !== undefined && r[c] !== null) d[t][k][c] = r[c]; });
+        }
       }
     }
     return { d: d, autores: autores };
@@ -317,8 +342,8 @@
         });
         if (sobe.length) enfileirar(sobe);
       }
-      if (eu.temDivisao !== bancoTemDivisao || eu.temAgenda !== bancoTemAgenda) {
-        eu.temDivisao = bancoTemDivisao; eu.temAgenda = bancoTemAgenda;
+      if (eu.temDivisao !== bancoTemDivisao || eu.temAgenda !== bancoTemAgenda || eu.temMarcas !== bancoTemMarcas) {
+        eu.temDivisao = bancoTemDivisao; eu.temAgenda = bancoTemAgenda; eu.temMarcas = bancoTemMarcas;
         gravar(K_EU, eu);
       }
       for (const op of fila) {
@@ -386,7 +411,7 @@
       gravar(K_ESPELHO, null); gravar(K_FILA, []);
     }
     eu = { uid: user.id, casa: r.data[0].casa_id, vaga: r.data[0].vaga, codigo: codigo,
-      carteiras: carteiras, pessoas: pessoas, nomesVaga: nomesVaga, temDivisao: bancoTemDivisao, temAgenda: bancoTemAgenda };
+      carteiras: carteiras, pessoas: pessoas, nomesVaga: nomesVaga, temDivisao: bancoTemDivisao, temAgenda: bancoTemAgenda, temMarcas: bancoTemMarcas };
     gravar(K_EU, eu);
     assinar();
     await puxar();

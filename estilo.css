@@ -585,8 +585,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 nav.barra {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-  /* 4 destinos e o botao de lancar ao centro. */
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end;
+  /* 5 destinos e o botao de lancar (v46: entrou o Painel; seis colunas iguais, para os
+     espacos entre os icones ficarem iguais). */
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end;
   background: var(--surface-dim);
   border-radius: 24px 24px 0 0;
   padding: 8px 4px calc(9px + env(safe-area-inset-bottom));
@@ -1534,4 +1535,92 @@ section.bloco.he {
   /* os quatro na mesma caixa de 42px, lado a lado: espaços iguais */
   header.topo > .logotipo, .controle, .icone-topo { width: 42px; height: 42px; min-height: 42px; padding: 0; justify-content: center; gap: 0; }
   .controles-topo { gap: 0; }
+}
+
+/* ── PAINEL (v46, 14/11, pedido dele: "para onde meu dinheiro tá indo") ──────────────────
+   Lente: Stephen Few — numa tela, de relance, um herói, barras ordenadas, tudo comparado.
+   Necessário × emoção pela FORMA (liso × listrado), não por cor nova: a cor da barra continua
+   a ser a da família, e a lista lê-se igual no tema da noite e para quem não distingue cores. */
+.pn { display: flex; flex-direction: column; gap: 12px; }
+.pn-periodo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pn-pilulas { display: flex; gap: 4px; padding: 4px; border-radius: 18px; background: rgba(var(--tinta-rgb), 0.05); }
+.pn-pilulas button { border: 0; background: none; color: var(--on-surface); font: inherit; font-weight: 600; font-size: 14.5px; padding: 8px 14px; border-radius: 14px; cursor: pointer; min-height: 38px; }
+.pn-pilulas button.activo { background: rgba(var(--sinal-rgb), 0.16); color: var(--signal); }
+.pn-datas { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.pn-seta { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--outline-strong); background: none; color: var(--on-surface); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.pn-seta:disabled { opacity: 0.3; cursor: default; }
+.pn-seta svg { width: 18px; height: 18px; }
+.pn-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.pn-grade > section.bloco { margin: 0; min-width: 0; }
+.pn-titulo { font-size: 17px; font-weight: 700; margin: 0 0 10px; }
+
+.pn-heroi .numero-grande { margin: 6px 0 10px; }
+.pn-comparado { display: inline-block; font-size: 13.5px; font-weight: 600; padding: 6px 11px; border-radius: 12px; background: rgba(5, 17, 59, 0.35); }
+.pn-heroi-dois { margin-top: 14px; }
+.pn-heroi-dois small { font-size: 12.5px; }
+.pn-medio { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+
+.pn-emocao { display: flex; flex-direction: column; gap: 12px; }
+.pn-emocao .pn-titulo { margin: 0; }
+.pn-dupla { display: flex; gap: 3px; height: 20px; border-radius: 10px; overflow: hidden; background: rgba(var(--tinta-rgb), 0.06); }
+.pn-nec { background: var(--signal); }
+.pn-emo { background: repeating-linear-gradient(135deg, var(--signal) 0 5px, rgba(var(--sinal-rgb), 0.22) 5px 10px); }
+.pn-lados { display: flex; justify-content: space-between; gap: 12px; }
+.pn-lados > div { display: flex; flex-direction: column; }
+.pn-lados > div + div { text-align: right; }
+.pn-lados small { font-size: 12.5px; color: var(--on-surface-muted); }
+.pn-lados strong { font-size: 21px; font-weight: 800; }
+.pn-frase { font-size: 14px; color: var(--on-surface-muted); border-top: 1px solid var(--outline); padding-top: 10px; margin: 0; }
+.pn-frase strong { color: var(--on-surface); }
+.pn-nota { display: block; margin-top: 6px; font-size: 12.5px; color: var(--on-surface-muted); }
+
+.pn-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pn-legenda { display: flex; gap: 14px; font-size: 12.5px; color: var(--on-surface-muted); }
+.pn-legenda i { display: inline-block; width: 16px; height: 9px; border-radius: 3px; margin-right: 6px; }
+.pn-legenda .l-nec { background: rgba(var(--tinta-rgb), 0.55); }
+.pn-legenda .l-emo { background: repeating-linear-gradient(135deg, rgba(var(--tinta-rgb), 0.55) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px rgba(var(--tinta-rgb), 0.5); }
+.pn-linha { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: "ico nome valor" ". trilho trilho"; column-gap: 12px; row-gap: 6px; align-items: center; padding: 8px 0; }
+.pn-ico { grid-area: ico; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: var(--surface); }
+.pn-ico svg { width: 18px; height: 18px; }
+.pn-nome { grid-area: nome; min-width: 0; display: flex; flex-direction: column; }
+.pn-nome b { font-weight: 600; }
+.pn-nome small, .pn-valor small { font-size: 12px; color: var(--on-surface-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-trilho { grid-area: trilho; height: 12px; border-radius: 6px; background: rgba(var(--tinta-rgb), 0.06); display: flex; overflow: hidden; }
+.pn-b-nec { background: var(--c); }
+.pn-b-emo { background: repeating-linear-gradient(135deg, var(--c) 0 4px, transparent 4px 8px); }
+.pn-valor { grid-area: valor; text-align: right; display: flex; flex-direction: column; }
+.pn-valor b { font-weight: 700; }
+.pn-linha .pn-dif { display: none; }
+.pn-dif { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); text-align: right; white-space: nowrap; }
+.pn-dif.sobe { color: var(--cat-comida); }
+.pn-dif.desce { color: var(--signal); }
+.pn-vazio { color: var(--on-surface-muted); font-size: 14px; margin: 4px 0; }
+
+.pn-ocasioes { display: flex; flex-direction: column; gap: 10px; }
+.pn-ocasioes .pn-titulo { margin: 0; }
+.pn-oc { border: 1px solid var(--outline); border-radius: 18px; padding: 12px 14px; }
+.pn-oc-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pn-oc-topo b { font-weight: 700; min-width: 0; }
+.pn-oc-topo strong { font-size: 18px; font-weight: 800; white-space: nowrap; }
+.pn-oc small { font-size: 12.5px; color: var(--on-surface-muted); }
+.pn-p-emo { background: repeating-linear-gradient(135deg, var(--c) 0 3px, transparent 3px 6px); }
+.pn-sumiu { margin: 8px 0 0; padding-top: 10px; border-top: 1px solid var(--outline); font-size: 13px; color: var(--on-surface-muted); }
+.pn-pedacos { display: flex; gap: 2px; height: 7px; border-radius: 4px; overflow: hidden; margin: 9px 0 6px; }
+.pn-oc p { margin: 0; font-size: 13px; color: var(--on-surface-muted); }
+
+/* o "necessário / pela emoção" do formulário: o listrado também no botão aceso */
+.ficha-op.nat-emocao.activo { background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(var(--sinal-rgb), 0.18) 6px 12px); }
+
+/* no computador: o herói largo e o porquê ao lado; por baixo, para onde foi e as ocasiões */
+@media (min-width: 1180px) {
+  .pn-grade { grid-template-columns: 1.25fr 1fr 0.95fr; grid-template-areas: "heroi heroi emocao" "onde onde ocasioes"; gap: 16px; }
+  .pn-heroi { grid-area: heroi; display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 16px; }
+  .pn-heroi .numero-grande { font-size: 72px; }
+  .pn-heroi-dois { margin-top: 0; }
+  .pn-emocao { grid-area: emocao; }
+  .pn-onde { grid-area: onde; }
+  .pn-ocasioes { grid-area: ocasioes; }
+  .pn-linha { grid-template-columns: 34px 170px minmax(0, 1fr) 120px 84px; grid-template-areas: "ico nome trilho valor dif"; }
+  .pn-trilho { height: 14px; }
+  .pn-linha .pn-dif { display: block; grid-area: dif; }
 }

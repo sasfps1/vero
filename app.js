@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 45;
+const VERSAO = 46;
 let soMemoria = false;
 
 const VAZIO = {
@@ -494,7 +494,7 @@ const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julh
 
 function rota() {
   const r = (location.hash || '#/inicio').replace('#/', '');
-  return ['inicio', 'gastos', 'contas', 'pessoas', 'ajustes'].includes(r) ? r : 'inicio';
+  return ['inicio', 'painel', 'gastos', 'contas', 'pessoas', 'ajustes'].includes(r) ? r : 'inicio';
 }
 
 /* PARA ONDE FOI O DINHEIRO.
@@ -540,6 +540,48 @@ function categoriaAprendida(nota) {
   return melhor || doComeco;
 }
 function categoriaParaNota(nota) { return categoriaAprendida(nota) || categoriaSugerida(nota); }
+
+/* ── NECESSÁRIO OU EMOÇÃO, E A OCASIÃO (14/11, pedido dele, por voz) ────────────────────────
+   "no mercado, o que foi para o necessário, o que foi casual, pela emoção, um chocolate...
+   esse final de semana eu gastei com festa, no final do mês eu quero saber quanto foi".
+   Três camadas no mesmo gasto: ONDE (categoria), PORQUÊ (natureza) e QUANDO (ocasião).
+   Lente: a regra 50/30/20 de Elizabeth Warren (necessidade × desejo) e a contabilidade
+   mental de Richard Thaler (a cabeça já gasta por envelopes; o app mostra os dele).
+   l.natureza: 'necessario' | 'emocao' (sem marca = deduzido pela pista, nunca gravado).
+   l.ocasiao: texto livre curto ("Festa do fim de semana"); atravessa categorias.
+   A natureza aprende como a categoria (v45): o que ele já marcou para a mesma descrição. */
+const PISTA_EMOCAO = /chocolate|doce|bombom|sorvete|refri|cerveja|bebida|vinho|festa|balada|\bbar\b|a[cç]a[ií]|cinema|presente|aposta|\bbet\b/;
+function naturezaDe(l) {
+  if (l.natureza === 'emocao' || l.natureza === 'necessario') return l.natureza;
+  if (l.tipo !== 'saida' || l.conta || l.emprestimo) return 'necessario';
+  return (categoriaDe(l) === 'Lazer' || PISTA_EMOCAO.test(semAcentoMin(l.nota))) ? 'emocao' : 'necessario';
+}
+function naturezaParaNota(nota, categoria) {
+  const t = semAcentoMin(nota);
+  if (t.length >= 3) {
+    const conta = { emocao: 0, necessario: 0 };
+    let doComeco = '';
+    S.lancamentos.forEach(function (l) {
+      if (l.tipo !== 'saida' || !l.natureza || !l.nota) return;
+      const n = semAcentoMin(l.nota);
+      if (n === t) conta[l.natureza] = (conta[l.natureza] || 0) + 1;
+      else if (!doComeco && n.indexOf(t) === 0) doComeco = l.natureza;
+    });
+    if (conta.emocao || conta.necessario) return conta.emocao > conta.necessario ? 'emocao' : 'necessario';
+    if (doComeco) return doComeco;
+  }
+  return naturezaDe({ tipo: 'saida', nota: nota, categoria: categoria || '' });
+}
+/** As ocasiões já usadas, as mais recentes primeiro: para escolher com um toque. */
+function ocasioesRecentes() {
+  const vistas = {}, lista = [];
+  S.lancamentos.slice().sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; })
+    .forEach(function (l) {
+      const o = String(l.ocasiao || '').trim(), k = semAcentoMin(o);
+      if (o && !vistas[k]) { vistas[k] = 1; lista.push(o); }
+    });
+  return lista.slice(0, 8);
+}
 function categoriaSugerida(nota) {
   const t = String(nota || '').toLowerCase();
   for (const p of PISTAS) if (p[0].test(t)) return p[1];
@@ -977,7 +1019,8 @@ function desenhar() {
   });
   const tela = document.getElementById('tela');
   const rolagem = tela.scrollTop;
-  tela.innerHTML = r === 'gastos' ? telaGastos(n)
+  tela.innerHTML = r === 'painel' ? telaPainel(n)
+    : r === 'gastos' ? telaGastos(n)
     : r === 'contas' ? telaContas(n)
     : r === 'pessoas' ? telaPessoas(n)
     : r === 'ajustes' ? telaAjustes(n)
@@ -1873,6 +1916,177 @@ function itensProximos() {
   return itens;
 }
 
+// ── Painel (v46) ─────────────────────────────────────────────────────────────
+
+/* O PAINEL (14/11, pedido dele: "quero ter clareza para onde meu dinheiro tá indo... quanto
+   gastei na semana com comida"). Lente: Stephen Few, Information Dashboard Design (2006):
+   o mais importante numa tela só, lido de relance; um número manda; barras ordenadas em vez
+   de rosca; e todo número COMPARADO com o período anterior, senão não diz se é muito.
+   Quatro blocos: quanto saiu (o herói), necessário × emoção, para onde foi, ocasiões.
+   Tudo deduz-se dos lançamentos que já existem: o painel não guarda nada seu. */
+let pnPeriodo = 'semana', pnDesloca = 0;
+function somaDias(data, k) { const x = dataDe(data); return iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + k)); }
+function periodoPainel(tipo, desloca) {
+  const h = hoje();
+  if (tipo === 'semana') {
+    // Domingo a sábado, como o calendário do Início (D S T Q Q S S).
+    const de = somaDias(h, -dataDe(h).getDay() + 7 * desloca), ate = somaDias(de, 6);
+    const nome = mesDe(de) === mesDe(ate)
+      ? diaDe(de) + ' a ' + diaDe(ate) + ' de ' + MESES[Number(ate.slice(5, 7)) - 1]
+      : dataCurta(de) + ' a ' + dataCurta(ate);
+    return { de: de, ate: ate, nome: nome, este: 'esta semana', esse: 'na semana', passado: 'a semana passada', naPassado: 'Na semana passada' };
+  }
+  if (tipo === 'ciclo' && cicloLigado()) {
+    let c = cicloDe(h);
+    for (let i = 0; i < -desloca; i++) c = cicloDe(somaDias(c.de, -1));
+    return { de: c.de, ate: c.ate, nome: c.nome, este: 'desde o salário', esse: 'no ciclo', passado: 'o ciclo passado', naPassado: 'No ciclo passado' };
+  }
+  const m = mesSomado(mesDe(h), desloca);
+  return { de: m + '-01', ate: m + '-' + p2(diasNoMes(m)), nome: MESES[Number(m.slice(5, 7)) - 1] + ' de ' + m.slice(0, 4),
+    este: 'este mês', esse: 'no mês', passado: 'o mês passado', naPassado: 'No mês passado' };
+}
+/** As saídas de um período, por categoria, com a parte da emoção dentro de cada uma. */
+function gastosDoPeriodo(de, ate) {
+  const cats = {};
+  let total = 0, emocao = 0, semMarca = 0;
+  for (const l of lancamentosVistos()) {
+    if (l.tipo !== 'saida' || l.data < de || l.data > ate) continue;
+    const nome = categoriaDe(l) || 'Sem categoria', k = nome.toLowerCase();
+    const g = cats[k] || (cats[k] = { nome: nome, centavos: 0, emocao: 0, notas: {} });
+    g.centavos += l.centavos; total += l.centavos;
+    if (naturezaDe(l) === 'emocao') { g.emocao += l.centavos; emocao += l.centavos; }
+    if (!l.natureza && !l.conta && !l.emprestimo) semMarca++;
+    const nt = String(l.nota || '').trim().toLowerCase();
+    if (nt) g.notas[nt] = (g.notas[nt] || 0) + l.centavos;
+  }
+  const lista = Object.keys(cats).map(function (k) { return cats[k]; }).sort(function (a, b) { return b.centavos - a.centavos; });
+  return { total: total, emocao: emocao, semMarca: semMarca, lista: lista, por: cats };
+}
+/** As ocasiões marcadas entre duas datas, cada uma com o que custou e onde. */
+function ocasioesEntre(de, ate) {
+  const g = {};
+  for (const l of lancamentosVistos()) {
+    const o = String(l.ocasiao || '').trim();
+    if (!o || l.tipo !== 'saida' || l.data < de || l.data > ate) continue;
+    const k = semAcentoMin(o), x = g[k] || (g[k] = { nome: o, centavos: 0, de: l.data, ate: l.data, cats: {}, emo: {} });
+    x.centavos += l.centavos;
+    if (l.data < x.de) x.de = l.data;
+    if (l.data > x.ate) x.ate = l.data;
+    const c = categoriaDe(l) || String(l.nota || '').trim() || 'Outros';
+    x.cats[c] = (x.cats[c] || 0) + l.centavos;
+    if (naturezaDe(l) === 'emocao') x.emo[c] = (x.emo[c] || 0) + l.centavos;
+  }
+  return Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return b.centavos - a.centavos; });
+}
+function corDaCategoria(nome) {
+  const f = familiaDe(nome, 'saida');
+  return f ? 'var(--cat-' + f + ')' : 'rgba(var(--tinta-rgb), 0.42)';
+}
+function diferencaPainel(agora, antes) {
+  const d = agora - antes;
+  if (!d) return '<span class="pn-dif">igual</span>';
+  if (!antes) return '<span class="pn-dif">novo</span>';
+  return '<span class="pn-dif ' + (d > 0 ? 'sobe' : 'desce') + '">' + (d > 0 ? '↑ ' : '↓ ') + dinheiro(Math.abs(d)) + '</span>';
+}
+
+function telaPainel() {
+  if (pnPeriodo === 'ciclo' && !cicloLigado()) pnPeriodo = 'mes';
+  const P = periodoPainel(pnPeriodo, pnDesloca), A = periodoPainel(pnPeriodo, pnDesloca - 1);
+  const g = gastosDoPeriodo(P.de, P.ate), ga = gastosDoPeriodo(A.de, A.ate);
+  const entrou = resumoEntre(P.de, P.ate).entradas, sobrou = entrou - g.total;
+  const atual = pnDesloca === 0;
+
+  const pilulas = [['semana', 'Semana'], ['mes', 'Mês']].concat(cicloLigado() ? [['ciclo', 'Ciclo do salário']] : [])
+    .map(function (o) {
+      const on = o[0] === pnPeriodo;
+      return '<button type="button" class="' + (on ? 'activo' : '') + '" aria-pressed="' + on + '" data-acao="pn-periodo" data-ref="' + o[0] + '">' + o[1] + '</button>';
+    }).join('');
+  const topo = '<div class="pn-periodo"><div class="pn-pilulas" role="group" aria-label="Período">' + pilulas + '</div>' +
+    '<div class="pn-datas"><button class="pn-seta" data-acao="pn-volta" aria-label="Período anterior">' + icone('voltar') + '</button>' +
+    '<span>' + esc(P.nome) + '</span>' +
+    '<button class="pn-seta" data-acao="pn-avanca" aria-label="Período seguinte"' + (atual ? ' disabled' : '') + '>' + icone('avancar') + '</button></div></div>';
+
+  // 1. O herói: quanto saiu, comparado.
+  const dif = g.total - ga.total;
+  const comparado = !ga.total ? (g.total ? A.naPassado + ' não há gastos para comparar' : '')
+    : !dif ? 'Igual a ' + A.passado
+    : (dif > 0 ? '↑ ' : '↓ ') + dinheiro(Math.abs(dif)) + (dif > 0 ? ' a mais' : ' a menos') + ' que ' + A.passado;
+  const heroi = '<section class="bloco he pn-heroi">' +
+    '<div class="pn-heroi-um"><span class="rotulo">Saiu ' + (atual ? P.este : P.esse) + '</span>' +
+    '<div class="numero-grande">' + numeroGrande(g.total) + '</div>' +
+    (comparado ? '<span class="pn-comparado">' + comparado + '</span>' : '') + '</div>' +
+    '<div class="heroi-dois pn-heroi-dois">' +
+      '<div><span class="rotulo">Entrou</span><strong class="pn-medio">' + dinheiro(entrou) + '</strong></div>' +
+      '<div><span class="rotulo">Sobrou</span><strong class="pn-medio">' + dinheiro(sobrou) + '</strong>' +
+        (entrou > 0 && sobrou > 0 ? '<small>' + Math.round(sobrou * 100 / entrou) + '% do que entrou</small>' : '') + '</div>' +
+    '</div></section>';
+
+  // 2. Necessário × emoção.
+  const nec = g.total - g.emocao;
+  let maiorEmo = null;
+  g.lista.forEach(function (c) { if (c.emocao && (!maiorEmo || c.emocao > maiorEmo.emocao)) maiorEmo = c; });
+  const frase = !g.total ? 'Nada saiu ' + (atual ? P.este : P.esse) + ' ainda.'
+    : A.naPassado + ', a emoção foi <strong>' + dinheiro(ga.emocao) + '</strong>.' +
+      (maiorEmo ? ' Agora, a maior parte foi em <strong>' + esc(maiorEmo.nome) + '</strong>.' : '');
+  const emocao = '<section class="bloco pn-emocao"><h2 class="pn-titulo">Necessário ou emoção?</h2>' +
+    (g.total ? '<div class="pn-dupla"><span class="pn-nec" style="flex:' + nec + '"></span><span class="pn-emo" style="flex:' + g.emocao + '"></span></div>' +
+      '<div class="pn-lados"><div><small>Necessário</small><strong>' + dinheiro(nec) + '</strong><small>' + Math.round(nec * 100 / g.total) + '%</small></div>' +
+      '<div><small>Pela emoção</small><strong>' + dinheiro(g.emocao) + '</strong><small>' + Math.round(g.emocao * 100 / g.total) + '%</small></div></div>' : '') +
+    '<p class="pn-frase">' + frase + (g.semMarca ? ' <span class="pn-nota">Os gastos sem marca foram deduzidos pela descrição; ao lançar, escolha.</span>' : '') + '</p></section>';
+
+  // 3. Para onde foi: barras ordenadas, a emoção listrada dentro da barra.
+  const max = g.lista.length ? g.lista[0].centavos : 1;
+  let linhas = g.lista.slice(0, 6);
+  const resto = g.lista.slice(6);
+  if (resto.length) linhas = linhas.concat([{ nome: resto.length + ' outras', centavos: resto.reduce(function (a, c) { return a + c.centavos; }, 0),
+    emocao: resto.reduce(function (a, c) { return a + c.emocao; }, 0), notas: {}, outras: true }]);
+  const onde = '<section class="bloco pn-onde"><div class="pn-cab"><h2 class="pn-titulo">Para onde foi</h2>' +
+    '<div class="pn-legenda"><span><i class="l-nec"></i>necessário</span><span><i class="l-emo"></i>emoção</span></div></div>' +
+    (linhas.length ? linhas.map(function (c) {
+      const cor = c.outras ? 'rgba(var(--tinta-rgb), 0.42)' : corDaCategoria(c.nome);
+      const notas = Object.keys(c.notas).sort(function (a, b) { return c.notas[b] - c.notas[a]; }).slice(0, 2).join(' · ');
+      const antes = ga.por[c.nome.toLowerCase()];
+      const sub = c.emocao === c.centavos ? 'tudo emoção' : c.emocao ? 'emoção ' + dinheiro(c.emocao) : 'tudo necessário';
+      return '<div class="pn-linha" style="--c:' + cor + '">' +
+        '<span class="pn-ico">' + icone(c.outras ? 'outros' : iconeDoGasto(c.nome)) + '</span>' +
+        '<span class="pn-nome"><b>' + esc(c.nome) + '</b>' + (notas ? '<small>' + esc(notas) + '</small>' : '') + '</span>' +
+        '<span class="pn-trilho"><span class="pn-b-nec" style="width:' + ((c.centavos - c.emocao) * 100 / max).toFixed(1) + '%"></span>' +
+          '<span class="pn-b-emo" style="width:' + (c.emocao * 100 / max).toFixed(1) + '%"></span></span>' +
+        '<span class="pn-valor"><b>' + dinheiro(c.centavos) + '</b><small>' + sub + '</small></span>' +
+        (c.outras ? '<span class="pn-dif"></span>' : diferencaPainel(c.centavos, antes ? antes.centavos : 0)) +
+      '</div>';
+    }).join('') + (function () {
+      // Categoria que teve gasto no período anterior e agora não: sem esta linha, as setas
+      // não fechavam com o "a menos/a mais" do herói (revisor, 14/11).
+      const sumiram = ga.lista.filter(function (c) { return !g.por[c.nome.toLowerCase()]; });
+      return sumiram.length ? '<p class="pn-sumiu">' + A.naPassado + ' também teve, e agora não: ' +
+        sumiram.slice(0, 3).map(function (c) { return esc(c.nome) + ' ' + dinheiro(c.centavos); }).join(' · ') + '</p>' : '';
+    })() : '<p class="pn-vazio">Nenhum gasto ' + (atual ? P.este : P.esse) + '. Quando lançar, ele aparece aqui, separado por categoria.</p>') +
+    '</section>';
+
+  // 4. Ocasiões: na semana, as do mês dela; no mês e no ciclo, as do próprio período.
+  const oDe = pnPeriodo === 'semana' ? mesDe(P.ate) + '-01' : P.de;
+  const oAte = pnPeriodo === 'semana' ? mesDe(P.ate) + '-' + p2(diasNoMes(mesDe(P.ate))) : P.ate;
+  const ocas = ocasioesEntre(oDe, oAte);
+  const ocasioes = '<section class="bloco pn-ocasioes"><h2 class="pn-titulo">Ocasiões ' + (pnPeriodo === 'semana' ? 'de ' + MESES[Number(oAte.slice(5, 7)) - 1] : P.esse.replace('no ', 'do ')) + '</h2>' +
+    (ocas.length ? ocas.slice(0, 4).map(function (o) {
+      const partes = Object.keys(o.cats).sort(function (a, b) { return o.cats[b] - o.cats[a]; });
+      return '<div class="pn-oc"><div class="pn-oc-topo"><b>' + esc(o.nome) + '</b><strong>' + dinheiro(o.centavos) + '</strong></div>' +
+        '<small>' + (o.de === o.ate ? 'dia ' + diaDe(o.de) + ' de ' + MESES[Number(o.de.slice(5, 7)) - 1] : dataCurta(o.de) + ' a ' + dataCurta(o.ate)) + '</small>' +
+        '<div class="pn-pedacos">' + partes.map(function (c) {
+          // O listrado continua a querer dizer emoção também aqui (revisor, 14/11).
+          const e = o.emo[c] || 0, cor = corDaCategoria(c);
+          return (o.cats[c] - e ? '<span style="flex:' + (o.cats[c] - e) + ';background:' + cor + '"></span>' : '') +
+            (e ? '<span class="pn-p-emo" style="flex:' + e + ';--c:' + cor + '"></span>' : '');
+        }).join('') + '</div>' +
+        '<p>' + partes.slice(0, 3).map(function (c) { return esc(c.toLowerCase()) + ' ' + dinheiro(o.cats[c]); }).join(' · ') + '</p></div>';
+    }).join('')
+    : '<p class="pn-vazio">Nenhuma ocasião marcada. Ao lançar, escreva em <b>Ocasião</b> algo como "Festa do fim de semana": tudo o que tiver o mesmo nome soma aqui, mesmo em categorias diferentes.</p>') +
+    '</section>';
+
+  return '<div class="pn">' + topo + '<div class="pn-grade">' + heroi + emocao + onde + ocasioes + '</div></div>';
+}
+
 // ── Contas ───────────────────────────────────────────────────────────────────
 
 function telaContas(n) {
@@ -2231,6 +2445,7 @@ function atualizarApp() {
 // ── folha de lançamento ──────────────────────────────────────────────────────
 
 let digitos = '', emEdicao = null, categoriaEscolhida = false, valorDaFrase = false, tipoFolha = 'saida', dataLivre = true;
+let naturezaFolha = 'necessario', naturezaEscolhida = false;
 
 /** "gastei 50 de gasolina ontem" -> { centavos: 5000, nota: 'Gasolina', data: ontem }.
     Não tem IA e não custa nada: lançar precisa funcionar sem sinal.
@@ -2283,6 +2498,7 @@ function preencherDaFrase(texto) {
   document.getElementById('lancar-nota').value = f.nota;
   document.getElementById('lancar-data').value = f.data;
   if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaParaNota(f.nota);
+  if (!naturezaEscolhida) naturezaFolha = naturezaParaNota(f.nota, document.getElementById('lancar-categoria').value);
   pintarValor();
 }
 
@@ -2488,6 +2704,15 @@ function abrirFolha(l) {
   document.getElementById('campo-dono').hidden = !haContas() || !!ligado;
   if (haContas()) document.getElementById('lancar-dono').innerHTML = opcoesDono(l ? (l.vaga || minhaVaga()) : donoPadrao());
   categoriaEscolhida = !!(l && l.categoria);
+  // v46: o porquê e a ocasião. Na conta paga e no empréstimo não se perguntam.
+  naturezaEscolhida = !!(l && l.natureza);
+  naturezaFolha = l ? naturezaDe(l) : 'necessario';
+  document.getElementById('campo-natureza').hidden = !!ligado;
+  document.getElementById('campo-ocasiao').hidden = !!ligado;
+  document.getElementById('lancar-ocasiao').value = l ? (l.ocasiao || '') : '';
+  document.getElementById('lista-ocasioes').innerHTML = ocasioesRecentes().map(function (o) {
+    return '<option value="' + esc(o) + '"></option>';
+  }).join('');
   const data = document.getElementById('lancar-data');
   document.getElementById('lancar-apagar').hidden = !l;
   // Esquecer de lançar é normal: o gasto de ontem entra com a data de ontem.
@@ -2552,6 +2777,15 @@ function pintarFichas() {
     const caixa = ativa.parentNode, x = ativa.offsetLeft - caixa.offsetLeft;
     if (x < caixa.scrollLeft || x + ativa.offsetWidth > caixa.scrollLeft + caixa.clientWidth) caixa.scrollLeft = Math.max(0, x - 40);
   });
+
+  // v46: o porquê, só na saída. Dois botões e sempre um aceso: a pergunta custa um toque, ou nenhum.
+  const campoNat = document.getElementById('campo-natureza');
+  if (tipoFolha !== 'saida') campoNat.hidden = true;
+  else if (!document.getElementById('campo-categoria').hidden) campoNat.hidden = false;
+  document.getElementById('chips-natureza').innerHTML = [['necessario', 'Necessário'], ['emocao', 'Pela emoção']].map(function (o) {
+    const on = naturezaFolha === o[0];
+    return '<button type="button" class="ficha-op nat-' + o[0] + (on ? ' activo' : '') + '" data-natureza="' + o[0] + '" aria-pressed="' + on + '">' + o[1] + '</button>';
+  }).join('');
 
   const data = document.getElementById('lancar-data'), v = data.value, ontem = dataMais(-1);
   const qual = v === hoje() ? 'hoje' : v === ontem ? 'ontem' : 'outro';
@@ -2676,6 +2910,8 @@ function corrigir(tipo) {
   if (!ligado) {
     mudancas.categoria = categoriaDaFolha();
     mudancas.vaga = lerDono('lancar-dono', l.vaga);
+    mudancas.natureza = tipo === 'saida' ? naturezaFolha : '';
+    mudancas.ocasiao = document.getElementById('lancar-ocasiao').value.trim().slice(0, 40);
   }
   aplicarEdicao(l.id, mudancas);
   fecharFolhas();
@@ -2701,6 +2937,8 @@ function lancar(tipo) {
     id: id(), tipo: tipo, centavos: centavos, data: quando,
     nota: document.getElementById('lancar-nota').value.trim(),
     categoria: categoriaDaFolha(),
+    natureza: tipo === 'saida' ? naturezaFolha : '',
+    ocasiao: document.getElementById('lancar-ocasiao').value.trim().slice(0, 40),
     conta: null, emprestimo: null, em: Date.now(),
     vaga: lerDono('lancar-dono')
   };
@@ -3267,6 +3505,13 @@ document.getElementById('lancar-tipo').addEventListener('click', function (ev) {
   if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaParaNota(document.getElementById('lancar-nota').value);
   pintarValor();
 });
+document.getElementById('chips-natureza').addEventListener('click', function (ev) {
+  const b = ev.target.closest('[data-natureza]');
+  if (!b) return;
+  naturezaFolha = b.dataset.natureza;
+  naturezaEscolhida = true;
+  pintarFichas();
+});
 document.getElementById('chips-categoria').addEventListener('click', function (ev) {
   const b = ev.target.closest('[data-cat]');
   if (!b) return;
@@ -3276,6 +3521,8 @@ document.getElementById('chips-categoria').addEventListener('click', function (e
   categoriaEscolhida = true;
   document.getElementById('campo-nova').hidden = sel.value !== '__nova';
   if (sel.value === '__nova') document.getElementById('lancar-nova').focus();
+  // Escolher Lazer já acende "Pela emoção", se ele ainda não escolheu o porquê.
+  if (!naturezaEscolhida) naturezaFolha = naturezaParaNota(document.getElementById('lancar-nota').value, sel.value);
   pintarFichas();
 });
 document.getElementById('chips-data').addEventListener('click', function (ev) {
@@ -3310,6 +3557,9 @@ document.addEventListener('click', function (ev) {
   const ref = b.dataset.ref;
   switch (b.dataset.acao) {
     case 'lancar':          return abrirLancar();
+    case 'pn-periodo':      pnPeriodo = ref; pnDesloca = 0; return desenhar();
+    case 'pn-volta':        pnDesloca--; return desenhar();
+    case 'pn-avanca':       pnDesloca = Math.min(0, pnDesloca + 1); return desenhar();
     case 'nova-conta':      return novaConta();
     case 'novo-emprestimo': return novoEmprestimo(ref);
     case 'pagar':           return pagarConta(ref);
@@ -3440,8 +3690,9 @@ document.addEventListener('input', function (ev) {
     paginarTudo();
   } else if (ev.target.id === 'lancar-frase') {
     preencherDaFrase(ev.target.value);
-  } else if (ev.target.id === 'lancar-nota' && !categoriaEscolhida) {
-    document.getElementById('lancar-categoria').value = categoriaParaNota(ev.target.value);
+  } else if (ev.target.id === 'lancar-nota' && (!categoriaEscolhida || !naturezaEscolhida)) {
+    if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaParaNota(ev.target.value);
+    if (!naturezaEscolhida) naturezaFolha = naturezaParaNota(ev.target.value, document.getElementById('lancar-categoria').value);
     pintarFichas();
   }
 });
