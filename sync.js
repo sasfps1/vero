@@ -1106,6 +1106,9 @@
   };
 
   window.veroMinhaVaga = function () { return eu ? eu.vaga : 'sas'; };
+  /** 16/11: quem lançou (o `autor` vem de `criado_por`), para o aviso "pagou a sua parte". */
+  window.veroMeuUid = function () { return eu ? eu.uid : null; };
+  window.veroNomeDe = function (uid) { return nomes[uid] || ''; };
   /** As carteiras que este aparelho pode usar. Sem casa ligada, não há nenhuma. */
   window.veroCarteiras = function () { return eu ? carteiras : []; };
   window.veroNomeDaVaga = function (v) {

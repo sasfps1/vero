@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 46;
+const VERSAO = 47;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1301,6 +1301,7 @@ function telaInicio(n) {
 
   return '<div class="painel inicio">' +
     '<nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
+    (celular ? avisoPagoPorOutro(true) : '') +
     atalhosHtml() +
     heroi +
     (celular ? faixaAgenda() : '') +
@@ -1870,8 +1871,42 @@ function secaoVence() {
     '<div class="fila">' + cartoes + '</div></section>';
 }
 
+/* 16/11, pedido dele: quando ele paga a conta e marca a parte da Ana, "o próprio aplicativo
+   já iria avisar ela que já foi debitado". Aviso = a saída que caiu na MINHA carteira, ligada
+   a uma conta, lançada por OUTRA pessoa da casa (o `autor` vem do banco). Some com o "Ok",
+   e o "Ok" fica guardado neste aparelho. Duas semanas de janela: depois disso já é passado. */
+const AVISOS_VISTOS = 'vero.avisosVistos';
+function avisosVistos() { try { return JSON.parse(localStorage.getItem(AVISOS_VISTOS) || '[]'); } catch (e) { return []; } }
+function marcarAvisoVisto(ref) {
+  try { localStorage.setItem(AVISOS_VISTOS, JSON.stringify(avisosVistos().concat([ref]).slice(-200))); } catch (e) {}
+  desenhar();
+}
+function pagosPorOutro() {
+  const eu = window.veroMeuUid ? window.veroMeuUid() : null;
+  if (!eu) return [];
+  const minha = minhaVaga(), desde = dataMais(-14), vistos = avisosVistos();
+  return S.lancamentos.filter(function (l) {
+    return l.tipo === 'saida' && l.conta && l.vaga === minha && l.autor && l.autor !== eu &&
+      l.data >= desde && vistos.indexOf(l.id) < 0;
+  });
+}
+/** No celular, um bloco no topo; no computador, dentro dos avisos (o canto de cima da tela
+    única), porque a grelha do Início não tem casa para um bloco a mais. */
+function avisoPagoPorOutro(bloco) {
+  const lista = pagosPorOutro();
+  if (!lista.length) return '';
+  return (bloco ? '<section class="bloco pago-por-outro" aria-label="Pago em seu nome">' : '') + lista.map(function (l) {
+    const quem = (window.veroNomeDe && window.veroNomeDe(l.autor)) || 'Alguém da casa';
+    return '<div class="ppo-linha">' + icone('certo') +
+      '<p><b>' + esc(quem) + ' pagou ' + esc(l.nota || 'uma conta') + '</b> e marcou a sua parte: ' +
+      '<b>' + dinheiro(l.centavos) + '</b> saiu da sua carteira em ' + porExtensoData(l.data) + '. ' +
+      '<small>Você não precisa lançar. Se não foi assim, desfaça em Contas.</small></p>' +
+      '<button class="btn pequeno" data-acao="aviso-ok" data-ref="' + esc(l.id) + '">Ok</button></div>';
+  }).join('') + (bloco ? '</section>' : '');
+}
+
 function avisos() {
-  const html = avisoMemoria() + (window.veroAviso ? window.veroAviso() : '') + avisoCopia();
+  const html = (telaUnica && telaUnica.matches ? avisoPagoPorOutro(false) : '') + avisoMemoria() + (window.veroAviso ? window.veroAviso() : '') + avisoCopia();
   return html ? '<section class="bloco avisos">' + html + '</section>' : '';
 }
 
@@ -3339,13 +3374,29 @@ function pagarConta(alvo) {
   const ref = alvo.split('|')[0], mesAtrasado = alvo.split('|')[1] || null;
   const c = S.contas.find(function (x) { return x.id === ref; });
   if (!c) return;
+  /* 16/11, pedido dele: "quando eu coloco os R$500, já dá a opção: foi dividido com a Ana?
+     Se eu falo que sim, lá na conta da minha esposa ela não precisa atualizar, e o app avisa
+     ela que já foi debitado." A marca é a mesma de "Marcar que a Ana pagou" (a saída entra
+     na carteira dela, ligada à conta); a pergunta só a traz para o momento de pagar.
+     Vem marcada porque é o caso de todo mês; desmarcar deixa a parte dela por pagar. */
+  const mesP = mesAtrasado || mesDe(hoje());
+  const perguntaParte = eDividida(c) && papelNaVista(c) !== 'outro' && !outroJaPagou(c, mesP);
+  const vagaB = perguntaParte ? vagaDoOutro(c) : null;
   abrirForm('Paguei ' + c.nome + (mesAtrasado ? ' de ' + nomeDoMes(mesAtrasado) : ''),
     campoValor('p-valor', eDividida(c) ? 'Quanto saiu do seu bolso' : 'Quanto saiu') +
     '<p class="frase">Deixe como está se foi ' + dinheiro(c.centavos) + '.' +
-      (eDividida(c) ? ' É a sua parte: a conta inteira é ' + dinheiro(c.total) + '.' : '') + '</p>',
+      (eDividida(c) ? ' É a sua parte: a conta inteira é ' + dinheiro(c.total) + '.' : '') + '</p>' +
+    (perguntaParte
+      ? '<label class="campo-marcar"><input type="checkbox" id="p-parte-outro" checked>' +
+        '<span>A parte de ' + esc(nomeOutro(c)) + ' (' + dinheiro(parteDoOutro(c)) + ') também foi paga' +
+        '<small>' + (vagaB ? 'Entra na carteira de ' + esc(nomeOutro(c)) + ' sozinha, e ' + esc(nomeOutro(c)) + ' recebe um aviso no Vero.'
+          : 'Fica marcada como paga nesta conta.') + '</small></span></label>'
+      : ''),
     function () {
       const centavos = lerValor('p-valor') || c.centavos;
-      const mes = mesAtrasado || mesDe(hoje());
+      const mes = mesP;
+      const caixa = document.getElementById('p-parte-outro');
+      const comParte = !!(caixa && caixa.checked);
       const l = {
         id: id(), tipo: 'saida', centavos: centavos, data: hoje(),
         nota: c.nome, conta: c.id, emprestimo: null, em: Date.now(), vaga: c.vaga
@@ -3353,10 +3404,20 @@ function pagarConta(alvo) {
       if (mesAtrasado) l.origem = 'mes:' + mesAtrasado;
       S.lancamentos.push(l);
       marcarPago(ref, mes, { data: hoje(), centavos: centavos, lanc: l.id });
+      let lB = null;
+      if (comParte) {
+        c.outroPagou = (c.outroPagou || []).filter(function (m) { return m !== mes; }).concat([mes]).sort();
+        if (vagaB) {
+          lB = { id: id(), tipo: 'saida', centavos: parteDoOutro(c), data: hoje(), nota: c.nome, conta: c.id, emprestimo: null, em: Date.now(), vaga: vagaB };
+          if (mesAtrasado) lB.origem = 'mes:' + mesAtrasado;
+          S.lancamentos.push(lB);
+        }
+      }
       guardar(); fecharFolhas(); desenhar();
-      oferecerDesfazer(c.nome + ' pago', function () {
+      oferecerDesfazer(c.nome + (comParte ? ' pago, com a parte de ' + nomeOutro(c) : ' pago'), function () {
         marcarPago(ref, mes, null);
-        S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== l.id; });
+        S.lancamentos = S.lancamentos.filter(function (x) { return x.id !== l.id && !(lB && x.id === lB.id); });
+        if (comParte) c.outroPagou = (c.outroPagou || []).filter(function (m) { return m !== mes; });
         guardar(); desenhar();
       });
     });
@@ -3565,6 +3626,7 @@ document.addEventListener('click', function (ev) {
     case 'pagar':           return pagarConta(ref);
     case 'despagar':        return despagar(ref);
     case 'outro-pagou':     return marcarOutroPagou(ref);
+    case 'aviso-ok':        return marcarAvisoVisto(ref);
     case 'dispensar-conta': return dispensarConta(ref);
     case 'devolvi':         return devolucao(ref);
     case 'perdoar':         return perdoar(ref);
