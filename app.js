@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 47;
+const VERSAO = 48;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1373,6 +1373,31 @@ function partesDe100(valores) {
 }
 
 /** O que falta pagar no mês, com as próximas em fichas e a primeira acesa. */
+/* 16/11 (o mesmo print): o espaço entre as fichas e o "Paguei" passa a mostrar o mês das
+   contas inteiro, paga ou não. As fichas dizem o que vem; isto diz onde o mês está. */
+function mesDasContas() {
+  if (!(telaUnica && telaUnica.matches)) return '';
+  const mes = cicloDe(hoje()).mes, h = hoje();
+  const lista = contasVistas().filter(function (c) {
+    return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes);
+  }).map(function (c) { return { c: c, venc: vencimentoEm(c, mes), falta: faltaDaConta(c, mes), valor: valorNaVista(c) }; })
+    .sort(function (a, b) { return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
+  if (!lista.length) return '';
+  const pagas = lista.filter(function (x) { return x.falta === 0; }).length;
+  const pago = lista.reduce(function (a, x) { return a + x.valor - x.falta; }, 0);
+  const total = lista.reduce(function (a, x) { return a + x.valor; }, 0);
+  return '<div class="mes-contas"><div class="mc-cabeca"><span>' + nomeDoMes(mes).charAt(0).toUpperCase() + nomeDoMes(mes).slice(1) + '</span>' +
+      '<span>' + pagas + ' de ' + lista.length + ' pagas · ' + dinheiro(pago) + ' de ' + dinheiro(total) + '</span></div>' +
+    '<div class="barra-fina mc-barra" role="img" aria-label="' + pagas + ' de ' + lista.length + ' contas pagas"><i style="width:' + (total ? Math.round(pago / total * 100) : 0) + '%"></i></div>' +
+    '<div class="mc-lista">' + lista.map(function (x) {
+      const paga = x.falta === 0, venceu = !paga && x.venc < h;
+      return '<div class="mc-linha' + (paga ? ' paga' : '') + (venceu ? ' venceu' : '') + '">' +
+        '<span class="mc-dia">dia ' + diaDe(x.venc) + '</span><span class="mc-nome">' + esc(x.c.nome) + '</span>' +
+        '<span class="mc-estado">' + (paga ? icone('certo') + 'paga' : venceu ? 'venceu' : 'falta') + '</span>' +
+        '<b>' + dinheiro(paga ? x.valor : x.falta) + '</b></div>';
+    }).join('') + '</div></div>';
+}
+
 function cartaoContas(n) {
   // O que tem data vem primeiro: a ficha acesa é a que vence mais cedo, não a "sem data".
   const itens = itensProximos().sort(function (a, b) { return (a.semData ? 1 : 0) - (b.semData ? 1 : 0); }), h = hoje();
@@ -1398,7 +1423,7 @@ function cartaoContas(n) {
     '<div class="numero-grande valor-medio">' + numeroGrande(n.faltaPagar) + '</div>' +
     (n.aReceber ? '<small class="nota" data-cede="2">A receber ' + dinheiro(n.aReceber) + '</small>' : '') +
     (fichas ? '<div class="contas-fichas">' + fichas + '</div>' : '<p class="nota">Nada vence nos próximos 7 dias.</p>') +
-    cobre +
+    cobre + mesDasContas() +
     (primeira ? '<button class="btn contorno" data-acao="' + (primeira.acao || (primeira.tipo === 'conta' ? 'pagar' : 'devolvi')) + '" data-ref="' + esc(primeira.ref) + '">' +
       (primeira.tipo === 'conta' ? 'Paguei ' + esc(primeira.nome) : esc(primeira.nome.replace(/^Devolver/, 'Já devolvi'))) + '</button>' : '') +
   '</section>';
@@ -1427,7 +1452,7 @@ function listaInicio(p) {
     return '<div class="item-linha">' +
       '<button class="item ' + (e ? 'e-entrada' : 'e-saida') + '" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' +
       '<span class="item-ico' + classeCor(familiaDoLancamento(l)) + '">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
-      '<span class="item-nome">' + nome + '<small>' + esc(sub) + '</small></span>' +
+      '<span class="item-nome"><span class="item-titulo">' + nome + '</span><small>' + esc(sub) + '</small></span>' +
       '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>' +
       '<button class="item-lapis" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' + icone('lapis') + '</button>' +
       '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '">' + icone('lixo') + '</button></div>';
@@ -1435,7 +1460,29 @@ function listaInicio(p) {
   return '<section class="bloco lista-inicio">' +
     '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos<span class="titulo-periodo"> ' + p.curto + '</span></h2>' + pilulas + '</div>' +
     (linhas ? '<div class="lista-itens">' + linhas + '</div>' : '<p class="vazio">Nada lançado ' + p.curto + '. Toque em + Novo lançamento.</p>') +
+    (p.de === p.ate && p.de === hoje() ? ultimosDias() : '') +
   '</section>';
+}
+
+/* 16/11, pedido dele (print com o espaço riscado): "não tô gostando desses espaços". No
+   computador, por baixo do dia de hoje, os dias anteriores: entrou, saiu, sobrou, como ele
+   já lê o dia. Quem ganha por dia compara o dia com os dias (é o número dele). As contas
+   fixas ficam fora, a mesma regra do "Sobrou hoje". Um toque abre o dia. */
+function ultimosDias() {
+  if (!(telaUnica && telaUnica.matches)) return '';
+  const linhas = [];
+  for (let k = 1; k <= 14 && linhas.length < 6; k++) {
+    const d = dataMais(-k), r = resumoEntre(d, d);
+    if (!r.entradas && !r.saidas) continue;
+    const ficou = r.entradas - r.saidas;
+    linhas.push('<button class="ud-linha" data-acao="dia-ver" data-ref="' + d + '">' +
+      '<span class="ud-dia">' + (k === 1 ? 'Ontem' : SEM_CURTA[dataDe(d).getDay()] + ', ' + diaDe(d)) + '</span>' +
+      '<span class="ud-num">' + dinheiro(r.entradas) + '</span><span class="ud-num">' + dinheiro(r.saidas) + '</span>' +
+      '<b class="ud-num' + (ficou < 0 ? ' neg' : '') + '">' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></button>');
+  }
+  if (!linhas.length) return '';
+  return '<div class="ultimos-dias"><div class="ud-cabeca"><span>Antes</span><span>Entrou</span><span>Saiu</span><span>Sobrou</span></div>' +
+    '<div class="ud-lista">' + linhas.join('') + '</div></div>';
 }
 
 /** "Para onde foi" na linguagem da faixa de cima (v15, revisão de 04/11): cada destino
@@ -1753,7 +1800,42 @@ function calendarioDoMes() {
       (calMes && calMes !== base ? '<button class="cal-volta" data-acao="cal-mes" data-ref="0">Hoje</button>' : '') +
       '<button class="cal-seta" data-acao="cal-mes" data-ref="1" aria-label="Próximo mês">›</button></span></div>' +
     '<p class="frase" data-cede="1">' + frase + '</p>' +
-    '<div class="cal" role="group" aria-label="Dias de ' + nome + '">' + celulas + '</div></section>';
+    '<div class="cal" role="group" aria-label="Dias de ' + nome + '">' + celulas + '</div>' +
+    (atual ? proximaSemana() : '') + '</section>';
+}
+
+/* 16/11, pedido dele: "no calendário, no PC, tá um espação embaixo... esses espaços devem
+   ser preenchidos ou calculados estrategicamente". Lente: Stephen Few e Edward Tufte (espaço
+   sem dado é defeito; enche-se com dado útil, não com enfeite). O que cabe por baixo do mês é
+   o que vem a seguir: o que vence, o que devolver, compromissos e feriados dos próximos 7 dias.
+   Só no computador: no celular o calendário é curto e o de hoje e amanhã já sobe na faixa. */
+const SEM_CURTA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+function quandoCurto(data) {
+  const h = hoje();
+  if (data < h) return 'Venceu ' + diaDe(data) + '/' + data.slice(5, 7);
+  if (data === h) return 'Hoje';
+  if (data === dataMais(1)) return 'Amanhã';
+  return SEM_CURTA[dataDe(data).getDay()] + ', ' + diaDe(data);
+}
+function proximaSemana() {
+  if (!(telaUnica && telaUnica.matches)) return '';
+  const itens = [];
+  itensProximos().forEach(function (it) {
+    itens.push({ data: it.data, texto: it.nome, valor: it.centavos, atrasada: it.data < hoje() && it.tipo === 'conta' });
+  });
+  for (let k = 0; k < 7; k++) {
+    const d = dataMais(k), fer = feriadoEm(d);
+    if (fer) itens.push({ data: d, texto: 'Feriado · ' + fer });
+    agendaDoDia(d).forEach(function (a) { itens.push({ data: d, texto: textoCompromisso(a) }); });
+  }
+  itens.sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
+  const corpo = itens.length ? itens.map(function (it) {
+    return '<button class="ps-linha' + (it.atrasada ? ' atrasada' : '') + '" data-acao="dia-abrir" data-ref="' + it.data + '">' +
+      '<span class="ps-quando">' + quandoCurto(it.data) + '</span>' +
+      '<span class="ps-texto">' + esc(it.texto) + '</span>' +
+      (it.valor ? '<b>' + dinheiro(it.valor) + '</b>' : '<b></b>') + '</button>';
+  }).join('') : '<p class="ps-vazio">Nada vence nem está marcado nos próximos 7 dias. Toque num dia para marcar.</p>';
+  return '<div class="prox-semana"><h3 class="ps-titulo">Próximos 7 dias</h3><div class="ps-lista">' + corpo + '</div></div>';
 }
 
 function mudarMesCal(passo) {
@@ -3609,6 +3691,52 @@ document.getElementById('teclado').addEventListener('click', function (ev) {
   else if (b.dataset.d && (digitos + b.dataset.d).length <= 8) digitos = (digitos + b.dataset.d).replace(/^0+(?=\d)/, '');
   pintarValor();
 });
+
+/* 16/11, pedido dele: "quando coloca o dedo em cima, fixa, ela mostra completo, como se desse
+   um zoom". É um atalho a mais: o nome já cabe em duas linhas e um toque abre o lançamento
+   inteiro (gesto escondido nunca é o único caminho, NN/g). Feito com pointer events e não com
+   `contextmenu`, que o Safari do iPhone não dispara (WebKit 213953). Arrastar mais de 10 px é
+   rolar a lista, não segurar: cancela. */
+(function () {
+  let relogio = null, alvo = null, x0 = 0, y0 = 0, segurou = false;
+  function fecharLupa() { const l = document.getElementById('lupa'); if (l) l.remove(); }
+  function abrirLupa(b) {
+    const l = S.lancamentos.find(function (x) { return x.id === b.dataset.ref; });
+    if (!l) return;
+    fecharLupa();
+    const cat = categoriaDe(l), e = l.tipo === 'entrada';
+    const hora = l.em ? ' · ' + new Date(l.em).toTimeString().slice(0, 5) : '';
+    const div = document.createElement('div');
+    div.id = 'lupa'; div.setAttribute('role', 'status');
+    div.innerHTML = '<b class="lupa-nome">' + esc(String(l.nota || '').trim() || cat || 'Sem nome') + '</b>' +
+      '<span class="lupa-sub">' + esc((cat || (e ? 'Entrada' : 'Saída')) + ' · ' + porExtensoData(l.data) + hora) + '</span>' +
+      '<b class="lupa-valor' + (e ? ' e-entrada' : '') + '">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b>';
+    document.body.appendChild(div);
+    const r = b.getBoundingClientRect(), alt = div.offsetHeight;
+    const topo = r.top - alt - 10 > 8 ? r.top - alt - 10 : r.bottom + 10;
+    div.style.top = Math.round(topo) + 'px';
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch (e2) {}
+  }
+  document.addEventListener('pointerdown', function (ev) {
+    fecharLupa();
+    const b = ev.target.closest && ev.target.closest('.item[data-ref]');
+    if (!b || ev.pointerType === 'mouse') return;
+    alvo = b; x0 = ev.clientX; y0 = ev.clientY; segurou = false;
+    relogio = setTimeout(function () { relogio = null; segurou = true; abrirLupa(alvo); }, 450);
+  }, { passive: true });
+  document.addEventListener('pointermove', function (ev) {
+    if (relogio && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 10) { clearTimeout(relogio); relogio = null; }
+  }, { passive: true });
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    document.addEventListener(t, function () { if (relogio) { clearTimeout(relogio); relogio = null; } }, { passive: true });
+  });
+  // quem segurou só queria ler: o toque que acaba a seguir não abre a folha de corrigir
+  document.addEventListener('click', function (ev) {
+    if (segurou && ev.target.closest && ev.target.closest('.item')) { ev.preventDefault(); ev.stopPropagation(); }
+    segurou = false;
+  }, true);
+  window.addEventListener('scroll', fecharLupa, { passive: true, capture: true });
+})();
 
 document.addEventListener('click', function (ev) {
   const b = ev.target.closest('[data-lancar],[data-acao],[data-fechar-folha]');
