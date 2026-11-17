@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 52;
+const VERSAO = 53;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1031,6 +1031,7 @@ function desenhar() {
   else tela.scrollTop = rolagem;
   rotaPintada = r;
   caberSemRolar();
+  aparaListas();
   paginarTudo();
 }
 
@@ -1122,6 +1123,30 @@ function caberSemRolar() {
       itens.pop().style.display = 'none'; fora++;
       mais.textContent = '+' + fora + ' · ver todos';
     }
+  });
+}
+/* 17/11: as listas de dentro dos cartões (Antes, contas do mês, próximos 7 dias) também
+   não rolam. Cada uma mostra só as linhas que cabem INTEIRAS. Nas contas do mês saem
+   primeiro as já pagas (a cabeça já diz "5 de 6 pagas"): a que falta pagar é a que
+   importa, e era justamente ela que ficava escondida no fundo da rolagem. */
+function aparaListas() {
+  if (!telaUnica || !telaUnica.matches) return;
+  [].forEach.call(document.querySelectorAll('.painel.inicio .ud-lista, .painel.inicio .ps-lista, .painel.inicio .mc-lista'), function (l) {
+    const linhas = [].slice.call(l.children);
+    const bloco = l.closest('.ultimos-dias, .prox-semana, .mes-contas');
+    if (bloco) bloco.style.display = '';
+    linhas.forEach(function (x) { x.style.display = ''; });
+    const fundo = function () { return l.getBoundingClientRect().bottom + 0.5; };
+    const sobra = function () { return linhas.some(function (x) { return x.style.display !== 'none' && x.getBoundingClientRect().bottom > fundo(); }); };
+    if (!sobra()) return;
+    const ordem = l.classList.contains('mc-lista')
+      ? linhas.filter(function (x) { return x.classList.contains('paga'); })
+          .concat(linhas.filter(function (x) { return !x.classList.contains('paga'); }).reverse())
+      : linhas.slice().reverse();
+    for (let i = 0; i < ordem.length && sobra(); i++) ordem[i].style.display = 'none';
+    // nem uma linha inteira coube: o título sozinho é ruído, sai o bloco todo. Nas contas
+    // do mês fica a cabeça ("5 de 6 pagas") e a barra, que já dizem tudo sozinhas.
+    if (bloco && !l.classList.contains('mc-lista') && !linhas.some(function (x) { return x.style.display !== 'none'; })) bloco.style.display = 'none';
   });
 }
 if (telaUnica) {
