@@ -1791,3 +1791,16 @@ main::-webkit-scrollbar { width: 8px; }
 main::-webkit-scrollbar-track { background: transparent; }
 main::-webkit-scrollbar-thumb { background: rgba(var(--tinta-rgb), 0.18); border-radius: 99px; }
 main::-webkit-scrollbar-thumb:hover { background: rgba(var(--tinta-rgb), 0.32); }
+
+/* ── 17/11 · Modo Recuperação Contextual: o estado se lê pela FORMA, sem cor nova ──────────
+   recuperação = contorno tracejado no cartão + selo com contorno; contenção = selo cheio e a
+   linha em bloco invertido (creme sobre navy). Sem vermelho, sem âmbar (escolha dele). */
+.heroi.modo-recuperacao { outline: 1.5px dashed rgba(var(--tinta-rgb), 0.55); outline-offset: -7px; }
+.heroi.modo-contencao { outline: 2px solid rgba(var(--tinta-rgb), 0.85); outline-offset: -7px; }
+.heroi-estado { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; line-height: 1.4; }
+.heroi-estado b { font-weight: 700; }
+.selo-estado { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 99px;
+  border: 1.5px solid var(--on-surface); font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--on-surface); white-space: nowrap; }
+.selo-estado svg { width: 14px; height: 14px; }
+.heroi-estado.contencao { padding: 10px 12px; border-top: 0; border-radius: 12px; background: var(--on-surface); color: var(--surface); }
+.heroi-estado.contencao .selo-estado { background: var(--surface); color: var(--on-surface); border-color: var(--surface); }

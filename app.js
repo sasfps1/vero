@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 53;
+const VERSAO = 54;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1275,11 +1275,44 @@ function jaTemSaidas() {
    mês servem por baixo, dentro dele; a rosca ao lado (pedido dele, Zarss); a conversa
    com o Vero em largura toda, com cara de conversa (antes parecia busca); depois a
    lista e as contas. Gráfico só aparece quando há o que mostrar. */
+/* ── 17/11 · MODO RECUPERAÇÃO CONTEXTUAL (pedido dele) ────────────────────────────
+   O dia bom não pode esconder o mês abaixo de zero (viés de otimismo). Três estados, só no "Hoje":
+     folga       = sobrou hoje > 0 e o mês >= 0  → o herói de sempre;
+     recuperacao = sobrou hoje > 0 e o mês < 0   → o número do dia fica (o reforço diário não morre),
+                   e a linha de baixo vira o abatimento do déficit;
+     contencao   = sobrou hoje <= 0 e o mês < 0  → quanto o dia passou e a meta por dia até o fim do mês.
+   SEM COR NOVA E SEM VERMELHO (escolha dele, 17/11 15h02): o estado se lê pela FORMA (selo com
+   contorno, bloco invertido) e pela palavra. Quem teme o número para de abrir o app (Olafsson &
+   Pagel 2017; Epstein 2016): a fala orienta, nunca culpa. */
+function estadoDoDia(sobrouHoje, saldoMes, diasRestantes) {
+  if (saldoMes >= 0) return sobrouHoje > 0 ? { estado: 'folga' } : null;
+  const deficit = -saldoMes, dias = Math.max(1, diasRestantes || 1);
+  if (sobrouHoje > 0) return { estado: 'recuperacao', deficit: deficit, abateuPct: Math.max(1, Math.round(sobrouHoje / (deficit + sobrouHoje) * 100)) };
+  return { estado: 'contencao', deficit: deficit, excessoDia: Math.max(0, -sobrouHoje), metaDia: Math.ceil(deficit / dias), dias: dias };
+}
+/** Dias do mês que faltam, contando hoje. */
+function diasRestantesNoMes() { const h = hoje(); return diasNoMes(h.slice(0, 7)) - diaDe(h) + 1; }
+/** A linha do herói nos estados de atenção (no lugar do "No mês: entrou · saiu"). */
+function linhaEstadoDoDia(e) {
+  if (!e || e.estado === 'folga') return '';
+  if (e.estado === 'recuperacao') {
+    return '<p class="heroi-mes heroi-estado recuperacao"><span class="selo-estado">' + icone('entrou') + 'Modo Recuperação</span>' +
+      '<span>Abateu <b>' + e.abateuPct + '%</b> do déficit · faltam <b>' + dinheiro(e.deficit) + '</b> para zerar o mês</span></p>';
+  }
+  const ultimo = diasNoMes(hoje().slice(0, 7));
+  return '<p class="heroi-mes heroi-estado contencao"><span class="selo-estado">Contenção</span>' +
+    '<span>' + (e.excessoDia ? 'Hoje saiu <b>' + dinheiro(e.excessoDia) + '</b> além do que entrou · ' : '') +
+    'para empatar o mês: <b>' + dinheiro(e.metaDia) + '</b> por dia até o dia ' + ultimo + '</span></p>';
+}
+
 function telaInicio(n) {
   const p = periodoInicio(), r = resumoEntre(p.de, p.ate);
   const ficou = r.entradas - r.saidas;
   const pct = r.entradas > 0 ? Math.min(100, Math.round(r.saidas / r.entradas * 100)) : (r.saidas ? 100 : 0);
   const pctFicou = r.entradas > 0 ? Math.max(0, Math.round(ficou / r.entradas * 100)) : 0;
+  const est = inicioVista === 'hoje' ? estadoDoDia(ficou, n.entradas - n.saidas, diasRestantesNoMes()) : null;
+  const atencao = !!(est && est.estado !== 'folga');
+  const classeEstado = (ficou > 0 && !atencao ? ' ganho' : '') + (est ? ' modo-' + est.estado : '');
 
   const abas = [['hoje', 'Hoje'], ['mes', 'Mês']].map(function (a) {
     return '<button class="aba' + (inicioVista === a[0] ? ' activo' : '') + '" data-acao="inicio-vista" data-ref="' + a[0] + '" aria-pressed="' + (inicioVista === a[0]) + '">' + a[1] + '</button>';
@@ -1299,7 +1332,7 @@ function telaInicio(n) {
      imagem. No computador o herói continua o de antes. */
   const celular = !(telaUnica && telaUnica.matches);
   const textoPode = podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—';
-  const heroiCel = '<section class="bloco he heroi heroi-cel' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
+  const heroiCel = '<section class="bloco he heroi heroi-cel' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + classeEstado + '">' +
     '<span class="rotulo">Sobrou ' + p.quando + '</span>' +
     '<div class="numero-grande">' + (ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou)) + '</div>' +
     '<small class="heroi-pode">' + textoPode + '</small>' +
@@ -1309,9 +1342,9 @@ function telaInicio(n) {
         '<div class="barra-fina" role="img" aria-label="Saiu ' + pct + '% do que entrou"><i style="width:' + pct + '%"></i></div>' +
         '<small>' + (r.entradas ? pct + '% do que entrou' : r.saidas ? 'Só saiu dinheiro' : 'Nada saiu') + '</small></div>' +
     '</div>' +
-    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">' + rotuloDoMes() + ': entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
+    (atencao ? linhaEstadoDoDia(est) : inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">' + rotuloDoMes() + ': entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
   '</section>';
-  const heroi = celular ? heroiCel : '<section class="bloco he heroi' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + (ficou > 0 ? ' ganho' : '') + '">' +
+  const heroi = celular ? heroiCel : '<section class="bloco he heroi' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + classeEstado + '">' +
     '<span class="rotulo">Entrou ' + p.quando + '</span>' +
     '<div class="numero-grande">' + numeroGrande(r.entradas) + '</div>' +
     '<div class="heroi-dois">' +
@@ -1321,7 +1354,7 @@ function telaInicio(n) {
       '<div class="sobrou"><span>Sobrou</span><b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b><small>' +
         (podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—') + '</small></div>' +
     '</div>' +
-    (inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">' + rotuloDoMes() + ': entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
+    (atencao ? linhaEstadoDoDia(est) : inicioVista !== 'mes' ? '<p class="heroi-mes" data-cede="2">' + rotuloDoMes() + ': entrou <b>' + dinheiro(n.entradas) + '</b> · saiu <b>' + dinheiro(n.saidas) + '</b></p>' : '') +
   '</section>';
 
   return '<div class="painel inicio">' +
@@ -2943,6 +2976,11 @@ function resumoDaNoite() {
   } else {
     frase = quando + ' entrou ' + curto(r.entradas) + ' e saiu ' + curto(r.saidas) + ', ' + curto(-ficou) + ' a mais do que entrou.';
   }
+  // 17/11 Modo Recuperação: com o mês abaixo de zero, nada de "acima da média"; a fala orienta.
+  const mesR = resumoEntre(dia.slice(0, 7) + '-01', dia), saldoM = mesR.entradas - mesR.saidas;
+  const est = estadoDoDia(ficou, saldoM, diasNoMes(dia.slice(0, 7)) - diaDe(dia) + 1);
+  if (est && est.estado === 'recuperacao') return 'Bom dia de caixa (+' + curto(ficou) + '), mas o mês ainda está ' + curto(est.deficit) + ' abaixo de zero: segure os extras até zerar.';
+  if (est && est.estado === 'contencao') return frase + ' Para empatar o mês: ' + curto(est.metaDia) + ' por dia até o fim do mês.';
   return frase + (extra ? ' ' + extra : '');
 }
 
