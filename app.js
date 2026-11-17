@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 50;
+const VERSAO = 51;
 let soMemoria = false;
 
 const VAZIO = {
@@ -2116,7 +2116,8 @@ function telaPainel() {
   if (atual) {
     const k = Math.round((dataDe(hoje()) - dataDe(P.de)) / 86400000), ateA = somaDias(Ainteiro.de, k);
     if (ateA < Ainteiro.ate) A = Object.assign({}, Ainteiro, { ate: ateA,
-      comp: pnPeriodo === 'semana' ? 'o mesmo dia da semana passada' : pnPeriodo === 'mes' ? 'o mês passado até o dia ' + diaDe(ateA) : 'o ciclo passado no mesmo ponto' });
+      comp: pnPeriodo === 'semana' ? 'o mesmo dia da semana passada' : pnPeriodo === 'mes' ? 'o mês passado até o dia ' + diaDe(ateA) : 'o ciclo passado no mesmo ponto',
+      noComp: pnPeriodo === 'semana' ? 'na semana passada até este dia' : pnPeriodo === 'mes' ? 'no mês passado até o dia ' + diaDe(ateA) : 'no ciclo passado até este ponto' });
   }
   const g = gastosDoPeriodo(P.de, P.ate), ga = gastosDoPeriodo(A.de, A.ate);
   const entrou = resumoEntre(P.de, P.ate).entradas, sobrou = entrou - g.total;
@@ -2145,7 +2146,7 @@ function telaPainel() {
   g.lista.forEach(function (c) { if (c.emocao && (!maiorEmo || c.emocao > maiorEmo.emocao)) maiorEmo = c; });
   const frase = !g.total ? 'Nada saiu ' + (atual ? P.este : P.esse) + ' ainda.'
     : (ga.total ? A.naPassado + (A.comp ? ' (até o mesmo ponto)' : '') + ', a emoção foi <strong>' + dinheiro(ga.emocao) + '</strong>.'
-      : 'Ainda não há registro ' + (A.comp ? 'em ' + esc(A.comp.replace(/^o |^a /, '')) : A.naPassado.toLowerCase()) + ' para comparar.') +
+      : 'Ainda não há registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + ' para comparar.') +
       (maiorEmo ? ' Agora, a maior parte foi em <strong>' + esc(maiorEmo.nome) + '</strong>.' : '');
   const emocao = '<section class="bloco pn-emocao"><h2 class="pn-titulo">Necessário ou emoção?</h2>' +
     (g.total ? '<div class="pn-dupla"><span class="pn-nec" style="flex:' + nec + '"></span><span class="pn-emo" style="flex:' + g.emocao + '"></span></div>' +
@@ -2218,7 +2219,7 @@ function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
     comp = '<small class="pn-k-comp ' + (sobe === bomSubir ? 'bom' : 'atencao') + '">' + (sobe ? '▲ ' : '▼ ') + pct + '% vs ' + esc((A.comp || A.passado).replace(/^o |^a /, '')) + '</small>';
   } else if (antes) comp = '<small class="pn-k-comp">igual a ' + esc(A.comp || A.passado) + '</small>';
   // 16/11: "no mês passado não teve" lia-se como "não entrou nada"; o que falta é registro.
-  else comp = '<small class="pn-k-comp">sem registro em ' + esc((A.comp || A.passado).replace(/^o |^a /, '')) + '</small>';
+  else comp = '<small class="pn-k-comp">sem registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + '</small>';
   return '<div class="pn-kpi"><span class="rotulo">' + rotulo + '</span>' +
     '<strong>' + (comSinal && agora < 0 ? '−' : '') + dinheiro(Math.abs(agora)) + '</strong>' + comp + '</div>';
 }
@@ -2306,8 +2307,9 @@ function ritmoPainel(P, A, atual) {
     const pa = an[Math.min(ult, an.length - 1)], va = pa ? pa.v : 0, vh = vistos[ult].v;
     balao = '<line x1="' + X(ult).toFixed(1) + '" x2="' + X(ult).toFixed(1) + '" y1="' + Y(vh).toFixed(1) + '" y2="' + (H - b) + '" class="pn-r-guia"></line>' +
       '<circle cx="' + X(ult).toFixed(1) + '" cy="' + Y(vh).toFixed(1) + '" r="5" class="pn-r-ponto"></circle>';
-    frase = (atual ? 'Até hoje' : 'No período') + ' saiu <b>' + dinheiro(vh) + '</b>' + (temAntes
+    frase = (atual ? 'Até hoje' : 'No período') + ' saiu <b>' + dinheiro(vh) + '</b>' + (temAntes && va
       ? '; ' + esc(A.passado) + ', até o mesmo ponto, <b>' + dinheiro(va) + '</b>.'
+      : temAntes ? '. ' + esc(A.naPassado) + ' ainda não havia registro até esse ponto.'
       : '. ' + esc(A.passado.charAt(0).toUpperCase() + A.passado.slice(1)) + ' ainda não tem registro para comparar.');
   }
   return '<section class="bloco pn-ritmo"><div class="pn-cab"><h2 class="pn-titulo">O ritmo do que saiu</h2>' +
