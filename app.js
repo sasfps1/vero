@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 48;
+const VERSAO = 49;
 let soMemoria = false;
 
 const VAZIO = {
@@ -2108,10 +2108,18 @@ function diferencaPainel(agora, antes) {
 
 function telaPainel() {
   if (pnPeriodo === 'ciclo' && !cicloLigado()) pnPeriodo = 'mes';
-  const P = periodoPainel(pnPeriodo, pnDesloca), A = periodoPainel(pnPeriodo, pnDesloca - 1);
+  const P = periodoPainel(pnPeriodo, pnDesloca), Ainteiro = periodoPainel(pnPeriodo, pnDesloca - 1);
+  const atual = pnDesloca === 0;
+  /* v49: o período em curso compara-se com o anterior ATÉ O MESMO PONTO. Metade de novembro
+     contra outubro inteiro dizia "entrou 47% a menos" a meio do mês: falso alarme. */
+  let A = Ainteiro;
+  if (atual) {
+    const k = Math.round((dataDe(hoje()) - dataDe(P.de)) / 86400000), ateA = somaDias(Ainteiro.de, k);
+    if (ateA < Ainteiro.ate) A = Object.assign({}, Ainteiro, { ate: ateA,
+      comp: pnPeriodo === 'semana' ? 'o mesmo dia da semana passada' : pnPeriodo === 'mes' ? 'o mês passado até o dia ' + diaDe(ateA) : 'o ciclo passado no mesmo ponto' });
+  }
   const g = gastosDoPeriodo(P.de, P.ate), ga = gastosDoPeriodo(A.de, A.ate);
   const entrou = resumoEntre(P.de, P.ate).entradas, sobrou = entrou - g.total;
-  const atual = pnDesloca === 0;
 
   const pilulas = [['semana', 'Semana'], ['mes', 'Mês']].concat(cicloLigado() ? [['ciclo', 'Ciclo do salário']] : [])
     .map(function (o) {
@@ -2123,20 +2131,13 @@ function telaPainel() {
     '<span>' + esc(P.nome) + '</span>' +
     '<button class="pn-seta" data-acao="pn-avanca" aria-label="Período seguinte"' + (atual ? ' disabled' : '') + '>' + icone('avancar') + '</button></div></div>';
 
-  // 1. O herói: quanto saiu, comparado.
-  const dif = g.total - ga.total;
-  const comparado = !ga.total ? (g.total ? A.naPassado + ' não há gastos para comparar' : '')
-    : !dif ? 'Igual a ' + A.passado
-    : (dif > 0 ? '↑ ' : '↓ ') + dinheiro(Math.abs(dif)) + (dif > 0 ? ' a mais' : ' a menos') + ' que ' + A.passado;
-  const heroi = '<section class="bloco he pn-heroi">' +
-    '<div class="pn-heroi-um"><span class="rotulo">Saiu ' + (atual ? P.este : P.esse) + '</span>' +
-    '<div class="numero-grande">' + numeroGrande(g.total) + '</div>' +
-    (comparado ? '<span class="pn-comparado">' + comparado + '</span>' : '') + '</div>' +
-    '<div class="heroi-dois pn-heroi-dois">' +
-      '<div><span class="rotulo">Entrou</span><strong class="pn-medio">' + dinheiro(entrou) + '</strong></div>' +
-      '<div><span class="rotulo">Sobrou</span><strong class="pn-medio">' + dinheiro(sobrou) + '</strong>' +
-        (entrou > 0 && sobrou > 0 ? '<small>' + Math.round(sobrou * 100 / entrou) + '% do que entrou</small>' : '') + '</div>' +
-    '</div></section>';
+  /* v49, 16/11 (referência dele: o painel azul + os números do vermelho, engenharia reversa em
+     _referencias/2026-11-16-dashboard-dele). Quatro números no topo, cada um contra o período
+     anterior (Stephen Few: número sem comparação não diz se é muito). */
+  const ea = resumoEntre(A.de, A.ate).entradas, sobrouA = ea - ga.total;
+  const kpis = '<section class="bloco pn-kpis" aria-label="Resumo ' + esc(P.este) + '">' +
+    kpiPainel('Entrou', entrou, ea, true, A) + kpiPainel('Saiu', g.total, ga.total, false, A) +
+    kpiPainel('Sobrou', sobrou, sobrouA, true, A, true) + kpiPainel('Pela emoção', g.emocao, ga.emocao, false, A) + '</section>';
 
   // 2. Necessário × emoção.
   const nec = g.total - g.emocao;
@@ -2159,7 +2160,7 @@ function telaPainel() {
     emocao: resto.reduce(function (a, c) { return a + c.emocao; }, 0), notas: {}, outras: true }]);
   const onde = '<section class="bloco pn-onde"><div class="pn-cab"><h2 class="pn-titulo">Para onde foi</h2>' +
     '<div class="pn-legenda"><span><i class="l-nec"></i>necessário</span><span><i class="l-emo"></i>emoção</span></div></div>' +
-    (linhas.length ? linhas.map(function (c) {
+    (linhas.length ? '<div class="pn-onde-corpo">' + roscaPainel(linhas, g.total) + '<div class="pn-tabela">' + linhas.map(function (c) {
       const cor = c.outras ? 'rgba(var(--tinta-rgb), 0.42)' : corDaCategoria(c.nome);
       const notas = Object.keys(c.notas).sort(function (a, b) { return c.notas[b] - c.notas[a]; }).slice(0, 2).join(' · ');
       const antes = ga.por[c.nome.toLowerCase()];
@@ -2169,7 +2170,7 @@ function telaPainel() {
         '<span class="pn-nome"><b>' + esc(c.nome) + '</b>' + (notas ? '<small>' + esc(notas) + '</small>' : '') + '</span>' +
         '<span class="pn-trilho"><span class="pn-b-nec" style="width:' + ((c.centavos - c.emocao) * 100 / max).toFixed(1) + '%"></span>' +
           '<span class="pn-b-emo" style="width:' + (c.emocao * 100 / max).toFixed(1) + '%"></span></span>' +
-        '<span class="pn-valor"><b>' + dinheiro(c.centavos) + '</b><small>' + sub + '</small></span>' +
+        '<span class="pn-valor"><b>' + dinheiro(c.centavos) + '</b><small>' + Math.round(c.centavos * 100 / (g.total || 1)) + '% · ' + sub + '</small></span>' +
         (c.outras ? '<span class="pn-dif"></span>' : diferencaPainel(c.centavos, antes ? antes.centavos : 0)) +
       '</div>';
     }).join('') + (function () {
@@ -2178,7 +2179,7 @@ function telaPainel() {
       const sumiram = ga.lista.filter(function (c) { return !g.por[c.nome.toLowerCase()]; });
       return sumiram.length ? '<p class="pn-sumiu">' + A.naPassado + ' também teve, e agora não: ' +
         sumiram.slice(0, 3).map(function (c) { return esc(c.nome) + ' ' + dinheiro(c.centavos); }).join(' · ') + '</p>' : '';
-    })() : '<p class="pn-vazio">Nenhum gasto ' + (atual ? P.este : P.esse) + '. Quando lançar, ele aparece aqui, separado por categoria.</p>') +
+    })() + '</div></div>' : '<p class="pn-vazio">Nenhum gasto ' + (atual ? P.este : P.esse) + '. Quando lançar, ele aparece aqui, separado por categoria.</p>') +
     '</section>';
 
   // 4. Ocasiões: na semana, as do mês dela; no mês e no ciclo, as do próprio período.
@@ -2201,7 +2202,114 @@ function telaPainel() {
     : '<p class="pn-vazio">Nenhuma ocasião marcada. Ao lançar, escreva em <b>Ocasião</b> algo como "Festa do fim de semana": tudo o que tiver o mesmo nome soma aqui, mesmo em categorias diferentes.</p>') +
     '</section>';
 
-  return '<div class="pn">' + topo + '<div class="pn-grade">' + heroi + emocao + onde + ocasioes + '</div></div>';
+  return '<div class="pn">' + topo + kpis +
+    '<div class="pn-grade"><div class="pn-col pn-esq">' + contasPainel(P) + emocao + ocasioes + '</div>' +
+    '<div class="pn-col pn-dir">' + onde + ritmoPainel(P, Ainteiro, atual) + '</div></div></div>';
+}
+
+/** Um dos 4 números do topo. `bomSubir`: entrar e sobrar mais é bom; sair mais, não. */
+function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
+  let comp = '';
+  if (antes && agora !== antes) {
+    const pct = Math.round(Math.abs(agora - antes) * 100 / Math.abs(antes));
+    const sobe = agora > antes;
+    comp = '<small class="pn-k-comp ' + (sobe === bomSubir ? 'bom' : 'atencao') + '">' + (sobe ? '▲ ' : '▼ ') + pct + '% vs ' + esc((A.comp || A.passado).replace(/^o |^a /, '')) + '</small>';
+  } else if (antes) comp = '<small class="pn-k-comp">igual a ' + esc(A.comp || A.passado) + '</small>';
+  else comp = '<small class="pn-k-comp">' + esc(A.naPassado) + ' não teve</small>';
+  return '<div class="pn-kpi"><span class="rotulo">' + rotulo + '</span>' +
+    '<strong>' + (comSinal && agora < 0 ? '−' : '') + dinheiro(Math.abs(agora)) + '</strong>' + comp + '</div>';
+}
+
+/** As contas do mês do período num anel: quantas já foram pagas. */
+function contasPainel(P) {
+  const mes = mesDe(P.ate);
+  const lista = contasVistas().filter(function (c) {
+    return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes);
+  });
+  if (!lista.length) return '';
+  let pagas = 0, total = 0, pago = 0;
+  lista.forEach(function (c) {
+    const v = valorNaVista(c), f = faltaDaConta(c, mes);
+    total += v; pago += v - f; if (f === 0) pagas++;
+  });
+  const pct = total ? Math.round(pago * 100 / total) : 0, r = 34, vol = 2 * Math.PI * r;
+  return '<section class="bloco pn-contas"><h2 class="pn-titulo">Contas de ' + MESES[Number(mes.slice(5, 7)) - 1] + '</h2>' +
+    '<div class="pn-contas-corpo"><svg class="pn-anel" viewBox="0 0 84 84" role="img" aria-label="' + pct + '% das contas pagas">' +
+      '<circle cx="42" cy="42" r="' + r + '" class="pn-anel-fundo"></circle>' +
+      '<circle cx="42" cy="42" r="' + r + '" class="pn-anel-cheio" stroke-dasharray="' + (vol * pct / 100).toFixed(1) + ' ' + vol.toFixed(1) + '" transform="rotate(-90 42 42)"></circle>' +
+      '<text x="42" y="47" text-anchor="middle">' + pct + '%</text></svg>' +
+    '<div><strong>' + pagas + ' de ' + lista.length + ' pagas</strong><small>' + dinheiro(pago) + ' de ' + dinheiro(total) + '</small>' +
+      '<small>Falta ' + dinheiro(total - pago) + '</small></div></div>' +
+    '<a class="ver-todos" href="#/contas">Ver as contas</a></section>';
+}
+
+/** A rosca é companhia da tabela, nunca sozinha: dá a forma do todo, a tabela dá o número. */
+function roscaPainel(linhas, total) {
+  if (!total) return '';
+  const r = 52, vol = 2 * Math.PI * r;
+  let andou = 0;
+  const fatias = linhas.map(function (c) {
+    const parte = c.centavos / total * vol, cor = c.outras ? 'rgba(var(--tinta-rgb), 0.42)' : corDaCategoria(c.nome);
+    const arco = '<circle cx="70" cy="70" r="' + r + '" style="stroke:' + cor + '" stroke-dasharray="' + Math.max(0, parte - 2).toFixed(2) + ' ' + vol.toFixed(2) + '" stroke-dashoffset="' + (-andou).toFixed(2) + '" transform="rotate(-90 70 70)"></circle>';
+    andou += parte;
+    return arco;
+  }).join('');
+  return '<svg class="pn-rosca" viewBox="0 0 140 140" role="img" aria-label="Divisão do que saiu por categoria">' + fatias +
+    '<text x="70" y="66" text-anchor="middle" class="pn-rosca-rot">Saiu</text>' +
+    '<text x="70" y="86" text-anchor="middle" class="pn-rosca-val">' + dinheiro(Math.round(total / 100) * 100).replace(',00', '') + '</text></svg>';
+}
+
+/** Quanto já tinha saído até cada dia do período (a soma corre). */
+function acumuladoEntre(de, ate, parar) {
+  const dias = [];
+  for (let d = de; d <= ate; d = diaSeguinte(d)) dias.push(d);
+  const por = {};
+  lancamentosVistos().forEach(function (l) { if (l.tipo === 'saida' && l.data >= de && l.data <= ate) por[l.data] = (por[l.data] || 0) + l.centavos; });
+  let soma = 0;
+  return dias.map(function (d) { soma += por[d] || 0; return { data: d, v: soma, futuro: !!(parar && d > parar) }; });
+}
+
+/* O ritmo: a soma do que saiu dia a dia neste período e no anterior, no mesmo gráfico. Linhas
+   retas entre os dias: a curva arredondada do modelo azul inventa picos que não houve. */
+function ritmoPainel(P, A, atual) {
+  const h = hoje();
+  const ag = acumuladoEntre(P.de, P.ate, atual ? h : null), an = acumuladoEntre(A.de, A.ate);
+  const n = Math.max(ag.length, an.length);
+  const maior = Math.max(1, ag[ag.length - 1].v, an.length ? an[an.length - 1].v : 0);
+  const largo = !!(telaUnica && telaUnica.matches), W = largo ? 1100 : 380, H = largo ? 270 : 210, e = largo ? 70 : 58, d = 14, t = 16, b = 30;
+  const X = function (i) { return e + (n > 1 ? i * (W - e - d) / (n - 1) : 0); };
+  const Y = function (v) { return t + (H - t - b) * (1 - v / maior); };
+  const linha = function (pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1); }).join(' '); };
+  const vistos = ag.filter(function (p) { return !p.futuro; });
+  let grade = '';
+  [0, 0.5, 1].forEach(function (f) {
+    const y = Y(maior * f).toFixed(1);
+    grade += '<line x1="' + e + '" x2="' + (W - d) + '" y1="' + y + '" y2="' + y + '" class="pn-r-grade"></line>' +
+      '<text x="' + (e - 8) + '" y="' + (Number(y) + 4) + '" text-anchor="end" class="pn-r-eixo">' + dinheiro(Math.round(maior * f / 100) * 100).replace(',00', '') + '</text>';
+  });
+  const rotX = function (i) {
+    // O eixo conta os dias do período (1, 2, 3...): o anterior pode ter um dia a mais.
+    const dt = (ag[i] || an[i] || {}).data;
+    if (!dt) return '';
+    return pnPeriodo === 'semana' ? SEM_CURTA[dataDe(dt).getDay()] : pnPeriodo === 'mes' ? String(i + 1) : String(diaDe(dt));
+  };
+  let eixo = '';
+  const marcas = pnPeriodo === 'semana' ? ag.map(function (_, i) { return i; }) : [0, Math.floor((n - 1) / 2), n - 1];
+  marcas.forEach(function (i) { eixo += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" class="pn-r-eixo">' + rotX(i) + '</text>'; });
+  const ult = vistos.length - 1;
+  let balao = '', frase = '';
+  if (ult >= 0) {
+    const pa = an[Math.min(ult, an.length - 1)], va = pa ? pa.v : 0, vh = vistos[ult].v;
+    balao = '<line x1="' + X(ult).toFixed(1) + '" x2="' + X(ult).toFixed(1) + '" y1="' + Y(vh).toFixed(1) + '" y2="' + (H - b) + '" class="pn-r-guia"></line>' +
+      '<circle cx="' + X(ult).toFixed(1) + '" cy="' + Y(vh).toFixed(1) + '" r="5" class="pn-r-ponto"></circle>';
+    frase = (atual ? 'Até hoje' : 'No período') + ' saiu <b>' + dinheiro(vh) + '</b>; ' + esc(A.passado) + ', até o mesmo ponto, <b>' + dinheiro(va) + '</b>.';
+  }
+  return '<section class="bloco pn-ritmo"><div class="pn-cab"><h2 class="pn-titulo">O ritmo do que saiu</h2>' +
+    '<div class="pn-legenda"><span><i class="l-agora"></i>' + esc(P.este) + '</span><span><i class="l-antes"></i>' + esc(A.passado.replace(/^o |^a /, '')) + '</span></div></div>' +
+    '<svg class="pn-r-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Soma do que saiu dia a dia, comparada com o período anterior">' + grade +
+      (an.length ? '<path d="' + linha(an) + '" class="pn-r-antes"></path>' : '') +
+      (vistos.length ? '<path d="' + linha(vistos) + '" class="pn-r-agora"></path>' : '') + balao + eixo + '</svg>' +
+    (frase ? '<p class="pn-frase">' + frase + '</p>' : '') + '</section>';
 }
 
 // ── Contas ───────────────────────────────────────────────────────────────────

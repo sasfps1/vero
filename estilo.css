@@ -1711,3 +1711,58 @@ section.bloco.he {
   .mc-linha.paga b { font-weight: 500; }
   .mc-linha.venceu .mc-estado { color: var(--on-surface); font-weight: 600; }
 }
+
+/* ── v49, 16/11: o Painel na anatomia do modelo azul dele ───────────────────── */
+.pn-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+.pn-kpi { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px 12px; border-radius: 16px; background: rgba(var(--tinta-rgb), 0.04); }
+.pn-kpi strong { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pn-k-comp { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); }
+.pn-k-comp.bom { color: var(--signal); }
+.pn-k-comp.atencao { color: var(--cat-comida); }
+.pn-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pn-col > section.bloco { margin: 0; min-width: 0; }
+.pn-contas { display: flex; flex-direction: column; gap: 8px; }
+.pn-contas .pn-titulo { margin: 0; }
+.pn-contas-corpo { display: flex; align-items: center; gap: 16px; }
+.pn-contas-corpo > div { display: flex; flex-direction: column; gap: 2px; }
+.pn-contas-corpo strong { font-size: 18px; font-weight: 700; }
+.pn-contas-corpo small { font-size: 13px; color: var(--on-surface-muted); }
+.pn-anel { width: 84px; height: 84px; flex: none; }
+.pn-anel circle { fill: none; stroke-width: 9; }
+.pn-anel-fundo { stroke: rgba(var(--tinta-rgb), 0.1); }
+.pn-anel-cheio { stroke: var(--signal); stroke-linecap: round; }
+.pn-anel text { fill: var(--on-surface); font-size: 17px; font-weight: 700; }
+.pn-contas .ver-todos { align-self: flex-start; font-size: 13px; font-weight: 600; color: var(--on-surface); }
+.pn-onde-corpo { display: flex; flex-direction: column; gap: 14px; }
+.pn-rosca { width: 150px; height: 150px; align-self: center; flex: none; }
+.pn-rosca circle { fill: none; stroke-width: 20; }
+.pn-rosca-rot { fill: var(--on-surface-muted); font-size: 11px; font-weight: 600; }
+.pn-rosca-val { fill: var(--on-surface); font-size: 15px; font-weight: 800; }
+.pn-tabela { flex: 1; min-width: 0; }
+.pn-ritmo { display: flex; flex-direction: column; gap: 8px; }
+.pn-r-svg { width: 100%; height: auto; display: block; }
+.pn-r-grade { stroke: rgba(var(--tinta-rgb), 0.08); stroke-width: 1; }
+.pn-r-eixo { fill: var(--on-surface-muted); font-size: 12px; }
+.pn-r-antes { fill: none; stroke: rgba(var(--tinta-rgb), 0.45); stroke-width: 2; stroke-dasharray: 5 5; }
+.pn-r-agora { fill: none; stroke: var(--signal); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.pn-r-guia { stroke: rgba(var(--sinal-rgb), 0.35); stroke-width: 1; }
+.pn-r-ponto { fill: var(--signal); stroke: var(--surface); stroke-width: 2; }
+.pn-legenda .l-agora { background: var(--signal); height: 3px; }
+.pn-legenda .l-antes { height: 0; border-top: 2px dashed rgba(var(--tinta-rgb), 0.55); background: none; }
+/* no celular empilha nesta ordem: números, para onde foi, ritmo, emoção, contas, ocasiões */
+@media (max-width: 1179px) {
+  .pn-grade { display: flex; flex-direction: column; gap: 12px; }
+  .pn-col { display: contents; }
+  .pn-onde { order: 1; } .pn-ritmo { order: 2; } .pn-emocao { order: 3; } .pn-contas { order: 4; } .pn-ocasioes { order: 5; }
+}
+@media (min-width: 1180px) {
+  .pn-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px; }
+  .pn-kpi strong { font-size: 26px; }
+  .pn-grade { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 2.05fr); grid-template-areas: none; gap: 16px; align-items: stretch; }
+  .pn-col > section.bloco:last-child { flex: 1; }
+  .pn-onde-corpo { flex-direction: row; align-items: center; gap: 22px; }
+  .pn-rosca { width: 170px; height: 170px; }
+  .pn-linha { grid-template-columns: 34px 150px minmax(0, 1fr) 150px 84px; }
+}
+
+@media (max-width: 1179px) { .pn-ritmo .pn-cab { flex-wrap: wrap; } .pn-r-eixo { font-size: 11px; } }
