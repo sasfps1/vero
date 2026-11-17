@@ -3,26 +3,58 @@
    barras, botão central) com a paleta da marca. Paleta FECHADA: quem acrescentar
    cor aqui falha o porteiro-de-cor.py. */
 
+/* v56, achado na foto: com o texto a virar branco, tudo o que era PREENCHIDO com a cor do
+   texto (botão Paguei, Perguntar, conta que venceu, pílula activa, barras) ficou branco. Esses
+   preenchimentos passaram a usar --creme: as telas ainda não redesenhadas ficam como eram. */
+/* ── v56 · DNA VISUAL v2 (17/11, ordem dele às 15h48: "a marca mudou") ─────────────────
+   Fintech escura, sem caixa dentro de caixa. Fonte: boards DnaV2 + InicioV2 do canvas
+   BKJrozUdEJh3ucYGDSq2Q9, declarado em _marca/DESIGN.md ("Vero v2").
+   Três superfícies, uma borda, e cor SÓ com significado:
+     verde  = entrou (+R$) e saldo a favor · selo Folga Real
+     âmbar  = Modo Recuperação (o dia sobrou, o mês está abaixo de zero)
+     coral  = só déficit e Contenção. Nunca para uma saída comum.
+     creme  = o botão principal, com texto no fundo.
+   Proibido: creme transparente entre .52 e .70 sobre o fundo; "…" a cortar texto.
+   Todo R$ em algarismos de largura fixa (tabular-nums). */
 :root {
-  --surface:            #05113B;
-  --surface-dim:        #03091F;
-  --surface-raised:     #0A1A4A;
-  --on-surface:         #F2EBD2;
+  --v2-fundo:   #060B19;
+  --v2-cartao:  #0E172E;
+  --v2-pilula:  #162242;
+  --v2-borda:   rgba(255, 255, 255, 0.06);
+  --v2-texto:   #FFFFFF;
+  --v2-texto-2: #C9D0E2;
+  --v2-texto-3: #9AA4BF;
+  --verde:      #22C55E;
+  --ambar:      #F59E0B;
+  --coral:      #EF4444;
+  --creme:      #F2EBD2;
+  --sobre-creme:#060B19;
+}
+
+:root {
+  /* v56: as superfícies antigas passam a apontar para as do v2. As telas que ainda não
+     foram redesenhadas herdam o chão novo sem mudar de estrutura. */
+  --surface:            var(--v2-fundo);
+  --surface-dim:        var(--v2-fundo);
+  --surface-raised:     var(--v2-cartao);
+  --on-surface:         var(--v2-texto);
   /* 0,74 e não 0,62 (04/11): o creme a 62% sobre o navy mistura-se num cinza neutro
      (152,152,152, medido pelo revisor), a zona morta da marca. A 74% ainda puxa ao creme. */
   /* 0,82 (04/11, v15): a 0,74 os rótulos sobre o cartão elevado ainda mediam 176,176,171,
      cinzento puro (R−B=5). A 82% o creme volta a ler-se como creme. */
-  --on-surface-muted:   rgba(var(--tinta-rgb), 0.82);
+  --on-surface-muted:   var(--v2-texto-3);
   --on-surface-faint:   rgba(var(--tinta-rgb), 0.38);
-  --outline:            rgba(var(--tinta-rgb), 0.14);
-  --outline-strong:     rgba(var(--tinta-rgb), 0.24);
+  --outline:            var(--v2-borda);
+  --outline-strong:     rgba(var(--tinta-rgb), 0.12);
   --signal:             #9EC5E8;
   --azul-medio:         #4B80CC;
   --azul-fundo:         #173F96;
   --azul-rosca:         #4F79BF;
 
   /* Os mesmos tons em trio, para as transparências virarem com o tema (04/11). */
-  --tinta-rgb: 242, 235, 210;
+  /* v56: a tinta das transparências virou branco (era o creme). Creme transparente sobre o
+     fundo novo é proibido pelo DNA v2; o creme agora só existe cheio, no botão principal. */
+  --tinta-rgb: 255, 255, 255;
   --sinal-rgb: 158, 197, 232;
 
   --gutter: 16px;
@@ -36,20 +68,21 @@
    puro: texto claro sobre #000 "borra" e cansa (guia de tema escuro do Material Design).
    O creme deixou de ser fundo: até 04/11 o dia era creme (v21). Ver _marca/DESIGN.md. */
 :root[data-tema="escuro"] {
-  --surface:            #03091F;
-  --surface-raised:     #05113B;
-  --surface-dim:        #02071A;
+  /* v56: o chão é o mesmo do dia (o v2 já é escuro); a noite só baixa o reostato do texto. */
+  --surface:            var(--v2-fundo);
+  --surface-raised:     var(--v2-cartao);
+  --surface-dim:        var(--v2-fundo);
   /* 10/11, queixa dele: "quase nenhuma diferença". Medido: só o chão e os cartões mudavam
      um degrau; texto, gelo, degradê, ícones e o botão + saíam IGUAIS ao dia. A lente é a
      da cabine de avião e do painel de carro: o modo noite não escurece o fundo, BAIXA O
      REOSTATO de tudo o que brilha, e o que brilha mais desce mais (encandeia e fecha a
      pupila). Hierarquia por contraste, não por luz. Sem cor nova: o creme e o gelo só
      perdem força. */
-  --on-surface:         rgba(var(--tinta-rgb), 0.86);
-  --on-surface-muted:   rgba(var(--tinta-rgb), 0.64);
+  --on-surface:         rgba(var(--tinta-rgb), 0.88);
+  --on-surface-muted:   var(--v2-texto-3);
   --on-surface-faint:   rgba(var(--tinta-rgb), 0.30);
-  --outline:            rgba(var(--sinal-rgb), 0.12);
-  --outline-strong:     rgba(var(--sinal-rgb), 0.22);
+  --outline:            var(--v2-borda);
+  --outline-strong:     rgba(var(--tinta-rgb), 0.12);
   /* gelo a 78%, não o azul #4F79BF: esse dava 3,9:1 no "Hoje" activo, abaixo dos 4,5:1. */
   --signal:             rgba(var(--sinal-rgb), 0.78);
 }
@@ -178,7 +211,7 @@ header.topo {
   font-size: 15px; font-weight: 600;
 }
 .opcao-conta small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--on-surface-muted); }
-.opcao-conta[aria-checked="true"] { border-color: var(--on-surface); }
+.opcao-conta[aria-checked="true"] { border-color: var(--creme); }
 .opcao-conta svg.traco { flex: none; width: 20px; height: 20px; visibility: hidden; }
 .opcao-conta[aria-checked="true"] svg.traco { visibility: visible; }
 
@@ -283,7 +316,7 @@ section.bloco.he {
 .aba { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; background: none; border: 0; font-size: 14.5px; font-weight: 600; color: var(--on-surface-muted); cursor: pointer; }
 .aba svg.traco { width: 16px; height: 16px; }
 .aba.activo { color: var(--on-surface); font-weight: 600; }
-.aba.activo::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--on-surface); }
+.aba.activo::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--creme); }
 .aba.escolher { margin-left: auto; }
 .aba.escolher input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; min-height: 0; }
 .aba.escolher input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
@@ -319,7 +352,7 @@ section.bloco.he {
 .destino-nome small { color: var(--on-surface-muted); font-size: 12.5px; font-weight: 500; margin-left: 5px; }
 .destino b { font-weight: 600; }
 .ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
-.ponto.um { background: var(--on-surface); }
+.ponto.um { background: var(--creme); }
 .ponto.dois { background: var(--signal); }
 .ponto.resto { background: var(--azul-rosca); }
 
@@ -327,7 +360,7 @@ section.bloco.he {
 .barras { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; align-items: end; height: 124px; margin-top: 30px; }
 .barras i { display: block; border-radius: 3px 3px 0 0; background: rgba(var(--sinal-rgb), 0.3); }
 .barras i.maior { background: var(--signal); }
-.balao { position: absolute; bottom: 100%; transform: translate(-50%, -4px); background: var(--on-surface); color: var(--surface); font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.balao { position: absolute; bottom: 100%; transform: translate(-50%, -4px); background: var(--creme); color: var(--surface); font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
 .eixo { position: relative; height: 22px; margin-top: 5px; padding-top: 3px; font-size: 12px; color: var(--on-surface-muted); border-top: 1px solid var(--outline); }
 .eixo span { position: absolute; }
 .eixo span:last-child { right: 0; }
@@ -367,8 +400,8 @@ h2.secao {
 
 .medida { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin-bottom: 8px; }
 .medida i { flex: 1 1 0; display: block; border-radius: 2px; }
-.medida i.passado { height: 11px; background: var(--on-surface); }
-.medida i.hoje    { height: 24px; background: var(--on-surface); }
+.medida i.passado { height: 11px; background: var(--creme); }
+.medida i.hoje    { height: 24px; background: var(--creme); }
 .medida i.futuro  { height: 11px; background: rgba(var(--tinta-rgb), 0.26); }
 /* A mesma medida, mais baixa, a dizer que fatia do mes cada destino levou. */
 /* ⚠️ `max-width: 170px` NÃO dá largura: dentro de uma caixa flexível o flex
@@ -411,12 +444,12 @@ h2.secao {
 /* O período de Gastos: quatro destinos, um aceso. */
 .periodos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; padding: 3px; border-radius: 99px; background: rgba(5, 17, 59, 0.45); }
 .periodo { min-height: 36px; background: none; border: 0; border-radius: 99px; font-size: 13px; font-weight: 600; }
-.periodo.activo { background: var(--on-surface); color: var(--surface); font-weight: 600; }
+.periodo.activo { background: var(--creme); color: var(--surface); font-weight: 600; }
 
 /* A pergunta à IA. */
 .ia-conversa { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 6px; }
 .fala { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.fala.minha { align-self: flex-end; background: var(--on-surface); color: var(--surface); font-weight: 600; }
+.fala.minha { align-self: flex-end; background: var(--creme); color: var(--surface); font-weight: 600; }
 .fala.dele { align-self: flex-start; background: var(--surface-raised); }
 
 /* Lançamentos: mês, busca e o cabeçalho de cada dia. */
@@ -436,7 +469,7 @@ input::placeholder { color: rgba(var(--tinta-rgb), 0.58); opacity: 1; }
 .frase-linha input { flex: 1; min-width: 0; }
 .btn.microfone { flex: none; width: 48px; min-height: 48px; padding: 0; justify-content: center; }
 .btn.microfone[hidden] { display: none; }
-.btn.microfone.ouvindo { background: var(--on-surface); color: var(--surface); }
+.btn.microfone.ouvindo { background: var(--creme); color: var(--surface); }
 #frase-dica:empty { display: none; }
 .atalhos { display: flex; gap: 8px; width: 100%; overflow-x: auto; padding: 2px 0; }
 .atalho { flex: none; min-height: 40px; padding: 0 12px; background: var(--surface-raised); border: 1px solid var(--outline); border-radius: 99px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
@@ -514,7 +547,7 @@ h3.dia { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); pa
 
 /* marcas: a forma substitui o verde e o vermelho (DESIGN.md) */
 .marca { width: 10px; height: 10px; border: 1px solid var(--on-surface); border-radius: 2px; overflow: hidden; position: relative; }
-.marca.saiu     { background: var(--on-surface); }                    /* cheio */
+.marca.saiu     { background: var(--creme); }                    /* cheio */
 .marca.entrou   { background: none; }                                 /* vazio */
 /* Meio cheio = transferencia (emprestimo). Feito com um filho de 50% e nao com
    um `linear-gradient`: o DESIGN.md proibe gradientes, e um degrade de dois
@@ -522,7 +555,7 @@ h3.dia { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); pa
    depois nao sabe que era so meia forma. */
 .marca.transfer::before {
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 50%;
-  background: var(--on-surface);
+  background: var(--creme);
 }
 /* Estados de uma conta, cada um com a SUA forma -- a lei da marca diz que a
    interface tem de funcionar para quem nao distingue duas cores.
@@ -532,7 +565,7 @@ h3.dia { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); pa
       paga   = oco com ponto no meio
    O cheio volta a ser so uma coisa: saiu dinheiro. */
 .marca.paga::after {
-  content: ""; position: absolute; inset: 2px; background: var(--on-surface);
+  content: ""; position: absolute; inset: 2px; background: var(--creme);
 }
 /* ⚠️ A atrasada era uma barra de 3px A ESQUERDA. A 10px de tamanho lia-se igual
    ao meio-cheio do emprestimo, que tambem e a esquerda (medido a 2026-10-31:
@@ -542,7 +575,7 @@ h3.dia { font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); pa
       metade da esquerda = transferencia · cheio = saiu dinheiro */
 .marca.vencida::after {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: 50%;
-  background: var(--on-surface);
+  background: var(--creme);
 }
 .marca.fraca { border-color: var(--on-surface-faint); }
 .marca.fraca::before, .marca.fraca::after { background: var(--on-surface-faint); }
@@ -566,7 +599,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
      dentro de um botão mais estreito que a palavra */
   white-space: nowrap; flex: none;
 }
-.btn.primario { background: var(--on-surface); color: var(--surface); border-color: var(--on-surface); }
+.btn.primario { background: var(--creme); color: var(--surface); border-color: var(--creme); }
 /* 36px, nao 30: 30 e pequeno para um dedo. E sem MAIUSCULAS -- eram elas que,
    somadas aos rotulos, faziam a tela ler como documento em vez de instrumento. */
 .btn.pequeno  { min-height: 38px; padding: 0 11px; font-size: 12.5px; font-weight: 600; }
@@ -611,7 +644,7 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 600; }
   width: 56px; height: 56px; margin-top: -26px;
   display: grid; place-items: center;
   border: 4px solid var(--surface); border-radius: 50%;
-  background: var(--on-surface); color: var(--surface);
+  background: var(--creme); color: var(--surface);
 }
 .lancar-centro svg.traco { width: 24px; height: 24px; stroke-width: 2.4; }
 
@@ -654,7 +687,7 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 600; }
 .tipo-seg[hidden] { display: none; }
 .tipo-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; background: none; border: 0; border-radius: 99px; font-size: 14.5px; font-weight: 600; color: var(--on-surface-muted); cursor: pointer; }
 .tipo-seg button svg.traco { width: 17px; height: 17px; }
-.tipo-seg button.activo { background: var(--on-surface); color: var(--surface); font-weight: 600; }
+.tipo-seg button.activo { background: var(--creme); color: var(--surface); font-weight: 600; }
 .valor-centro { text-align: center; padding: 22px 0 14px; }
 .valor-centro .numero-grande { margin: 6px 0 0; }
 .valor-centro .numero-grande.zero { opacity: 0.4; }
@@ -669,7 +702,7 @@ nav.barra a.activo { color: var(--on-surface); font-weight: 600; }
 .chips::-webkit-scrollbar { display: none; }
 .ficha-op { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; background: var(--surface-raised); border: 1px solid var(--outline); border-radius: 99px; font-size: 13.5px; font-weight: 600; color: var(--on-surface); white-space: nowrap; cursor: pointer; }
 .ficha-op svg.traco { width: 16px; height: 16px; color: var(--on-surface-muted); }
-.ficha-op.activo { background: var(--on-surface); border-color: var(--on-surface); color: var(--surface); font-weight: 600; }
+.ficha-op.activo { background: var(--creme); border-color: var(--creme); color: var(--surface); font-weight: 600; }
 .ficha-op.activo svg.traco { color: var(--surface); }
 .escondido { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; opacity: 0; pointer-events: none; overflow: hidden; }
 #lancar-data:not(.escondido) { margin-top: 8px; }
@@ -822,7 +855,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .heroi-mes { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(var(--tinta-rgb), 0.2); font-size: 13.5px; }
 .heroi-mes b { font-weight: 600; }
 .barra-fina { height: 5px; margin: 8px 0 6px; max-width: 220px; border-radius: 99px; background: rgba(var(--tinta-rgb), 0.22); overflow: hidden; }
-.barra-fina i { display: block; height: 100%; border-radius: 99px; background: var(--on-surface); }
+.barra-fina i { display: block; height: 100%; border-radius: 99px; background: var(--creme); }
 
 /* Fale com o Vero: cara de conversa, não de busca */
 .conversa-vero { padding: 18px; }
@@ -864,7 +897,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .pilulas { display: inline-flex; gap: 2px; padding: 4px; border-radius: 99px; background: var(--surface); }
 .pilula { min-height: 34px; padding: 0 14px; border: 0; border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .pilula span { margin-left: 4px; font-weight: 600; }
-.pilula.activo { background: var(--on-surface); color: var(--surface); }
+.pilula.activo { background: var(--creme); color: var(--surface); }
 .lista-itens { display: flex; flex-direction: column; }
 .item { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 8px 4px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 16px; }
 .item:hover { background: rgba(var(--tinta-rgb), 0.04); }
@@ -901,7 +934,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .destino-c .kpi-valor { margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
 .destino-c .kpi-barra { grid-column: 1 / -1; height: 4px; margin-top: 8px; border-radius: 99px; background: rgba(var(--tinta-rgb), 0.12); overflow: hidden; }
 .destino-c .kpi-barra i { display: block; height: 100%; border-radius: 99px; background: var(--signal); }
-.destino-c.um .kpi-barra i { background: var(--on-surface); }
+.destino-c.um .kpi-barra i { background: var(--creme); }
 .destino-c.resto .kpi-barra i { background: var(--azul-rosca); }
 .destino-c .kpi-nota { display: none; }
 
@@ -954,18 +987,18 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .item.e-saida .item-valor { color: var(--on-surface); opacity: 0.8; }
 /* SELECIONADO tem um tom só: gelo tingido, texto gelo. AÇÃO tem outro: creme cheio. */
 .filtros .aba.activo, .pilula.activo { background: rgba(var(--sinal-rgb), 0.18); color: var(--signal); }
-.conversa-campo .btn.acento { background: var(--on-surface); border-color: var(--on-surface); color: var(--surface); }
+.conversa-campo .btn.acento { background: var(--creme); border-color: var(--creme); color: var(--surface); }
 /* a rosca é de GASTOS: creme e os azuis de fundo da marca, nunca o gelo (gelo é ganho).
    Creme transparente sobre navy dava cinzento — a zona morta — por isso os azuis. */
 .arco.dois { stroke: var(--azul-rosca); }
 .arco.resto { stroke: var(--azul-fundo); }
 .ponto.dois { background: var(--azul-rosca); }
 .ponto.resto { background: var(--azul-fundo); }
-.destino-c .kpi-barra i, .destino-c.um .kpi-barra i { background: var(--on-surface); }
+.destino-c .kpi-barra i, .destino-c.um .kpi-barra i { background: var(--creme); }
 .destino-c.dois .kpi-barra i { background: var(--azul-rosca); }
 .destino-c.resto .kpi-barra i { background: var(--azul-fundo); }
 /* a conta que vence pede a mão: creme quente, não gelo */
-.conta-ficha.acesa { background: var(--on-surface); color: var(--surface); }
+.conta-ficha.acesa { background: var(--creme); color: var(--surface); }
 
 @media (min-width: 1180px) {
   /* ── a casca da v15: o menu no topo, em pílulas ── */
@@ -1139,7 +1172,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .roda-corpo { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .roda-topo { display: flex; align-items: center; gap: 8px; }
 .roda-rotulo { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: .01em; border: 1px solid var(--outline-strong); color: var(--on-surface); }
-.roda-rotulo.conta { background: var(--on-surface); color: var(--surface); border-color: transparent; }
+.roda-rotulo.conta { background: var(--creme); color: var(--surface); border-color: transparent; }
 .roda-rotulo.recebe { background: rgba(var(--sinal-rgb), .16); color: var(--signal); border-color: transparent; }
 .roda-conta { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--on-surface-muted); font-variant-numeric: tabular-nums; }
 .roda-prox { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--outline-strong); border-radius: 50%; background: none; color: var(--on-surface); cursor: pointer; }
@@ -1241,7 +1274,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   .paginas { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: auto; padding-top: 8px; }
   .pag-n, .pag-seta { min-width: 30px; height: 30px; padding: 0 8px; display: inline-grid; place-items: center; border: 0; border-radius: 99px; background: none; color: var(--on-surface-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color .2s, color .2s; }
   .pag-n:hover, .pag-seta:hover:not(:disabled), .pag-n:focus-visible, .pag-seta:focus-visible { background: rgba(var(--tinta-rgb), .08); color: var(--on-surface); }
-  .pag-n.activo { background: var(--on-surface); color: var(--surface); }
+  .pag-n.activo { background: var(--creme); color: var(--surface); }
   .pag-seta:disabled { opacity: .35; cursor: default; }
   .pag-seta svg.traco { width: 16px; height: 16px; }
   .pag-gap { color: var(--on-surface-muted); padding: 0 2px; }
@@ -1327,7 +1360,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .mes-cal .d:hover { background: rgba(var(--tinta-rgb), 0.08); }
 .mes-cal .d.lancou:hover { background: var(--signal); }
 .mes-cal .d.feriado { outline: 1.5px dashed rgba(var(--tinta-rgb), 0.7); outline-offset: -3px; color: var(--on-surface); }
-.mes-cal .d.tem-agenda::after { content: ''; position: absolute; left: 50%; bottom: 12%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--on-surface); }
+.mes-cal .d.tem-agenda::after { content: ''; position: absolute; left: 50%; bottom: 12%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--creme); }
 .mes-cal .d.lancou.tem-agenda::after { background: var(--surface); }
 
 .agenda-faixa { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; }
@@ -1341,7 +1374,7 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 .marca-feriado { width: 16px; height: 16px; border-radius: 50%; border: 1.5px dashed var(--on-surface); flex: none; }
 .dia-lista { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .dia-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--outline); }
-.ponto-agenda { width: 8px; height: 8px; border-radius: 50%; background: var(--on-surface); flex: none; }
+.ponto-agenda { width: 8px; height: 8px; border-radius: 50%; background: var(--creme); flex: none; }
 .dia-item-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .dia-item-txt small { font-size: 12.5px; color: var(--on-surface-muted); }
 .dia-contas { margin: 4px 0 12px; font-size: 14px; color: var(--on-surface-muted); }
@@ -1499,10 +1532,10 @@ section.bloco.he {
    · Listas (Todas as contas): o "Paguei" de cada linha continua de contorno, porque numa
      lista repetida o cheio em todas as linhas voltava a ser "tudo grita". */
 .contas-cartao > .btn.contorno, .c-prox .btn.contorno {
-  background: var(--on-surface); border-color: var(--on-surface); color: var(--surface);
+  background: var(--creme); border-color: var(--creme); color: var(--surface);
 }
 .linha .btn.pequeno[data-acao="devolvi"] {
-  background: var(--on-surface); border-color: var(--on-surface); color: var(--surface);
+  background: var(--creme); border-color: var(--creme); color: var(--surface);
 }
 .linha .btn.pequeno[data-acao="lembrar"], .linha .btn.pequeno[data-acao="perdoar"] {
   border-color: transparent; background: none; padding: 0 6px; min-width: 0;
@@ -1801,5 +1834,138 @@ main::-webkit-scrollbar-thumb:hover { background: rgba(var(--tinta-rgb), 0.32); 
 .selo-estado { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 99px;
   border: 1.5px solid var(--on-surface); font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--on-surface); white-space: nowrap; }
 .selo-estado svg { width: 14px; height: 14px; }
-.heroi-estado.contencao { padding: 10px 12px; border-top: 0; border-radius: 12px; background: var(--on-surface); color: var(--surface); }
+.heroi-estado.contencao { padding: 10px 12px; border-top: 0; border-radius: 12px; background: var(--creme); color: var(--surface); }
 .heroi-estado.contencao .selo-estado { background: var(--surface); color: var(--on-surface); border-color: var(--surface); }
+/* v56, PC: a fileira do herói tinha altura fixa (22vh = 141px no Chrome dele, 1366x641) e a
+   linha do Modo Recuperação / Contenção saía cortada ao meio (já vinha da v54/v55). Quando
+   essa linha existe, o número grande desce de 58 para 46px e a linha aperta o respiro de
+   cima. (Crescer a fileira foi testado e empurrava o botão "Paguei" por cima do cartão de
+   contas: o espaço sai de dentro do herói, não dos vizinhos.) */
+@media (min-width: 1180px) and (min-height: 600px) {
+  .inicio .heroi:has(.heroi-estado) > .numero-grande { font-size: 46px; }
+  .inicio .heroi:has(.heroi-estado) .heroi-dois b { font-size: 21px; }
+  .inicio .heroi .heroi-mes.heroi-estado { margin-top: 4px; padding-top: 8px; }
+  .inicio .heroi .heroi-estado.contencao { padding: 6px 10px; }
+}
+
+/* ══ v56 · INÍCIO v2 NO CELULAR (17/11, aprovado por ele às 15h58) ════════════════════════
+   Réplica do board InicioV2 (390x844) em código de verdade. Só vale fora da tela única do
+   computador: no PC o Início continua o de antes, só com o chão novo dos tokens.
+   Medidas do board: margem 16px · intervalo entre blocos 14px · cartão raio 20 e
+   padding 18 · pílula raio 12-14 · borda única 1px rgba(255,255,255,.06).
+   Recusas: sem degradê, sem sombra, sem caixa dentro de caixa, sem lápis nem lixeira
+   na linha (tocar a linha edita; apagar vive dentro da folha, com Desfazer). */
+.v2 b, .v2-numero, .v2-seg-op, .v2-valor { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1179px), (max-height: 599px) {
+  /* topo: saudação + data à esquerda, olho e engrenagem à direita (44px) */
+  header.topo { padding: 18px var(--gutter) 4px; gap: 12px; }
+  header.topo > .logotipo, #botao-tema { display: none; }
+  .topo-texto h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; color: var(--v2-texto); }
+  .topo-texto span { font-size: 13px; font-weight: 400; color: var(--v2-texto-3); margin-top: 2px; }
+  body.rota-inicio .seletor-conta { display: none; }
+  .controles-topo { margin-left: auto; gap: 8px; }
+  .controle, .icone-topo {
+    width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--v2-borda);
+    background: var(--v2-pilula); color: var(--v2-texto);
+  }
+  .controle svg.traco, .icone-topo svg.traco { width: 20px; height: 20px; }
+
+  /* barra de baixo: chão do fundo, fio de cima, botão + em creme */
+  nav.barra { background: var(--v2-fundo); border-radius: 0; border-top: 1px solid var(--v2-borda); }
+  /* o desvanecer de 46px por cima da barra era um degradê sobre a lista (DNA v2: proibido;
+     achado do 2.º par de olhos, 17/11). A barra fica chapada, separada por um fio. */
+  nav.barra::before { display: none; }
+  nav.barra a { color: var(--v2-texto-3); font-weight: 500; }
+  nav.barra a.activo { color: var(--v2-texto); font-weight: 700; }
+  .lancar-centro { background: var(--creme); color: var(--sobre-creme); border-color: var(--v2-fundo); }
+}
+
+/* o Início v2 (só existe no celular: o app.js só o desenha lá) */
+/* sem margem própria: o <main> já dá os 16px dos lados (com os dois, ficava 32px) */
+.painel.inicio.v2 { display: flex; flex-direction: column; gap: 14px; padding: 14px 0 24px; }
+/* dinheiro nunca parte na quebra de linha ("R$" numa linha, "892,77" na outra) */
+.v2-linha-mes b, .v2-atalho b, .v2-dois b { white-space: nowrap; }
+.painel.inicio.v2 > * { margin: 0; }
+
+/* carteira: Total · SAS · Ana, num trilho */
+.v2-seg { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 4px; padding: 4px;
+  border-radius: 14px; background: var(--v2-cartao); border: 1px solid var(--v2-borda); }
+.v2-seg-op { min-height: 38px; padding: 4px 6px; border: 0; border-radius: 10px; background: transparent;
+  color: var(--v2-texto-3); font: inherit; font-size: 14px; font-weight: 500; line-height: 1.2; cursor: pointer; }
+.v2-seg-op.activo { background: var(--v2-pilula); color: var(--v2-texto); font-weight: 600; }
+
+/* período: Hoje · Mês · Outro dia, leve, acima do número que ele muda */
+.painel.inicio.v2 .v2-periodo { display: flex; gap: 6px; padding: 0; margin: 0; background: none; border: 0; box-shadow: none; }
+.painel.inicio.v2 .v2-periodo .aba { flex: none; width: auto; min-height: 36px; padding: 0 14px; border-radius: 99px;
+  border: 1px solid var(--v2-borda); background: transparent; color: var(--v2-texto-3); font-size: 13.5px; font-weight: 500; box-shadow: none; }
+.painel.inicio.v2 .v2-periodo .aba.activo { background: var(--v2-pilula); color: var(--v2-texto); font-weight: 600; }
+.painel.inicio.v2 .v2-periodo .aba svg.traco { width: 16px; height: 16px; }
+
+/* herói: "Sobrou hoje" + selo, o número, Entrou | Saiu, a linha do mês */
+.v2-heroi { display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 20px;
+  background: var(--v2-cartao); border: 1px solid var(--v2-borda); }
+.v2-heroi-cabeca { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.v2-heroi-rotulo { font-size: 14px; font-weight: 600; color: var(--v2-texto-2); }
+.v2-numero { font-size: 48px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: var(--v2-texto); }
+.v2-numero .moeda, .v2-numero .cent { font-size: 1em; font-weight: inherit; letter-spacing: inherit; margin: 0; color: inherit; }
+.v2-numero .moeda { margin-right: 0.2em; }
+.v2-numero.verde { color: var(--verde); }
+.v2-numero.coral { color: var(--coral); }
+.v2-dois { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.v2-dois > div { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 12px; background: var(--v2-pilula); }
+.v2-dois span { font-size: 12.5px; color: var(--v2-texto-3); }
+.v2-dois b { font-size: 17px; font-weight: 700; color: var(--v2-texto); }
+.v2-linha-mes { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--v2-texto-2); }
+.v2-linha-mes b { font-weight: 700; color: var(--v2-texto); }
+.v2-heroi.pulso { animation: v2-pulso .9s ease-out; }
+@keyframes v2-pulso { 0% { border-color: rgba(34, 197, 94, .55); } 100% { border-color: rgba(255, 255, 255, .06); } }
+@media (prefers-reduced-motion: reduce) { .v2-heroi.pulso { animation: none; } }
+
+/* selo: ponto + palavra, a cor do estado a 12% por trás */
+.v2-selo { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+.v2-selo i { display: block; width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+.v2-selo.folga { color: var(--verde); background: rgba(34, 197, 94, .12); }
+.v2-selo.recuperacao { color: var(--ambar); background: rgba(245, 158, 11, .12); }
+.v2-selo.contencao { color: var(--coral); background: rgba(239, 68, 68, .12); }
+
+/* O de sempre: três teclas, 1 toque lança */
+.v2-sempre { display: flex; flex-direction: column; gap: 8px; }
+.v2-titulo { margin: 0; font-size: 14px; font-weight: 700; color: var(--v2-texto); }
+.v2-titulo span { font-weight: 500; color: var(--v2-texto-3); }
+.v2-sempre-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.v2-atalho { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 60px; padding: 10px 12px;
+  border-radius: 14px; border: 1px solid var(--v2-borda); background: var(--v2-pilula); color: var(--v2-texto);
+  font: inherit; text-align: left; cursor: pointer; }
+.v2-atalho span { font-size: 13px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.v2-atalho b { font-size: 14px; font-weight: 700; color: var(--v2-texto); }
+
+/* Lançamentos de hoje: a linha inteira é o botão de editar */
+.v2-lista { display: flex; flex-direction: column; padding: 6px 16px; border-radius: 20px;
+  background: var(--v2-cartao); border: 1px solid var(--v2-borda); }
+.v2-lista-cabeca { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 0 4px; }
+.v2-lista-cabeca small { font-size: 12.5px; color: var(--v2-texto-3); }
+.v2-linha { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%;
+  min-height: 52px; padding: 6px 0; border: 0; border-top: 1px solid var(--v2-borda); background: transparent;
+  color: var(--v2-texto); font: inherit; text-align: left; cursor: pointer; }
+.v2-sigla { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px;
+  background: var(--v2-pilula); font-size: 12px; font-weight: 700; color: var(--v2-texto-2); }
+/* a cor de família (pedido dele, 10/11) continua: azulejo cheio, sigla no fundo */
+.v2-sigla.cor-entra { background: var(--cat-entra); color: var(--sobre-creme); }
+.v2-sigla.cor-casa { background: var(--cat-casa); color: var(--sobre-creme); }
+.v2-sigla.cor-comida { background: var(--cat-comida); color: var(--sobre-creme); }
+.v2-sigla.cor-transporte { background: var(--cat-transporte); color: var(--sobre-creme); }
+.v2-sigla.cor-cuidado { background: var(--cat-cuidado); color: var(--sobre-creme); }
+.v2-linha-nome { display: flex; flex-direction: column; min-width: 0; }
+.v2-linha-nome b { font-size: 14.5px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.v2-linha-nome small { font-size: 12.5px; color: var(--v2-texto-3); line-height: 1.35; }
+.v2-valor { font-size: 15px; font-weight: 600; color: var(--v2-texto); white-space: nowrap; }
+.v2 .v-verde { color: var(--verde); }
+.v2-vazio { margin: 0; padding: 12px 0 14px; border-top: 1px solid var(--v2-borda); font-size: 13.5px; color: var(--v2-texto-2); }
+
+/* os blocos que continuam por baixo herdam o cartão v2: chapado, fio de 1px, raio 20 */
+.painel.inicio.v2 > section.bloco { background: var(--v2-cartao); box-shadow: none; border: 1px solid var(--v2-borda); border-radius: 20px; }
+
+/* o botão principal do app inteiro: creme cheio, texto no fundo */
+.btn.primario { background: var(--creme); color: var(--sobre-creme); border-color: var(--creme); }

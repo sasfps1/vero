@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 55;
+const VERSAO = 56;
 let soMemoria = false;
 
 const VAZIO = {
@@ -979,7 +979,8 @@ function aplicarTema() {
   const mudou = raiz.dataset.tema !== novo;
   raiz.dataset.tema = novo;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', novo === 'claro' ? '#05113B' : '#03091F');
+  // v56: o chão do v2 é um só (#060B19) de dia e de noite; a noite só baixa o texto.
+  if (meta) meta.setAttribute('content', '#060B19');
   const t = S.config.tema || 'auto';
   const b = document.getElementById('botao-tema');
   if (b) {
@@ -1009,8 +1010,11 @@ function desenhar() {
     b.setAttribute('aria-pressed', S.config.oculto ? 'true' : 'false');
     b.setAttribute('aria-label', S.config.oculto ? 'Mostrar os valores' : 'Esconder os valores');
   });
-  document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() : r === 'ajustes' ? 'Configurações' : r[0].toUpperCase() + r.slice(1);
-  document.getElementById('topo-mes').textContent = 'Dia ' + diaDe(hoje()) + ' de ' + MESES[Number(n.mes.slice(5, 7)) - 1];
+  // v56 (Início v2): "Boa tarde, SAS" e, por baixo, "terça, 17 de novembro".
+  const quem = haContas() ? nomeDaVaga(minhaVaga()) : '';
+  document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() + (quem ? ', ' + quem : '') : r === 'ajustes' ? 'Configurações' : r[0].toUpperCase() + r.slice(1);
+  document.getElementById('topo-mes').textContent = r === 'inicio' ? dataDoTopo() : 'Dia ' + diaDe(hoje()) + ' de ' + MESES[Number(n.mes.slice(5, 7)) - 1];
+  document.body.classList.toggle('rota-inicio', r === 'inicio');
   // Configurações não mudam de uma conta para a outra: lá o botão só confundiria.
   document.getElementById('seletor-conta').hidden = !haContas() || r === 'ajustes';
   document.getElementById('seletor-nome').textContent = nomeDaVista();
@@ -1032,6 +1036,7 @@ function desenhar() {
   rotaPintada = r;
   caberSemRolar();
   aparaListas();
+  aparaAtalhos();
   paginarTudo();
 }
 
@@ -1149,6 +1154,18 @@ function aparaListas() {
     if (bloco && !l.classList.contains('mc-lista') && !linhas.some(function (x) { return x.style.display !== 'none'; })) bloco.style.display = 'none';
   });
 }
+/* v56 (achado do 2.º par de olhos, 17/11): no PC a fila "de novo num toque" mostrava o 3.º
+   atalho cortado num "C" atrás do aviso. Atalho cortado é botão que mente: some inteiro. */
+function aparaAtalhos() {
+  if (!telaUnica || !telaUnica.matches) return;
+  const fila = document.querySelector('.painel.inicio > .atalhos');
+  if (!fila) return;
+  const fim = fila.getBoundingClientRect().right + 0.5;
+  [].forEach.call(fila.querySelectorAll('.atalho'), function (a) {
+    a.style.display = '';
+    if (a.getBoundingClientRect().right > fim) a.style.display = 'none';
+  });
+}
 if (telaUnica) {
   let espera = 0;
   window.addEventListener('resize', function () { clearTimeout(espera); espera = setTimeout(function () { if (rotaPintada && (telaUnica.matches || document.querySelector('.mais-n, .paginas'))) desenhar(); }, 150); });
@@ -1158,6 +1175,11 @@ if (telaUnica) {
 function saudacao() {
   const h = new Date().getHours();
   return h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite';
+}
+/** "terça, 17 de novembro": o dia da semana primeiro, porque quem ganha por diária conta os dias pelo nome. */
+function dataDoTopo() {
+  const x = dataDe(hoje());
+  return SEMANA[x.getDay()].toLowerCase() + ', ' + x.getDate() + ' de ' + MESES[x.getMonth()];
 }
 
 function avisoMemoria() {
@@ -1331,7 +1353,8 @@ function telaInicio(n) {
      resultado do dia (o Sobrou); Entrou e Saiu ficam lado a lado por baixo. Aprovado em
      imagem. No computador o herói continua o de antes. */
   const celular = !(telaUnica && telaUnica.matches);
-  const textoPode = podeGastar ? 'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—';
+  if (celular) return inicioV2(n, p, r, ficou, pctFicou, est, abas, podeGastar ? sobra : null, Date.now() - ultimo < 5000);
+  const textoPode = podeGastar ?'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—';
   const heroiCel = '<section class="bloco he heroi heroi-cel' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + classeEstado + '">' +
     '<span class="rotulo">Sobrou ' + p.quando + '</span>' +
     '<div class="numero-grande">' + (ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou)) + '</div>' +
@@ -1371,6 +1394,122 @@ function telaInicio(n) {
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     avisos() +
     (celular ? conversaCartao() : '') +
+  '</div>';
+}
+
+/* ── v56 · INÍCIO v2 NO CELULAR (17/11, aprovado por ele às 15h58) ───────────────────────
+   Board InicioV2 do canvas, levado ao código. A marca mudou por ordem dele (15h48): cor só
+   com significado. Verde = entrou e saldo a favor; âmbar = Modo Recuperação; coral = só
+   déficit (Contenção), nunca uma saída comum. A regra dos três estados continua a mesma
+   (estadoDoDia, v54): o que mudou é a forma de dizer, agora com selo de cor + palavra.
+   Ordem: carteira · período · herói · O de sempre (1 toque) · Lançamentos de hoje · o resto
+   do Início por baixo. A linha da lista é o botão de editar: o lápis e a lixeira saíram
+   (apagar vive dentro da folha, e o Desfazer salva o toque errado). */
+const NOME_ESTADO = { folga: 'Folga Real', recuperacao: 'Modo Recuperação', contencao: 'Contenção' };
+/** "+R$ 90,00" / "−R$ 22,50": o sinal fora do dinheiro, para o "esconder valores" valer. */
+function comSinal(c) { return (c > 0 ? '+' : c < 0 ? '−' : '') + dinheiro(Math.abs(c)); }
+/** Duas letras para o azulejo da linha: "Gás da moto" → "GA". */
+function siglaDe(nome) { return semAcentoMin(nome).replace(/[^a-z0-9]/g, '').slice(0, 2).toUpperCase() || '•'; }
+
+function seletorCarteiraV2() {
+  const lista = carteiras();
+  if (!haContas() || lista.length < 2) return '';
+  const v = contaVista();
+  const op = function (ref, nome) {
+    const on = v === ref;
+    return '<button type="button" class="v2-seg-op' + (on ? ' activo' : '') + '" data-acao="ver-conta" data-ref="' + esc(ref) + '" aria-pressed="' + on + '">' + esc(nome) + '</button>';
+  };
+  return '<div class="v2-seg" role="group" aria-label="Carteira" style="--n:' + (lista.length + 1) + '">' +
+    op('todos', 'Total') + lista.map(function (c) { return op(c.id, c.nome); }).join('') + '</div>';
+}
+
+/** A frase de baixo do herói. Nos estados de atenção, orienta (nunca culpa); no resto, o mês. */
+function linhaHeroiV2(n, r, est, pctFicou, pode) {
+  if (est && est.estado === 'recuperacao') {
+    return 'O dia abateu <b>' + est.abateuPct + '%</b> do déficit. Faltam <b>' + dinheiro(est.deficit) + '</b> para zerar o mês: segure os extras até lá.';
+  }
+  if (est && est.estado === 'contencao') {
+    return 'O mês está <b>' + dinheiro(est.deficit) + '</b> abaixo de zero. Para empatar: <b>' + dinheiro(est.metaDia) + '</b> por dia até o dia ' + diasNoMes(hoje().slice(0, 7)) + '.';
+  }
+  if (inicioVista !== 'hoje') return r.entradas ? '<b>' + pctFicou + '%</b> do que entrou ficou.' : '';
+  let t = rotuloDoMes() + ': <b>' + comSinal(n.entradas - n.saidas) + '</b> até hoje.';
+  if (pode !== null) return t + ' Pode gastar <b>' + dinheiro(pode) + '</b> hoje.';
+  // A próxima conta da semana já cabe no livre de verdade (que já desconta as contas por pagar)?
+  const prox = itensProximos().filter(function (it) { return it.tipo === 'conta' && it.data >= hoje(); })[0];
+  if (prox && n.livre >= 0) {
+    const quando = prox.data === hoje() ? 'hoje' : prox.data === dataMais(1) ? 'amanhã' : SEMANA[dataDe(prox.data).getDay()].toLowerCase();
+    t += ' Já dá para pagar ' + esc(prox.nome) + ' de ' + quando + ' (' + dinheiro(prox.centavos) + ').';
+  }
+  return t;
+}
+
+function heroiV2(n, p, r, ficou, pctFicou, est, pode, pulso) {
+  const e = est && est.estado;
+  // Coral só no déficit (Contenção, ou o mês fechado abaixo de zero); verde só no a favor
+  // sem mês negativo por trás; no Modo Recuperação o número fica neutro: o dia foi bom,
+  // mas não é para festejar.
+  const cor = e === 'contencao' || (ficou < 0 && inicioVista === 'mes') ? ' coral' : e === 'recuperacao' ? '' : ficou > 0 ? ' verde' : '';
+  return '<section class="v2-heroi' + (e ? ' modo-' + e : '') + (e === 'folga' ? ' ganho' : '') + (pulso ? ' pulso' : '') + '" aria-label="Sobrou ' + esc(p.quando) + '">' +
+    '<div class="v2-heroi-cabeca"><span class="v2-heroi-rotulo">Sobrou ' + p.quando + '</span>' +
+      (e ? '<span class="v2-selo ' + e + '"><i></i>' + NOME_ESTADO[e] + '</span>' : '') + '</div>' +
+    '<div class="v2-numero' + cor + '">' + (ficou > 0 ? '+' : ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou)) + '</div>' +
+    '<div class="v2-dois">' +
+      '<div><span>Entrou</span><b class="' + (r.entradas ? 'v-verde' : '') + '">' + (r.entradas ? '+' : '') + dinheiro(r.entradas) + '</b></div>' +
+      '<div><span>Saiu</span><b>' + (r.saidas ? '−' : '') + dinheiro(r.saidas) + '</b></div>' +
+    '</div>' +
+    '<p class="v2-linha-mes">' + linhaHeroiV2(n, r, est, pctFicou, pode) + '</p>' +
+  '</section>';
+}
+
+function oDeSempreV2() {
+  const lista = atalhosRepetidos();
+  if (!lista.length) return '';
+  return '<section class="v2-sempre" aria-label="O de sempre"><h2 class="v2-titulo">O de sempre <span>· 1 toque lança</span></h2>' +
+    '<div class="v2-sempre-grade">' + lista.map(function (l) {
+      const e = l.tipo === 'entrada', nome = String(l.nota).trim();
+      return '<button type="button" class="v2-atalho" data-acao="repetir" data-ref="' + esc(l.id) + '" aria-label="Lançar de novo: ' + esc(nome) + ', ' + (e ? 'entrou ' : 'saiu ') + dinheiro(l.centavos) + '">' +
+        '<span>' + esc(nome) + '</span><b' + (e ? ' class="v-verde"' : '') + '>' + (e ? '+' : '') + dinheiro(l.centavos) + '</b></button>';
+    }).join('') + '</div></section>';
+}
+
+function listaV2(p) {
+  const todos = lancamentosVistos().filter(function (l) { return l.data >= p.de && l.data <= p.ate; })
+    .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.em || 0) - (a.em || 0); });
+  const umDia = p.de === p.ate;
+  const linhas = todos.map(function (l) {
+    const cat = categoriaDe(l), e = l.tipo === 'entrada';
+    const nome = String(l.nota || '').trim() || cat || 'Sem nome';
+    // a hora só quando é um carimbo de verdade (dados antigos têm "em" pequeno, e davam 21:00)
+    const hora = l.em > 1e12 ? new Date(l.em).toTimeString().slice(0, 5) : '';
+    const sub = umDia ? [cat || (e ? 'Entrada' : 'Saída'), !e && naturezaDe(l) === 'emocao' ? 'emoção' : '', hora]
+                      : [rotuloDoDia(l.data), cat];
+    return '<button type="button" class="v2-linha" data-acao="editar" data-ref="' + esc(l.id) + '" aria-label="Editar ' + esc(nome) + '">' +
+      '<span class="v2-sigla' + classeCor(familiaDoLancamento(l)) + '" aria-hidden="true">' + esc(siglaDe(nome)) + '</span>' +
+      '<span class="v2-linha-nome"><b>' + esc(nome) + '</b><small>' + esc(sub.filter(Boolean).join(' · ')) + '</small></span>' +
+      '<b class="v2-valor' + (e ? ' v-verde' : '') + '">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>';
+  }).join('');
+  const titulo = 'Lançamentos ' + ({ hoje: 'de hoje', ontem: 'de ontem', 'este mês': 'deste mês' }[p.curto] || p.curto);
+  return '<section class="v2-lista" aria-label="' + esc(titulo) + '">' +
+    '<div class="v2-lista-cabeca"><h2 class="v2-titulo">' + titulo + '</h2>' + (linhas ? '<small>toque para editar</small>' : '') + '</div>' +
+    (linhas || '<p class="v2-vazio">Nada lançado ' + p.curto + '. Toque no + para lançar.</p>') +
+  '</section>';
+}
+
+function inicioV2(n, p, r, ficou, pctFicou, est, abas, pode, pulso) {
+  return '<div class="painel inicio v2">' +
+    seletorCarteiraV2() +
+    '<nav class="abas filtros v2-periodo" aria-label="Período">' + abas + '</nav>' +
+    avisoPagoPorOutro(true) +
+    heroiV2(n, p, r, ficou, pctFicou, est, pode, pulso) +
+    oDeSempreV2() +
+    listaV2(p) +
+    faixaAgenda() +
+    secaoParaOndeTiles(p) +
+    cartaoContas(n) +
+    calendarioDoMes() +
+    (inicioVista === 'mes' ? secaoPorDia(n) : '') +
+    avisos() +
+    conversaCartao() +
   '</div>';
 }
 
