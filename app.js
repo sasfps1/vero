@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 49;
+const VERSAO = 50;
 let soMemoria = false;
 
 const VAZIO = {
@@ -2144,7 +2144,8 @@ function telaPainel() {
   let maiorEmo = null;
   g.lista.forEach(function (c) { if (c.emocao && (!maiorEmo || c.emocao > maiorEmo.emocao)) maiorEmo = c; });
   const frase = !g.total ? 'Nada saiu ' + (atual ? P.este : P.esse) + ' ainda.'
-    : A.naPassado + ', a emoção foi <strong>' + dinheiro(ga.emocao) + '</strong>.' +
+    : (ga.total ? A.naPassado + (A.comp ? ' (até o mesmo ponto)' : '') + ', a emoção foi <strong>' + dinheiro(ga.emocao) + '</strong>.'
+      : 'Ainda não há registro ' + (A.comp ? 'em ' + esc(A.comp.replace(/^o |^a /, '')) : A.naPassado.toLowerCase()) + ' para comparar.') +
       (maiorEmo ? ' Agora, a maior parte foi em <strong>' + esc(maiorEmo.nome) + '</strong>.' : '');
   const emocao = '<section class="bloco pn-emocao"><h2 class="pn-titulo">Necessário ou emoção?</h2>' +
     (g.total ? '<div class="pn-dupla"><span class="pn-nec" style="flex:' + nec + '"></span><span class="pn-emo" style="flex:' + g.emocao + '"></span></div>' +
@@ -2156,7 +2157,8 @@ function telaPainel() {
   const max = g.lista.length ? g.lista[0].centavos : 1;
   let linhas = g.lista.slice(0, 6);
   const resto = g.lista.slice(6);
-  if (resto.length) linhas = linhas.concat([{ nome: resto.length + ' outras', centavos: resto.reduce(function (a, c) { return a + c.centavos; }, 0),
+  if (resto.length === 1) linhas = linhas.concat(resto);
+  else if (resto.length) linhas = linhas.concat([{ nome: resto.length + ' outras', centavos: resto.reduce(function (a, c) { return a + c.centavos; }, 0),
     emocao: resto.reduce(function (a, c) { return a + c.emocao; }, 0), notas: {}, outras: true }]);
   const onde = '<section class="bloco pn-onde"><div class="pn-cab"><h2 class="pn-titulo">Para onde foi</h2>' +
     '<div class="pn-legenda"><span><i class="l-nec"></i>necessário</span><span><i class="l-emo"></i>emoção</span></div></div>' +
@@ -2215,7 +2217,8 @@ function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
     const sobe = agora > antes;
     comp = '<small class="pn-k-comp ' + (sobe === bomSubir ? 'bom' : 'atencao') + '">' + (sobe ? '▲ ' : '▼ ') + pct + '% vs ' + esc((A.comp || A.passado).replace(/^o |^a /, '')) + '</small>';
   } else if (antes) comp = '<small class="pn-k-comp">igual a ' + esc(A.comp || A.passado) + '</small>';
-  else comp = '<small class="pn-k-comp">' + esc(A.naPassado) + ' não teve</small>';
+  // 16/11: "no mês passado não teve" lia-se como "não entrou nada"; o que falta é registro.
+  else comp = '<small class="pn-k-comp">sem registro em ' + esc((A.comp || A.passado).replace(/^o |^a /, '')) + '</small>';
   return '<div class="pn-kpi"><span class="rotulo">' + rotulo + '</span>' +
     '<strong>' + (comSinal && agora < 0 ? '−' : '') + dinheiro(Math.abs(agora)) + '</strong>' + comp + '</div>';
 }
@@ -2275,7 +2278,8 @@ function ritmoPainel(P, A, atual) {
   const h = hoje();
   const ag = acumuladoEntre(P.de, P.ate, atual ? h : null), an = acumuladoEntre(A.de, A.ate);
   const n = Math.max(ag.length, an.length);
-  const maior = Math.max(1, ag[ag.length - 1].v, an.length ? an[an.length - 1].v : 0);
+  const temAntes = an.length > 0 && an[an.length - 1].v > 0;
+  const maior = Math.max(1, ag[ag.length - 1].v, temAntes ? an[an.length - 1].v : 0);
   const largo = !!(telaUnica && telaUnica.matches), W = largo ? 1100 : 380, H = largo ? 270 : 210, e = largo ? 70 : 58, d = 14, t = 16, b = 30;
   const X = function (i) { return e + (n > 1 ? i * (W - e - d) / (n - 1) : 0); };
   const Y = function (v) { return t + (H - t - b) * (1 - v / maior); };
@@ -2302,12 +2306,14 @@ function ritmoPainel(P, A, atual) {
     const pa = an[Math.min(ult, an.length - 1)], va = pa ? pa.v : 0, vh = vistos[ult].v;
     balao = '<line x1="' + X(ult).toFixed(1) + '" x2="' + X(ult).toFixed(1) + '" y1="' + Y(vh).toFixed(1) + '" y2="' + (H - b) + '" class="pn-r-guia"></line>' +
       '<circle cx="' + X(ult).toFixed(1) + '" cy="' + Y(vh).toFixed(1) + '" r="5" class="pn-r-ponto"></circle>';
-    frase = (atual ? 'Até hoje' : 'No período') + ' saiu <b>' + dinheiro(vh) + '</b>; ' + esc(A.passado) + ', até o mesmo ponto, <b>' + dinheiro(va) + '</b>.';
+    frase = (atual ? 'Até hoje' : 'No período') + ' saiu <b>' + dinheiro(vh) + '</b>' + (temAntes
+      ? '; ' + esc(A.passado) + ', até o mesmo ponto, <b>' + dinheiro(va) + '</b>.'
+      : '. ' + esc(A.passado.charAt(0).toUpperCase() + A.passado.slice(1)) + ' ainda não tem registro para comparar.');
   }
   return '<section class="bloco pn-ritmo"><div class="pn-cab"><h2 class="pn-titulo">O ritmo do que saiu</h2>' +
-    '<div class="pn-legenda"><span><i class="l-agora"></i>' + esc(P.este) + '</span><span><i class="l-antes"></i>' + esc(A.passado.replace(/^o |^a /, '')) + '</span></div></div>' +
+    '<div class="pn-legenda"><span><i class="l-agora"></i>' + esc(P.este) + '</span>' + (temAntes ? '<span><i class="l-antes"></i>' + esc(A.passado.replace(/^o |^a /, '')) + '</span>' : '') + '</div></div>' +
     '<svg class="pn-r-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Soma do que saiu dia a dia, comparada com o período anterior">' + grade +
-      (an.length ? '<path d="' + linha(an) + '" class="pn-r-antes"></path>' : '') +
+      (temAntes ? '<path d="' + linha(an) + '" class="pn-r-antes"></path>' : '') +
       (vistos.length ? '<path d="' + linha(vistos) + '" class="pn-r-agora"></path>' : '') + balao + eixo + '</svg>' +
     (frase ? '<p class="pn-frase">' + frase + '</p>' : '') + '</section>';
 }
