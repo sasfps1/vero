@@ -1766,3 +1766,17 @@ section.bloco.he {
 }
 
 @media (max-width: 1179px) { .pn-ritmo .pn-cab { flex-wrap: wrap; } .pn-r-eixo { font-size: 11px; } }
+
+/* ── v52: Metas no Painel ─────────────────────────────────────────────────── */
+.pn-metas { display: flex; flex-direction: column; gap: 12px; }
+.pn-metas .pn-titulo { margin: 0; }
+.pn-meta { display: flex; flex-direction: column; gap: 5px; }
+.pn-meta-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.pn-meta-topo span { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pn-meta-topo small { font-weight: 500; color: var(--on-surface-muted); }
+.pn-meta-barra { height: 8px; border-radius: 4px; background: rgba(var(--tinta-rgb), 0.08); overflow: hidden; }
+.pn-meta-barra i { display: block; height: 100%; border-radius: 4px; background: var(--signal); }
+.pn-meta-barra.passou i { background: repeating-linear-gradient(135deg, var(--signal) 0 5px, rgba(var(--sinal-rgb), 0.45) 5px 10px); }
+.pn-meta-sub { font-size: 12.5px; color: var(--on-surface-muted); }
+.pn-guardei { align-self: flex-start; min-height: 36px; }
+@media (max-width: 1179px) { .pn-metas { order: 3; } .pn-emocao { order: 4; } .pn-contas { order: 5; } .pn-ocasioes { order: 6; } }

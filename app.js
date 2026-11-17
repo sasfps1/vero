@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 51;
+const VERSAO = 52;
 let soMemoria = false;
 
 const VAZIO = {
@@ -2206,8 +2206,71 @@ function telaPainel() {
     '</section>';
 
   return '<div class="pn">' + topo + kpis +
-    '<div class="pn-grade"><div class="pn-col pn-esq">' + contasPainel(P) + emocao + ocasioes + '</div>' +
+    '<div class="pn-grade"><div class="pn-col pn-esq">' + contasPainel(P) + metasPainel(P) + emocao + ocasioes + '</div>' +
     '<div class="pn-col pn-dir">' + onde + ritmoPainel(P, Ainteiro, atual) + '</div></div></div>';
+}
+
+/* v52, 16/11: as METAS (a peça "Goals" do modelo azul dele). Lente: Richard Thaler, contabilidade
+   mental: cada caixinha com o seu teto. O teto é dele (sugerido a partir da média dele, muda em
+   "Ajustar"); passar do teto não fica vermelho: a pesquisa de hoje diz que culpa faz abandonar.
+   ⚠️ Guardado neste aparelho (S.config.metas), não no banco: celular e computador têm cada um o seu
+   até existir a tabela de metas. */
+const METAS_PADRAO = { gostos: 15000, moto: 2500, colchao: 50000, guardado: 0 };
+function metas() { return Object.assign({}, METAS_PADRAO, S.config.metas || {}); }
+function metasPainel(P) {
+  const m = metas(), mes = mesDe(P.ate), de = mes + '-01', ate = mes + '-' + p2(diasNoMes(mes));
+  let gostos = 0, transp = 0;
+  const trabalhou = {};
+  lancamentosVistos().forEach(function (l) {
+    if (l.tipo === 'entrada' && l.data >= P.de && l.data <= P.ate && !l.emprestimo) trabalhou[l.data] = true;
+    if (l.tipo !== 'saida' || l.conta || l.emprestimo) return;
+    if (l.data >= de && l.data <= ate && naturezaDe(l) === 'emocao') gostos += l.centavos;
+    if (l.data >= P.de && l.data <= P.ate && /transporte/i.test(categoriaDe(l) || '')) transp += l.centavos;
+  });
+  const dias = Object.keys(trabalhou).length, porDia = dias ? Math.round(transp / dias) : 0;
+  const linha = function (nome, valor, teto, sub, ref) {
+    const pct = teto ? Math.round(valor * 100 / teto) : 0;
+    return '<div class="pn-meta"><div class="pn-meta-topo"><b>' + nome + '</b><span>' + dinheiro(valor) + ' <small>de ' + dinheiro(teto) + '</small></span></div>' +
+      '<div class="pn-meta-barra' + (pct > 100 ? ' passou' : '') + '" role="img" aria-label="' + pct + '% do teto"><i style="width:' + Math.min(100, pct) + '%"></i></div>' +
+      '<small class="pn-meta-sub">' + pct + '% · ' + sub + '</small></div>';
+  };
+  const g = gostos <= m.gostos ? 'faltam ' + dinheiro(m.gostos - gostos) + ' até o teto de ' + MESES[Number(mes.slice(5, 7)) - 1]
+    : 'passou ' + dinheiro(gostos - m.gostos) + ' do teto: o mês que vem recomeça';
+  const t = !dias ? 'nenhum dia com entrada ' + P.esse : porDia <= m.moto ? 'média de ' + quantosDias(dias) + ' trabalhados, dentro do teto'
+    : 'média de ' + quantosDias(dias) + ' trabalhados, ' + dinheiro(porDia - m.moto) + ' acima do teto por dia';
+  const c = m.guardado >= m.colchao ? 'meta cumprida: o próximo degrau é deixar o dinheiro render'
+    : 'faltam ' + dinheiro(m.colchao - m.guardado) + ' para o primeiro colchão';
+  return '<section class="bloco pn-metas"><div class="pn-cab"><h2 class="pn-titulo">Metas</h2>' +
+      '<button class="btn pequeno fraco" data-acao="metas-ajustar">Ajustar</button></div>' +
+    linha('Meus gostos', gostos, m.gostos, g) +
+    linha('Moto por dia de trabalho', porDia, m.moto, t) +
+    linha('Colchão guardado', m.guardado, m.colchao, c) +
+    '<button class="btn contorno pn-guardei" data-acao="metas-guardei">Guardei dinheiro no colchão</button></section>';
+}
+function ajustarMetas() {
+  const m = metas();
+  abrirForm('Ajustar as metas',
+    campoValor('mt-gostos', 'Meus gostos: teto por mês') + campoValor('mt-moto', 'Moto: teto por dia de trabalho') +
+    campoValor('mt-colchao', 'Colchão: quanto quer guardar') + campoValor('mt-guardado', 'Colchão: quanto já está guardado') +
+    '<p class="frase">Os gostos são o que você marca como "pela emoção". A moto soma a categoria Transporte e divide pelos dias em que entrou dinheiro. Estas metas ficam neste aparelho.</p>',
+    function () {
+      const novo = { gostos: lerValor('mt-gostos') || m.gostos, moto: lerValor('mt-moto') || m.moto, colchao: lerValor('mt-colchao') || m.colchao,
+        guardado: document.getElementById('mt-guardado').value.trim() === '' ? m.guardado : lerValor('mt-guardado') };
+      comDesfazer('Metas ajustadas', function () { S.config.metas = novo; guardar(); });
+    });
+  [['mt-gostos', m.gostos], ['mt-moto', m.moto], ['mt-colchao', m.colchao], ['mt-guardado', m.guardado]].forEach(function (x) {
+    document.getElementById(x[0]).value = (x[1] / 100).toFixed(2);
+  });
+}
+function guardeiColchao() {
+  abrirForm('Guardei no colchão', campoValor('mt-mais', 'Quanto guardou agora') +
+    '<p class="frase">Soma ao que já está guardado. Não sai do Sobrou: é dinheiro que continua seu, só separado.</p>',
+    function () {
+      const v = lerValor('mt-mais');
+      if (!v) { fecharFolhas(); return; }
+      const m = metas();
+      comDesfazer('Guardou ' + dinheiro(v) + ' no colchão', function () { S.config.metas = Object.assign({}, m, { guardado: m.guardado + v }); guardar(); });
+    }, 'Guardar');
 }
 
 /** Um dos 4 números do topo. `bomSubir`: entrar e sobrar mais é bom; sair mais, não. */
@@ -3871,6 +3934,8 @@ document.addEventListener('click', function (ev) {
     case 'despagar':        return despagar(ref);
     case 'outro-pagou':     return marcarOutroPagou(ref);
     case 'aviso-ok':        return marcarAvisoVisto(ref);
+    case 'metas-ajustar':   return ajustarMetas();
+    case 'metas-guardei':   return guardeiColchao();
     case 'dispensar-conta': return dispensarConta(ref);
     case 'devolvi':         return devolucao(ref);
     case 'perdoar':         return perdoar(ref);
