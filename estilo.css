@@ -1969,3 +1969,264 @@ main::-webkit-scrollbar-thumb:hover { background: rgba(var(--tinta-rgb), 0.32); 
 
 /* o botão principal do app inteiro: creme cheio, texto no fundo */
 .btn.primario { background: var(--creme); color: var(--sobre-creme); border-color: var(--creme); }
+
+/* ══ v57 · PAINEL SEM ROLAGEM NO COMPUTADOR (17/11, queixa dele) ═══════════════════════════
+   Era: duas colunas soltas (a da esquerda com 4 cartões, a da direita com 2), a página rolava e
+   o "ritmo do que saiu" esticava até ao fundo da coluna comprida, vazio ("um quadradão").
+   Agora: período e os 4 números em cima, e por baixo uma grade FIXA de 4 colunas x 2 linhas
+   que ocupa o resto da tela. Os dois cartões largos (para onde foi, ritmo) em cima; contas,
+   metas, necessário e ocasiões em baixo. O que não cabe, o caberPainel() corta com "+N". */
+@media (min-width: 1180px) and (min-height: 600px) {
+  body:has(.pn) main { overflow: hidden; padding-bottom: 16px; }
+  .pn { height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 12px; }
+  .pn > * { margin: 0; }
+  .pn-kpis { padding: 10px; }
+  .pn-kpi { padding: 8px 12px; }
+  .pn-kpi strong { font-size: 24px; }
+  .pn-grade {
+    min-height: 0; display: grid; gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "onde onde ritmo ritmo" "contas metas emocao ocasioes";
+  }
+  .pn-col { display: contents; }
+  .pn-grade section.bloco { min-height: 0; overflow: hidden; margin: 0; padding: 14px 16px; flex: none; }
+  .pn-grade .pn-onde { grid-area: onde; }
+  .pn-grade .pn-ritmo { grid-area: ritmo; }
+  .pn-grade .pn-contas { grid-area: contas; }
+  .pn-grade .pn-metas { grid-area: metas; gap: 8px; }
+  .pn-grade .pn-emocao { grid-area: emocao; }
+  .pn-grade .pn-ocasioes { grid-area: ocasioes; }
+  /* sem contas cadastradas: as metas ocupam as duas casas */
+  .pn-grade:not(:has(.pn-contas)) .pn-metas { grid-column: 1 / 3; grid-row: 2; }
+  /* para onde foi: rosca menor ao lado da tabela */
+  .pn-grade .pn-onde-corpo { flex-direction: row; align-items: center; gap: 16px; margin-top: 4px; }
+  .pn-grade .pn-rosca { width: 96px; height: 96px; }
+  .pn-grade .pn-tabela { display: flex; flex-direction: column; gap: 2px; }
+  .pn-grade .pn-linha { padding-top: 4px; padding-bottom: 4px; min-height: 0; }
+  .pn-grade .pn-linha { grid-template-columns: 30px minmax(0, 1.1fr) minmax(0, 1fr) auto auto; column-gap: 10px; }
+  /* o ritmo: o gráfico enche o cartão, sem sobra embaixo */
+  .pn-grade .pn-ritmo { display: flex; flex-direction: column; gap: 6px; }
+  .pn-grade .pn-r-svg { flex: 1 1 0; min-height: 0; width: 100%; height: 100%; }
+  .pn-grade .pn-ritmo .pn-frase, .pn-grade .pn-ritmo p { flex: none; margin: 0; }
+  .pn-grade .pn-anel { width: 64px; height: 64px; }
+  .pn-mais { align-self: flex-start; margin-top: 4px; font-size: 12.5px; font-weight: 600; color: var(--on-surface-muted); text-decoration: none; }
+  a.pn-mais:hover { color: var(--on-surface); }
+}
+@media (min-width: 1180px) and (min-height: 600px) {
+  .pn-mais.no-titulo { margin: 0; font-size: 13px; }
+}
+
+/* ── v58 · DNA v3 DA MARCA (19/11, aprovado por ele em imagem: boards M2_*) ───────────────
+   A paleta volta a ser a da marca: navy no chão, CREME na tinta e no botão, GELO como a única
+   luz, laranja só no vazamento. Sem verde e sem vermelho (o Sábio não dá bronca). Análise que
+   fundamenta: casa/_referencias/2026-11-18-analise-azul. Este bloco só sobrepõe tokens e o
+   Início do computador; as telas antigas herdam a cor nova sem mudar de estrutura. */
+:root, :root[data-tema="escuro"], :root[data-tema="claro"] {
+  --v2-fundo:   #06144A;
+  --v2-cartao:  #0A1B57;
+  --v2-pilula:  #102463;
+  --v2-borda:   rgba(158, 197, 232, 0.12);
+  --v2-texto:   #F2EBD2;
+  --v2-texto-2: #C9D2E6;
+  --v2-texto-3: #A9B4CF;
+  --verde:      #9EC5E8;
+  --coral:      #FF7A45;
+  --creme:      #F2EBD2;
+  --sobre-creme:#05113B;
+  --tinta-rgb:  242, 235, 210;
+  --sinal-rgb:  158, 197, 232;
+  --signal:     #9EC5E8;
+  --gelo-luz:   #CFE6FA;
+  --vaz:        #FF7A45;
+  --vaz-texto:  #FF9A6B;
+}
+
+@media (min-width: 1180px) {
+  /* a moldura: o app mora dentro de uma tela com fio de luz (o painel azul dele) */
+  html { background: radial-gradient(60% 60% at 50% 0%, #0B1C58, #030B2A 75%); }
+  body {
+    margin: 12px; height: calc(100vh - 24px); min-height: 0; border-radius: 26px; overflow: hidden;
+    background: linear-gradient(180deg, #06144A, #040D35);
+    border: 1px solid rgba(158, 197, 232, 0.26);
+    box-shadow: 0 0 0 1px rgba(158, 197, 232, 0.05), 0 0 44px rgba(158, 197, 232, 0.12), inset 0 1px 0 rgba(242, 235, 210, 0.08);
+  }
+  .nav-pilulas { background: transparent; gap: 8px; padding: 0; }
+  .nav-pilulas a { border: 1px solid rgba(169, 180, 207, 0.28); color: #A9B4CF; }
+  nav.barra .nav-pilulas a.activo { background: rgba(158, 197, 232, 0.18); border-color: #9EC5E8; color: #F2EBD2; }
+}
+
+@media (min-width: 1180px) and (min-height: 600px) {
+  .painel.inicio.v3 {
+    display: grid; height: 100%; gap: 12px; align-items: stretch;
+    grid-template-columns: 372px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "faixa faixa" "esq dir";
+  }
+  .painel.inicio.v3 > .aviso-pago, .painel.inicio.v3 > [class*="pago-por"] { grid-column: 1 / -1; }
+  .v3-faixa { grid-area: faixa; display: flex; justify-content: space-between; align-items: center; gap: 16px; min-width: 0; }
+  .v3-faixa .filtros { margin: 0; flex: none; }
+  .v3-leitura { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: #A9B4CF; text-align: right; min-width: 0; }
+  .v3-leitura > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--vaz); box-shadow: 0 0 7px rgba(255, 122, 69, 0.85); }
+  .v3-leitura b { color: #F2EBD2; font-weight: 600; }
+  .v3-leitura .v3-vaz, .v3-vaz { color: var(--vaz-texto); }
+
+  .v3-esq { grid-area: esq; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px; min-height: 0; min-width: 0; }
+  .v3-dir { grid-area: dir; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; min-height: 0; min-width: 0; }
+  .painel.inicio.v3 .bloco {
+    margin: 0; min-height: 0; overflow: hidden; border-radius: 18px;
+    background: linear-gradient(180deg, #0A1B57, #07144A);
+    border: 1px solid rgba(158, 197, 232, 0.10); box-shadow: 0 10px 24px rgba(0, 3, 20, 0.4);
+  }
+
+  /* o herói: escuro, sobe pela sombra e pela linha de luz, nunca por cor forte */
+  .painel.inicio.v3 .v3-heroi {
+    padding: 14px 18px 12px;
+    background: linear-gradient(165deg, #15306F, #0E215C 60%, #0B1A50);
+    border-color: rgba(158, 197, 232, 0.22);
+    box-shadow: 0 22px 44px rgba(0, 3, 18, 0.55), inset 0 1px 0 rgba(242, 235, 210, 0.14);
+  }
+  .v3-heroi-cabeca { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .v3-rot { font-size: 12.5px; font-weight: 600; color: #A9B4CF; }
+  .v3-selo { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; border: 1px solid rgba(158, 197, 232, 0.45); color: var(--gelo-luz); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+  .v3-selo i { width: 6px; height: 6px; border-radius: 50%; background: #9EC5E8; box-shadow: 0 0 8px #9EC5E8; }
+  .v3-selo.contencao { border-color: rgba(255, 122, 69, 0.5); color: var(--vaz-texto); }
+  .v3-selo.contencao i { background: var(--vaz); box-shadow: 0 0 8px var(--vaz); }
+  .v3-numero { margin-top: 2px; font-size: 34px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.12; color: #F2EBD2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .v3-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #A9B4CF; }
+  .v3-linha { display: block; width: calc(100% + 36px); height: 40px; margin: 6px -18px 0; overflow: visible; }
+  .v3-area { fill: rgba(158, 197, 232, 0.16); }
+  .v3-traco { fill: none; stroke: var(--gelo-luz); stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px rgba(158, 197, 232, 0.8)); }
+  .v3-ponto { fill: #06144A; stroke: var(--gelo-luz); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .v3-tres { display: flex; justify-content: space-between; margin-top: 6px; padding-top: 8px; border-top: 1px solid rgba(158, 197, 232, 0.16); font-size: 12px; color: #A9B4CF; }
+  .v3-tres b { color: #F2EBD2; font-weight: 700; }
+
+  /* hoje: o de sempre em cima, os lançamentos por baixo */
+  .painel.inicio.v3 .v3-hoje { padding: 12px 14px 6px; display: flex; flex-direction: column; gap: 10px; }
+  .v3-hoje .v2-sempre, .v3-hoje .v2-lista { margin: 0; padding: 0; background: none; border: 0; box-shadow: none; min-height: 0; }
+  .v3-hoje .v2-lista { flex: 1; overflow: hidden; }
+
+  /* o calendário grande: o mês como mapa */
+  .painel.inicio.v3 .v3-dir .mes-cal { display: flex; flex-direction: column; padding: 12px 14px; }
+  .v3-dir .mes-cal .frase { margin: 2px 0 8px; font-size: 12.5px; color: #A9B4CF; }
+  .v3-dir .mes-cal .cal {
+    flex: 1; min-height: 0; display: grid; gap: 6px;
+    grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: auto; grid-auto-rows: minmax(0, 1fr);
+  }
+  .v3-dir .mes-cal .cal .sem { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; color: #A9B4CF; text-align: left; padding: 0 0 2px 9px; }
+  .v3-dir .mes-cal .cal button.d {
+    position: relative; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch;
+    width: auto; height: auto; min-height: 0; aspect-ratio: auto; padding: 7px 9px 6px; border-radius: 10px; text-align: left;
+    background: rgba(242, 235, 210, 0.025); border: 1px solid rgba(158, 197, 232, 0.06); color: #F2EBD2; font: inherit;
+  }
+  .v3-dir .mes-cal .cal button.d::before, .v3-dir .mes-cal .cal button.d::after { display: none; }
+  .v3-dir .mes-cal .cal button.d.hoje {
+    background: linear-gradient(180deg, rgba(158, 197, 232, 0.30), rgba(40, 80, 160, 0.45));
+    border-color: #9EC5E8; box-shadow: 0 0 18px rgba(158, 197, 232, 0.35), inset 0 1px 0 rgba(242, 235, 210, 0.3);
+  }
+  .cal-n { font-size: 13.5px; font-weight: 700; }
+  .cal-v { font-size: 10.5px; color: #A9B4CF; font-variant-numeric: tabular-nums; }
+  .d.hoje .cal-v { color: #F2EBD2; }
+  .cal-conta { display: block; height: 16px; line-height: 14px; border-radius: 5px; text-align: center; font-size: 9.5px; font-weight: 700; color: var(--gelo-luz); border: 1px solid rgba(158, 197, 232, 0.55); background: rgba(158, 197, 232, 0.08); overflow: hidden; white-space: nowrap; }
+  .cal-conta.paga { color: #8E9CC2; border-color: rgba(142, 156, 194, 0.35); background: none; }
+  .cal-vz { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--vaz); box-shadow: 0 0 7px rgba(255, 122, 69, 0.85); }
+  .v3-dir .mes-cal .prox-semana { display: none; }
+}
+
+@media (min-width: 1180px) and (min-height: 600px) {
+  /* v58: as regras antigas do Início (com :has, mais fortes) não podem desenhar por cima da grade nova */
+  body .painel.inicio.v3 {
+    grid-template-columns: 372px minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    grid-template-areas: "faixa faixa" "esq dir" !important;
+  }
+  body .painel.inicio.v3 .v3-esq > *, body .painel.inicio.v3 .v3-dir > * { grid-area: auto !important; grid-column: auto !important; }
+  body .painel.inicio.v3 .v3-dir .mes-cal .cal { width: 100%; max-width: none; grid-template-columns: repeat(7, minmax(0, 1fr)) !important; justify-content: stretch; margin: 0; }
+  body .painel.inicio.v3 .v3-dir .mes-cal .cal button.d { width: auto !important; height: auto !important; margin: 0; }
+  body .painel.inicio.v3 .v3-dir .mes-cal .cal button.d.lancou, body .painel.inicio.v3 .v3-dir .mes-cal .cal button.d.tem-agenda { outline: 0; border-style: solid; }
+  body .painel.inicio.v3 .contas-cartao { padding: 12px 14px; }
+  body .painel.inicio.v3 .conversa-cartao, body .painel.inicio.v3 .v3-dir > section:last-child { padding: 9px 12px; }
+}
+@media (min-width: 1180px) and (min-height: 600px) {
+  body .painel.inicio.v3 .v3-dir .mes-cal .cal > * { justify-self: stretch !important; align-self: stretch !important; max-width: none !important; min-width: 0 !important; }
+  body .painel.inicio.v3 .v3-dir .mes-cal .cal .sem { align-self: end !important; }
+  /* no Início o cartão de contas é o resumo; a lista inteira mora em Contas */
+  body .painel.inicio.v3 .contas-cartao .mes-contas, body .painel.inicio.v3 .contas-cartao .cobre { display: none; }
+  body .painel.inicio.v3 .v3-hoje { min-height: 150px; }
+}
+
+/* ── v58 · Painel e Contas no desenho novo (19/11) ── */
+.v3-leitura.so-pc { display: none; }
+.v3-regua.so-pc { display: none; }
+@media (min-width: 1180px) {
+  /* os heróis antigos (azul royal cheio) viram o cartão escuro que sobe pela sombra */
+  .bloco.he, .tela-grade .bloco.he, .painel .heroi {
+    background: linear-gradient(165deg, #15306F, #0E215C 60%, #0B1A50);
+    border: 1px solid rgba(158, 197, 232, 0.22);
+    box-shadow: 0 22px 44px rgba(0, 3, 18, 0.55), inset 0 1px 0 rgba(242, 235, 210, 0.14);
+  }
+  .bloco { background: linear-gradient(180deg, #0A1B57, #07144A); border: 1px solid rgba(158, 197, 232, 0.10); }
+  .v3-leitura.so-pc { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: #A9B4CF; }
+  .v3-leitura.so-pc > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--vaz); box-shadow: 0 0 7px rgba(255, 122, 69, 0.85); }
+  .v3-leitura.so-pc b { color: #F2EBD2; font-weight: 600; }
+  .pn-periodo { display: flex; align-items: center; gap: 14px; }
+  .pn-periodo .v3-leitura { margin-left: auto; text-align: right; }
+  /* Painel: o "Sobrou" é o número que sobe */
+  .pn-kpis > :nth-child(3) {
+    background: linear-gradient(165deg, #15306F, #0E215C 60%, #0B1A50);
+    border: 1px solid rgba(158, 197, 232, 0.28); box-shadow: 0 12px 28px rgba(0, 3, 18, 0.45), inset 0 1px 0 rgba(242, 235, 210, 0.14);
+  }
+  /* Contas: a régua do mês dentro do herói */
+  .tela-grade.contas .bloco.he { display: flex; flex-direction: column; }
+  .tela-grade.contas .bloco.he .v3-leitura { margin-top: auto; padding-top: 8px; }
+  .v3-regua.so-pc { display: block; position: relative; height: 96px; margin: 26px 26px 6px; }
+  .v3-regua .rg-t { position: absolute; bottom: 62px; width: 1.3px; height: 9px; margin-left: -0.6px; background: rgba(242, 235, 210, 0.25); }
+  .v3-regua .rg-t.foi { background: rgba(242, 235, 210, 0.7); }
+  .v3-regua .rg-t.longo { height: 15px; }
+  .v3-regua .rg-t.hoje { width: 2.4px; height: 28px; margin-left: -1.2px; background: var(--gelo-luz); box-shadow: 0 0 8px rgba(158, 197, 232, 0.9); }
+  .v3-regua::before { content: ''; position: absolute; left: 0; right: 0; bottom: 61px; height: 1px; background: rgba(158, 197, 232, 0.18); }
+  .v3-regua .rg-n { position: absolute; bottom: 46px; transform: translateX(-50%); font-size: 10px; color: #8E9CC2; }
+  .v3-regua .rg-hoje { position: absolute; bottom: 92px; transform: translateX(-50%); font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; color: var(--gelo-luz); }
+  .v3-regua .rg-c {
+    position: absolute; bottom: 4px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px;
+    min-width: 56px; padding: 3px 7px; border-radius: 8px; font: inherit; cursor: pointer;
+    background: rgba(158, 197, 232, 0.12); border: 1px solid rgba(158, 197, 232, 0.5); color: #F2EBD2;
+  }
+  .v3-regua .rg-c::before { content: ''; position: absolute; top: -8px; left: 50%; margin-left: -4px; border: 4px solid transparent; border-bottom: 5px solid #F2EBD2; border-top: 0; }
+  .v3-regua .rg-c.baixo { bottom: -34px; }
+  .v3-regua .rg-c.baixo::before { top: -8px; }
+  .v3-regua .rg-c b { font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .v3-regua .rg-c span { font-size: 10px; color: var(--gelo-luz); white-space: nowrap; }
+  .v3-regua .rg-c.paga { background: rgba(242, 235, 210, 0.04); border-color: rgba(142, 156, 194, 0.35); color: #8E9CC2; }
+  .v3-regua .rg-c.paga span { color: #8E9CC2; }
+  .v3-regua .rg-c.paga::before { border-bottom-color: #8E9CC2; }
+}
+@media (min-width: 1180px) {
+  body .tela-grade.contas { grid-template-rows: auto minmax(0, 1fr) !important; }
+  body .tela-grade.contas .bloco.he {
+    display: grid !important; grid-template-columns: 250px minmax(0, 1fr); grid-template-rows: auto auto 1fr auto;
+    column-gap: 24px; align-items: start; padding: 16px 20px 14px;
+    background: linear-gradient(165deg, #15306F, #0E215C 60%, #0B1A50) !important;
+  }
+  body .tela-grade.contas .bloco.he > .rotulo { grid-column: 1; grid-row: 1; }
+  body .tela-grade.contas .bloco.he > .numero-grande { grid-column: 1; grid-row: 2; margin: 2px 0 0; }
+  body .tela-grade.contas .bloco.he > .frase { grid-column: 1; grid-row: 3; margin: 6px 0 0; text-align: left; position: static; }
+  body .tela-grade.contas .bloco.he > .v3-regua { grid-column: 2; grid-row: 1 / 4; margin: 18px 30px 0; height: 104px; }
+  body .tela-grade.contas .bloco.he > .v3-leitura { grid-column: 1 / -1; grid-row: 4; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(158, 197, 232, 0.14); }
+  .v3-regua .rg-t { bottom: 72px; }
+  .v3-regua::before { bottom: 71px; }
+  .v3-regua .rg-n { bottom: 57px; }
+  .v3-regua .rg-hoje { bottom: 102px; }
+  .v3-regua .rg-c { bottom: 16px; }
+  .v3-regua .rg-c.baixo { bottom: -22px; }
+}
+/* v58 · Painel sem rosca, custo de trabalho e o ritmo com luz */
+.pn-onde-corpo.sem-rosca { display: block; }
+.pn-onde-corpo.sem-rosca .pn-tabela { width: 100%; }
+.pn-trabalho { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 6px; padding: 7px 10px; border-radius: 10px; border: 1px dashed rgba(158, 197, 232, 0.35); font-size: 12.5px; color: #A9B4CF; }
+.pn-trabalho span { flex: 1; }
+.pn-trabalho span small, .pn-trabalho > small { color: #8E9CC2; font-size: 11.5px; }
+.pn-trabalho b { color: #F2EBD2; font-variant-numeric: tabular-nums; }
+.pn-r-agora { stroke: var(--gelo-luz) !important; stroke-width: 2.4; filter: drop-shadow(0 0 4px rgba(158, 197, 232, 0.8)); }
+.pn-r-antes { stroke: #8E9CC2 !important; stroke-dasharray: 4 4; opacity: 0.8; }
+.pn-r-ponto { fill: #06144A !important; stroke: var(--gelo-luz) !important; stroke-width: 2; }

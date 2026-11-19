@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 56;
+const VERSAO = 58;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1037,6 +1037,7 @@ function desenhar() {
   caberSemRolar();
   aparaListas();
   aparaAtalhos();
+  caberPainel();
   paginarTudo();
 }
 
@@ -1154,6 +1155,43 @@ function aparaListas() {
     if (bloco && !l.classList.contains('mc-lista') && !linhas.some(function (x) { return x.style.display !== 'none'; })) bloco.style.display = 'none';
   });
 }
+/* v57 · 17/11, queixa dele no PC: "no painel tá tendo rolagem lá no fundo... e aquele espaço em
+   branco, um quadradão, isso é desperdício". O Painel não tinha a lei do Início (06/11: nada rola
+   no computador): duas colunas soltas, a da esquerda comprida, e o cartão do ritmo esticava junto,
+   vazio. Agora é uma grade fixa 4x2 que cabe na tela (estilo.css, "v57 · PAINEL SEM ROLAGEM"), e
+   cada cartão que transborda perde, pela ordem: as frases de rodapé, depois os últimos itens da
+   lista, com um "+N" no lugar. Linha inteira ou nada, como o aparaListas(). */
+function caberPainel() {
+  if (!telaUnica || !telaUnica.matches) return;
+  const grade = document.querySelector('.pn .pn-grade');
+  if (!grade) return;
+  [].forEach.call(grade.querySelectorAll('section.bloco'), function (b) {
+    const transborda = function () { return b.scrollHeight > b.clientHeight + 1; };
+    [].forEach.call(b.querySelectorAll('.pn-mais'), function (x) { x.remove(); });
+    if (!transborda()) return;
+    // 1) o que é rodapé explicativo (frases, notas, subtítulos das metas)
+    // (o aviso de "nada aqui ainda" nunca sai: sem ele o cartão fica vazio, que é o defeito de origem)
+    const cede = [].slice.call(b.querySelectorAll('.pn-frase, .pn-nota, .pn-meta-sub, p:not(.pn-vazio)'));
+    for (let i = cede.length - 1; i >= 0 && transborda(); i--) cede[i].style.display = 'none';
+    // 2) os últimos itens das listas, com "+N" no lugar
+    const itens = [].slice.call(b.querySelectorAll('.pn-linha, .pn-meta, .pn-oc'));
+    if (!transborda() || itens.length < 2) return;
+    const mais = document.createElement(b.classList.contains('pn-onde') ? 'a' : 'span');
+    mais.className = 'pn-mais';
+    if (mais.tagName === 'A') mais.href = '#/gastos';
+    // logo depois da última linha da lista (no fim do cartão caía por baixo do botão e era cortado);
+    // nas metas vai para o título ("Metas · +2"), porque o botão "Guardei" precisa da linha de baixo
+    const ultimo = itens[itens.length - 1], tit = b.classList.contains('pn-metas') && b.querySelector('.pn-titulo');
+    if (tit) { mais.classList.add('no-titulo'); tit.appendChild(mais); }
+    else ultimo.parentNode.insertBefore(mais, ultimo.nextSibling);
+    let fora = 0;
+    while (itens.length > 1 && (fora === 0 || transborda())) {
+      itens.pop().style.display = 'none'; fora++;
+      mais.textContent = (mais.classList.contains("no-titulo") ? " · +" : "+") + fora + (mais.tagName === "A" ? " · ver todos" : "");
+    }
+  });
+}
+
 /* v56 (achado do 2.º par de olhos, 17/11): no PC a fila "de novo num toque" mostrava o 3.º
    atalho cortado num "C" atrás do aviso. Atalho cortado é botão que mente: some inteiro. */
 function aparaAtalhos() {
@@ -1354,6 +1392,8 @@ function telaInicio(n) {
      imagem. No computador o herói continua o de antes. */
   const celular = !(telaUnica && telaUnica.matches);
   if (celular) return inicioV2(n, p, r, ficou, pctFicou, est, abas, podeGastar ? sobra : null, Date.now() - ultimo < 5000);
+  // v58: no computador, o Início do DNA v3 da marca (19/11). O código antigo abaixo fica de reserva.
+  return inicioPCv3(n, p, r, ficou, est, abas, podeGastar ? sobra : null, Date.now() - ultimo < 5000);
   const textoPode = podeGastar ?'Pode gastar ' + dinheiro(sobra) + ' hoje' : r.entradas ? pctFicou + '% do que entrou' : '—';
   const heroiCel = '<section class="bloco he heroi heroi-cel' + (Date.now() - ultimo < 5000 ? ' pulso' : '') + classeEstado + '">' +
     '<span class="rotulo">Sobrou ' + p.quando + '</span>' +
@@ -1481,7 +1521,7 @@ function listaV2(p) {
     const nome = String(l.nota || '').trim() || cat || 'Sem nome';
     // a hora só quando é um carimbo de verdade (dados antigos têm "em" pequeno, e davam 21:00)
     const hora = l.em > 1e12 ? new Date(l.em).toTimeString().slice(0, 5) : '';
-    const sub = umDia ? [cat || (e ? 'Entrada' : 'Saída'), !e && naturezaDe(l) === 'emocao' ? 'emoção' : '', hora]
+    const sub = umDia ? [cat || (e ? 'Entrada' : 'Saída'), !e && naturezaDe(l) === 'emocao' ? 'gosto' : '', hora]
                       : [rotuloDoDia(l.data), cat];
     return '<button type="button" class="v2-linha" data-acao="editar" data-ref="' + esc(l.id) + '" aria-label="Editar ' + esc(nome) + '">' +
       '<span class="v2-sigla' + classeCor(familiaDoLancamento(l)) + '" aria-hidden="true">' + esc(siglaDe(nome)) + '</span>' +
@@ -1510,6 +1550,83 @@ function inicioV2(n, p, r, ficou, pctFicou, est, abas, pode, pulso) {
     (inicioVista === 'mes' ? secaoPorDia(n) : '') +
     avisos() +
     conversaCartao() +
+  '</div>';
+}
+
+/* ── v58 · INÍCIO NO COMPUTADOR, DNA v3 DA MARCA (19/11, ordem dele: "vamos construir...
+   completamente funcional") ─────────────────────────────────────────────────────────────
+   Fonte: boards M2_* aprovados em imagem e casa/_referencias/2026-11-18-analise-azul (o painel
+   azul dele, medido). Persona: casa/ESTUDO - publico, ICP e persona do Vero. Três mudanças de
+   fundo: (1) o número grande é o que AINDA PODE GASTAR HOJE (quem ganha por dia decide gasto a
+   gasto); (2) toda tela traz uma "Leitura do Vero", uma frase calma que muda a cada abertura;
+   (3) o mês vira um calendário grande, com o que saiu em cada dia e as contas no vencimento. */
+function vazamentoDaSemana() {
+  const ate = hoje(), de = iso(new Date(dataDe(ate).getTime() - 6 * 86400000)), g = {};
+  lancamentosVistos().forEach(function (l) {
+    if (l.tipo !== 'saida' || l.conta || l.emprestimo || l.data < de || l.data > ate || naturezaDe(l) !== 'emocao') return;
+    const nome = String(l.nota || categoriaDe(l) || '').trim(), k = semAcentoMin(nome);
+    if (!k) return;
+    const x = g[k] || (g[k] = { nome: nome, vezes: 0, dias: {}, total: 0 });
+    x.vezes++; x.dias[l.data] = true; x.total += l.centavos;
+  });
+  const top = Object.keys(g).map(function (k) { return g[k]; }).filter(function (x) { return x.vezes >= 3; })
+    .sort(function (a, b) { return b.total - a.total; })[0];
+  return top ? Object.assign(top, { nDias: Object.keys(top.dias).length }) : null;
+}
+function leituraDoVero(n, est) {
+  const v = vazamentoDaSemana();
+  if (v) return '<b>' + esc(v.nome) + '</b> ' + v.vezes + ' vezes em ' + quantosDias(v.nDias) + ' virou o <b class="v3-vaz">vazamento</b> da semana: <b>' + dinheiro(v.total) + '</b>.';
+  if (est && est.estado === 'contencao') return 'para empatar o mês, <b>' + dinheiro(est.metaDia) + '</b> por dia até o dia ' + diasNoMes(hoje().slice(0, 7)) + '.';
+  const prox = itensProximos().filter(function (it) { return it.tipo === 'conta' && it.data >= hoje(); })[0];
+  if (prox && n.livre >= prox.centavos) return 'a ' + esc(prox.nome) + ' (' + dinheiro(prox.centavos) + ') já cabe no que está livre.';
+  return 'nenhum gosto se repetiu esta semana. O dinheiro está indo para o básico.';
+}
+function linhaDoMesV3() {
+  const h = hoje(), mes = h.slice(0, 7), ate = diaDe(h), vals = [];
+  let acc = 0;
+  for (let d = 1; d <= ate; d++) { const data = mes + '-' + p2(d), x = resumoEntre(data, data); acc += x.entradas - x.saidas; vals.push(acc); }
+  if (vals.length < 2) return '';
+  const W = 400, H = 44, mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), amp = (mx - mn) || 1;
+  const pts = vals.map(function (v, i) { return [i * W / (vals.length - 1), 4 + (1 - (v - mn) / amp) * (H - 8)]; });
+  let d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+  for (let i = 1; i < pts.length; i++) { const cx = ((pts[i - 1][0] + pts[i][0]) / 2).toFixed(1); d += ' C' + cx + ',' + pts[i - 1][1].toFixed(1) + ' ' + cx + ',' + pts[i][1].toFixed(1) + ' ' + pts[i][0].toFixed(1) + ',' + pts[i][1].toFixed(1); }
+  const ult = pts[pts.length - 1];
+  return '<svg class="v3-linha" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Como o mês andou até hoje">' +
+    '<path class="v3-area" d="' + d + ' L' + W + ',' + H + ' L0,' + H + ' Z"/><path class="v3-traco" d="' + d + '"/>' +
+    '<circle class="v3-ponto" cx="' + ult[0].toFixed(1) + '" cy="' + ult[1].toFixed(1) + '" r="4"/></svg>';
+}
+function heroiPCv3(n, p, r, ficou, est, pode, pulso) {
+  const e = est && est.estado;
+  let rotulo, numero, sub;
+  if (pode !== null) {
+    rotulo = 'Ainda pode gastar hoje'; numero = numeroGrande(pode);
+    sub = dinheiro(n.livre) + ' livres até o dia ' + diasNoMes(hoje().slice(0, 7)) + ', divididos por ' + quantosDias(diasRestantes()) + '. As contas já estão de fora.';
+  } else if (e === 'contencao') {
+    rotulo = 'Para empatar o mês'; numero = numeroGrande(est.metaDia);
+    sub = (est.excessoDia ? 'Hoje saiu <b>' + dinheiro(est.excessoDia) + '</b> além do que entrou. ' : '') +
+      'Por dia até o dia ' + diasNoMes(hoje().slice(0, 7)) + ': o mês está ' + dinheiro(est.deficit) + ' abaixo de zero.';
+  } else {
+    rotulo = 'Sobrou ' + p.quando; numero = (ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou));
+    sub = e === 'recuperacao' ? 'O dia abateu <b>' + est.abateuPct + '%</b> do déficit. Faltam <b>' + dinheiro(est.deficit) + '</b> para zerar o mês.'
+      : r.entradas ? Math.max(0, Math.round(ficou / r.entradas * 100)) + '% do que entrou ficou.' : 'Nada entrou ' + p.curto + '.';
+  }
+  return '<section class="bloco v3-heroi' + (pulso ? ' pulso' : '') + (e ? ' modo-' + e : '') + '">' +
+    '<div class="v3-heroi-cabeca"><span class="v3-rot">' + rotulo + '</span>' + (e ? '<span class="v3-selo ' + e + '"><i></i>' + NOME_ESTADO[e] + '</span>' : '') + '</div>' +
+    '<div class="v3-numero">' + numero + '</div>' +
+    '<p class="v3-sub">' + sub + '</p>' +
+    linhaDoMesV3() +
+    '<div class="v3-tres"><span>Entrou <b>' + dinheiro(r.entradas) + '</b></span><span>Saiu <b>' + dinheiro(r.saidas) + '</b></span><span>Sobrou <b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></span></div>' +
+  '</section>';
+}
+function inicioPCv3(n, p, r, ficou, est, abas, pode, pulso) {
+  return '<div class="painel inicio v3">' +
+    '<div class="v3-faixa"><nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
+      '<p class="v3-leitura"><i></i><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</p></div>' +
+    avisoPagoPorOutro(true) +
+    '<div class="v3-esq">' + heroiPCv3(n, p, r, ficou, est, pode, pulso) +
+      '<section class="bloco v3-hoje">' + oDeSempreV2() + listaV2(p) + '</section>' +
+      cartaoContas(n) + '</div>' +
+    '<div class="v3-dir">' + calendarioDoMes() + conversaCartao() + '</div>' +
   '</div>';
 }
 
@@ -1977,13 +2094,26 @@ function calendarioDoMes() {
   const p = mes.split('-').map(Number), vazio = new Date(p[0], p[1] - 1, 1).getDay();
   let celulas = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (s) { return '<span class="sem" aria-hidden="true">' + s + '</span>'; }).join('');
   for (let i = 0; i < vazio; i++) celulas += '<span></span>';
+  // v58: no computador cada dia mostra o que saiu, a conta que vence e o ponto do vazamento.
+  const grande = !!(telaUnica && telaUnica.matches);
+  const saiuNoDia = grande ? gastoPorDia(mes) : [], contaNoDia = {}, vazou = {};
+  if (grande) {
+    contasVistas().forEach(function (c) { const dd = Math.min(c.dia, total); (contaNoDia[dd] = contaNoDia[dd] || []).push({ nome: c.nome, paga: donoPagou(c, mes) }); });
+    const v = atual ? vazamentoDaSemana() : null;
+    if (v) Object.keys(v.dias).forEach(function (x) { vazou[x] = true; });
+  }
   for (let d = 1; d <= total; d++) {
     const data = mes + '-' + p2(d), fer = feriadoEm(data), ag = agendaDoDia(data);
     const classe = 'd' + (lancou[d] ? ' lancou' : '') + (data > h ? ' futuro' : '') + (data === h ? ' hoje' : '') +
       (fer ? ' feriado' : '') + (ag.length ? ' tem-agenda' : '');
     const diz = 'Dia ' + d + (lancou[d] ? ', com lançamento' : '') + (fer ? ', feriado: ' + fer : '') +
       (ag.length ? ', ' + ag.map(function (a) { return a.titulo; }).join(', ') : '');
-    celulas += '<button class="' + classe + '" data-acao="dia-abrir" data-ref="' + data + '" aria-label="' + esc(diz) + '">' + d + '</button>';
+    const ct = contaNoDia[d], extra = !grande ? '' :
+      (ct ? '<small class="cal-conta' + (ct[0].paga ? ' paga' : '') + '">' + esc(ct[0].nome) + (ct.length > 1 ? ' +' + (ct.length - 1) : '') + '</small>'
+        : saiuNoDia[d - 1] && data <= h ? '<small class="cal-v">' + dinheiro(saiuNoDia[d - 1]) + '</small>' : '') +
+      (vazou[data] ? '<i class="cal-vz" aria-hidden="true"></i>' : '');
+    celulas += '<button class="' + classe + '" data-acao="dia-abrir" data-ref="' + data + '" aria-label="' + esc(diz) + '">' +
+      (grande ? '<span class="cal-n">' + d + '</span>' + extra : d) + '</button>';
   }
   const prox = atual ? lembretesProximos() : [];
   const frase = prox.length ? '<b>' + prox[0].quando + ':</b> ' + esc(prox[0].texto) + (prox.length > 1 ? ' <span class="mais">+' + (prox.length - 1) + '</span>' : '')
@@ -2260,6 +2390,15 @@ function periodoPainel(tipo, desloca) {
     este: 'este mês', esse: 'no mês', passado: 'o mês passado', naPassado: 'No mês passado' };
 }
 /** As saídas de um período, por categoria, com a parte da emoção dentro de cada uma. */
+/** v58 (persona: quem trabalha de moto ou carro). O que foi para Transporte é, para quem ganha
+    por corrida, custo de trabalho. Aqui só se MOSTRA à parte; a conta do Sobrou não muda
+    (tirar do "saiu" é decisão de matemática, ainda não tomada). */
+function custoDeTrabalhoPainel(g) {
+  const t = g.por['transporte'];
+  if (!t || !t.centavos || !g.total) return '';
+  return '<p class="pn-trabalho"><span>Custo de trabalho <small>· transporte, gasolina e manutenção</small></span><b>' + dinheiro(t.centavos) +
+    '</b><small>' + Math.round(t.centavos * 100 / g.total) + '% do que saiu</small></p>';
+}
 function gastosDoPeriodo(de, ate) {
   const cats = {};
   let total = 0, emocao = 0, semMarca = 0;
@@ -2303,6 +2442,36 @@ function diferencaPainel(agora, antes) {
   return '<span class="pn-dif ' + (d > 0 ? 'sobe' : 'desce') + '">' + (d > 0 ? '↑ ' : '↓ ') + dinheiro(Math.abs(d)) + '</span>';
 }
 
+/** v58: a frase do Painel. O peso do Gosto no que saiu, contra o período anterior; sem bronca. */
+function leituraPainel(g, ga, atual) {
+  if (!g.total) return 'nada saiu ' + (atual ? 'ainda' : 'neste período') + '.';
+  const pg = Math.round(g.emocao * 100 / g.total);
+  if (!ga.total) return 'o Gosto é <b>' + pg + '%</b> do que saiu. Ainda não há período anterior para comparar.';
+  const pa = Math.round(ga.emocao * 100 / ga.total);
+  return 'o Gosto é <b>' + pg + '%</b> do que saiu' + (pg === pa ? ', igual ao período anterior.' : ', ' + (pg < pa ? 'abaixo' : 'acima') + ' do período anterior (' + pa + '%).');
+}
+/** v58: a régua do mês das contas (no computador). Um traço por dia, hoje em gelo, cada conta
+    pendurada no dia em que vence; as pagas apagadas. Duas contas a menos de 4 dias descem uma linha. */
+function reguaDasContas(mes) {
+  const total = diasNoMes(mes), h = hoje(), hojeNoMes = h.slice(0, 7) === mes ? diaDe(h) : 0;
+  const x = function (d) { return ((d - 1) / (total - 1) * 100).toFixed(2) + '%'; };
+  let t = '';
+  for (let d = 1; d <= total; d++) {
+    const marca = d === 1 || d % 5 === 0;
+    t += '<i class="rg-t' + (marca ? ' longo' : '') + (d === hojeNoMes ? ' hoje' : d < hojeNoMes ? ' foi' : '') + '" style="left:' + x(d) + '"></i>' +
+      (marca ? '<small class="rg-n" style="left:' + x(d) + '">' + d + '</small>' : '');
+  }
+  if (hojeNoMes) t += '<small class="rg-hoje" style="left:' + x(hojeNoMes) + '">HOJE</small>';
+  let ultimo = -99, linha = 0;
+  contasVistas().slice().sort(function (a, b) { return a.dia - b.dia; }).forEach(function (c) {
+    const d = Math.min(c.dia, total), paga = faltaDaConta(c, mes) === 0;
+    linha = d - ultimo < 4 ? (linha ? 0 : 1) : 0; ultimo = d;
+    t += '<button class="rg-c' + (paga ? ' paga' : '') + (linha ? ' baixo' : '') + '" style="left:' + x(d) + '" data-acao="editar-conta" data-ref="' + esc(c.id) + '" aria-label="' + esc(c.nome) + ', dia ' + c.dia + (paga ? ', paga' : '') + '">' +
+      '<b>' + esc(c.nome) + '</b><span>' + dinheiro(valorNaVista(c)) + '</span></button>';
+  });
+  return '<div class="v3-regua so-pc" role="img" aria-label="As contas no mês">' + t + '</div>';
+}
+
 function telaPainel() {
   if (pnPeriodo === 'ciclo' && !cicloLigado()) pnPeriodo = 'mes';
   const P = periodoPainel(pnPeriodo, pnDesloca), Ainteiro = periodoPainel(pnPeriodo, pnDesloca - 1);
@@ -2327,7 +2496,9 @@ function telaPainel() {
   const topo = '<div class="pn-periodo"><div class="pn-pilulas" role="group" aria-label="Período">' + pilulas + '</div>' +
     '<div class="pn-datas"><button class="pn-seta" data-acao="pn-volta" aria-label="Período anterior">' + icone('voltar') + '</button>' +
     '<span>' + esc(P.nome) + '</span>' +
-    '<button class="pn-seta" data-acao="pn-avanca" aria-label="Período seguinte"' + (atual ? ' disabled' : '') + '>' + icone('avancar') + '</button></div></div>';
+    '<button class="pn-seta" data-acao="pn-avanca" aria-label="Período seguinte"' + (atual ? ' disabled' : '') + '>' + icone('avancar') + '</button></div>' +
+    // v58: a Leitura do Vero também no Painel (uma frase, calma, que muda com o período)
+    '<p class="v3-leitura so-pc"><i></i><b>Leitura do Vero:</b> ' + leituraPainel(g, ga, atual) + '</p></div>';
 
   /* v49, 16/11 (referência dele: o painel azul + os números do vermelho, engenharia reversa em
      _referencias/2026-11-16-dashboard-dele). Quatro números no topo, cada um contra o período
@@ -2335,20 +2506,20 @@ function telaPainel() {
   const ea = resumoEntre(A.de, A.ate).entradas, sobrouA = ea - ga.total;
   const kpis = '<section class="bloco pn-kpis" aria-label="Resumo ' + esc(P.este) + '">' +
     kpiPainel('Entrou', entrou, ea, true, A) + kpiPainel('Saiu', g.total, ga.total, false, A) +
-    kpiPainel('Sobrou', sobrou, sobrouA, true, A, true) + kpiPainel('Pela emoção', g.emocao, ga.emocao, false, A) + '</section>';
+    kpiPainel('Sobrou', sobrou, sobrouA, true, A, true) + kpiPainel('Gostos', g.emocao, ga.emocao, false, A) + '</section>';
 
   // 2. Necessário × emoção.
   const nec = g.total - g.emocao;
   let maiorEmo = null;
   g.lista.forEach(function (c) { if (c.emocao && (!maiorEmo || c.emocao > maiorEmo.emocao)) maiorEmo = c; });
   const frase = !g.total ? 'Nada saiu ' + (atual ? P.este : P.esse) + ' ainda.'
-    : (ga.total ? A.naPassado + (A.comp ? ' (até o mesmo ponto)' : '') + ', a emoção foi <strong>' + dinheiro(ga.emocao) + '</strong>.'
+    : (ga.total ? A.naPassado + (A.comp ? ' (até o mesmo ponto)' : '') + ', os gostos foram <strong>' + dinheiro(ga.emocao) + '</strong>.'
       : 'Ainda não há registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + ' para comparar.') +
       (maiorEmo ? ' Agora, a maior parte foi em <strong>' + esc(maiorEmo.nome) + '</strong>.' : '');
-  const emocao = '<section class="bloco pn-emocao"><h2 class="pn-titulo">Necessário ou emoção?</h2>' +
+  const emocao = '<section class="bloco pn-emocao"><h2 class="pn-titulo">Básico ou gosto?</h2>' +
     (g.total ? '<div class="pn-dupla"><span class="pn-nec" style="flex:' + nec + '"></span><span class="pn-emo" style="flex:' + g.emocao + '"></span></div>' +
-      '<div class="pn-lados"><div><small>Necessário</small><strong>' + dinheiro(nec) + '</strong><small>' + Math.round(nec * 100 / g.total) + '%</small></div>' +
-      '<div><small>Pela emoção</small><strong>' + dinheiro(g.emocao) + '</strong><small>' + Math.round(g.emocao * 100 / g.total) + '%</small></div></div>' : '') +
+      '<div class="pn-lados"><div><small>Básico</small><strong>' + dinheiro(nec) + '</strong><small>' + Math.round(nec * 100 / g.total) + '%</small></div>' +
+      '<div><small>Gosto</small><strong>' + dinheiro(g.emocao) + '</strong><small>' + Math.round(g.emocao * 100 / g.total) + '%</small></div></div>' : '') +
     '<p class="pn-frase">' + frase + (g.semMarca ? ' <span class="pn-nota">Os gastos sem marca foram deduzidos pela descrição; ao lançar, escolha.</span>' : '') + '</p></section>';
 
   // 3. Para onde foi: barras ordenadas, a emoção listrada dentro da barra.
@@ -2359,12 +2530,14 @@ function telaPainel() {
   else if (resto.length) linhas = linhas.concat([{ nome: resto.length + ' outras', centavos: resto.reduce(function (a, c) { return a + c.centavos; }, 0),
     emocao: resto.reduce(function (a, c) { return a + c.emocao; }, 0), notas: {}, outras: true }]);
   const onde = '<section class="bloco pn-onde"><div class="pn-cab"><h2 class="pn-titulo">Para onde foi</h2>' +
-    '<div class="pn-legenda"><span><i class="l-nec"></i>necessário</span><span><i class="l-emo"></i>emoção</span></div></div>' +
-    (linhas.length ? '<div class="pn-onde-corpo">' + roscaPainel(linhas, g.total) + '<div class="pn-tabela">' + linhas.map(function (c) {
+    '<div class="pn-legenda"><span><i class="l-nec"></i>básico</span><span><i class="l-emo"></i>gosto</span></div></div>' +
+    custoDeTrabalhoPainel(g) +
+    // v58: a rosca saiu (DNA v3: "ROMPER a rosca"); a tabela ordenada com barras já diz tudo.
+    (linhas.length ? '<div class="pn-onde-corpo sem-rosca"><div class="pn-tabela">' + linhas.map(function (c) {
       const cor = c.outras ? 'rgba(var(--tinta-rgb), 0.42)' : corDaCategoria(c.nome);
       const notas = Object.keys(c.notas).sort(function (a, b) { return c.notas[b] - c.notas[a]; }).slice(0, 2).join(' · ');
       const antes = ga.por[c.nome.toLowerCase()];
-      const sub = c.emocao === c.centavos ? 'tudo emoção' : c.emocao ? 'emoção ' + dinheiro(c.emocao) : 'tudo necessário';
+      const sub = c.emocao === c.centavos ? 'tudo gosto' : c.emocao ? 'gosto ' + dinheiro(c.emocao) : 'tudo básico';
       return '<div class="pn-linha" style="--c:' + cor + '">' +
         '<span class="pn-ico">' + icone(c.outras ? 'outros' : iconeDoGasto(c.nome)) + '</span>' +
         '<span class="pn-nome"><b>' + esc(c.nome) + '</b>' + (notas ? '<small>' + esc(notas) + '</small>' : '') + '</span>' +
@@ -2399,7 +2572,7 @@ function telaPainel() {
         }).join('') + '</div>' +
         '<p>' + partes.slice(0, 3).map(function (c) { return esc(c.toLowerCase()) + ' ' + dinheiro(o.cats[c]); }).join(' · ') + '</p></div>';
     }).join('')
-    : '<p class="pn-vazio">Nenhuma ocasião marcada. Ao lançar, escreva em <b>Ocasião</b> algo como "Festa do fim de semana": tudo o que tiver o mesmo nome soma aqui, mesmo em categorias diferentes.</p>') +
+    : '<p class="pn-vazio">Nenhuma ocasião marcada. Ao lançar, escreva em <b>Ocasião</b> algo como "Festa do fim de semana" e tudo com esse nome soma aqui.</p>') +
     '</section>';
 
   return '<div class="pn">' + topo + kpis +
@@ -2449,7 +2622,7 @@ function ajustarMetas() {
   abrirForm('Ajustar as metas',
     campoValor('mt-gostos', 'Meus gostos: teto por mês') + campoValor('mt-moto', 'Moto: teto por dia de trabalho') +
     campoValor('mt-colchao', 'Colchão: quanto quer guardar') + campoValor('mt-guardado', 'Colchão: quanto já está guardado') +
-    '<p class="frase">Os gostos são o que você marca como "pela emoção". A moto soma a categoria Transporte e divide pelos dias em que entrou dinheiro. Estas metas ficam neste aparelho.</p>',
+    '<p class="frase">Os gostos são o que você marca como "Gosto" ao lançar. A moto soma a categoria Transporte e divide pelos dias em que entrou dinheiro. Estas metas ficam neste aparelho.</p>',
     function () {
       const novo = { gostos: lerValor('mt-gostos') || m.gostos, moto: lerValor('mt-moto') || m.moto, colchao: lerValor('mt-colchao') || m.colchao,
         guardado: document.getElementById('mt-guardado').value.trim() === '' ? m.guardado : lerValor('mt-guardado') };
@@ -2479,7 +2652,8 @@ function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
     comp = '<small class="pn-k-comp ' + (sobe === bomSubir ? 'bom' : 'atencao') + '">' + (sobe ? '▲ ' : '▼ ') + pct + '% vs ' + esc((A.comp || A.passado).replace(/^o |^a /, '')) + '</small>';
   } else if (antes) comp = '<small class="pn-k-comp">igual a ' + esc(A.comp || A.passado) + '</small>';
   // 16/11: "no mês passado não teve" lia-se como "não entrou nada"; o que falta é registro.
-  else comp = '<small class="pn-k-comp">sem registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + '</small>';
+  // v56: a frase longa quebrava em 2 linhas nos 4 cartões e empurrava o Painel para baixo da tela.
+  else comp = '<small class="pn-k-comp" title="sem registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + '">sem registro anterior para comparar</small>';
   return '<div class="pn-kpi"><span class="rotulo">' + rotulo + '</span>' +
     '<strong>' + (comSinal && agora < 0 ? '−' : '') + dinheiro(Math.abs(agora)) + '</strong>' + comp + '</div>';
 }
@@ -2541,7 +2715,9 @@ function ritmoPainel(P, A, atual) {
   const n = Math.max(ag.length, an.length);
   const temAntes = an.length > 0 && an[an.length - 1].v > 0;
   const maior = Math.max(1, ag[ag.length - 1].v, temAntes ? an[an.length - 1].v : 0);
-  const largo = !!(telaUnica && telaUnica.matches), W = largo ? 1100 : 380, H = largo ? 270 : 210, e = largo ? 70 : 58, d = 14, t = 16, b = 30;
+  // v57: no PC o ritmo mora num cartão de meia largura e altura fixa (grade sem rolagem): o
+  // desenho passa a ter a proporção do cartão (~5,8:1), senão encolhia para caber e ficava miúdo.
+  const largo = !!(telaUnica && telaUnica.matches), W = largo ? 820 : 380, H = largo ? 100 : 210, e = largo ? 54 : 58, d = 14, t = largo ? 10 : 16, b = largo ? 22 : 30;
   const X = function (i) { return e + (n > 1 ? i * (W - e - d) / (n - 1) : 0); };
   const Y = function (v) { return t + (H - t - b) * (1 - v / maior); };
   const linha = function (pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1); }).join(' '); };
@@ -2654,6 +2830,8 @@ function telaContas(n) {
       '<div class="numero-grande">' + numeroGrande(n.contasFalta) + '</div>' +
       '<p class="frase">' + doCiclo.length + ' de ' + vistas.length + ' contas por pagar ' + (cicloLigado() ? 'até ' + dataCurta(n.ciclo.ate) : 'este mês') + '.' +
         (atrasadas.length === 1 ? (cicloLigado() ? ' E 1 de antes do salário.' : ' E 1 de mês passado.') : atrasadas.length ? ' E ' + atrasadas.length + (cicloLigado() ? ' de antes do salário.' : ' de meses passados.') : '') + '</p>' +
+      reguaDasContas(mes) +
+      '<p class="v3-leitura so-pc"><i></i><b>Leitura do Vero:</b> ' + (n.livre >= 0 ? 'com as contas de fora, ainda ficam <b>' + dinheiro(n.livre) + '</b> livres no mês.' : 'as contas passam do que entrou em <b>' + dinheiro(-n.livre) + '</b>. Vale olhar a próxima com calma.') + '</p>' +
     '</section>' +
     proxHtml +
     (linhasAtrasadas ? '<section class="bloco c-atras" data-paginar=".lista-pag" data-chave="atras"><h2 class="secao"><span class="rotulo">' + (cicloLigado() ? 'Venceram antes do salário' : 'De meses passados') + '</span></h2><div class="lista-pag">' + linhasAtrasadas + '</div></section>' : '') +
@@ -3280,7 +3458,7 @@ function pintarFichas() {
   const campoNat = document.getElementById('campo-natureza');
   if (tipoFolha !== 'saida') campoNat.hidden = true;
   else if (!document.getElementById('campo-categoria').hidden) campoNat.hidden = false;
-  document.getElementById('chips-natureza').innerHTML = [['necessario', 'Necessário'], ['emocao', 'Pela emoção']].map(function (o) {
+  document.getElementById('chips-natureza').innerHTML = [['necessario', 'Básico'], ['emocao', 'Gosto']].map(function (o) {
     const on = naturezaFolha === o[0];
     return '<button type="button" class="ficha-op nat-' + o[0] + (on ? ' activo' : '') + '" data-natureza="' + o[0] + '" aria-pressed="' + on + '">' + o[1] + '</button>';
   }).join('');
