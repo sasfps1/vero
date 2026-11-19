@@ -16,7 +16,9 @@
   const CEL = 136, LIGA = 136 * 1.35, RAIO = 260;
   // A tinta vem do tema (creme à noite, navy de dia): lida a cada desenho.
   let TINTA = '242,235,210';
-  const C = { aNoMin: 0.07, aLigMin: 0.045, aNo: 0.34, aLig: 0.17 };
+  // v60 (19/11, ele: "as conexões neurais no fundo"): o chão sobe um degrau para a rede SE VER em repouso,
+  // sem virar papel de parede (só nas margens e vãos; os cartões cobrem o resto).
+  const C = { aNoMin: 0.13, aLigMin: 0.08, aNo: 0.36, aLig: 0.19 };
 
   const cv = document.createElement('canvas');
   cv.className = 'rede-neural';

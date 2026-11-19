@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 59;
+const VERSAO = 60;
 let soMemoria = false;
 
 const VAZIO = {
@@ -211,7 +211,13 @@ function semAcentoMin(s) { return String(s || '').normalize('NFD').replace(/[̀-
 function vagaDoOutro(c) {
   if (!haContas() || !eDividida(c) || !c.com) return null;
   const alvo = semAcentoMin(c.com);
-  const k = carteiras().find(function (x) { return semAcentoMin(x.nome) === alvo; });
+  let k = carteiras().find(function (x) { return semAcentoMin(x.nome) === alvo; });
+  // v60: "Ana Clara" digitado e a carteira "Ana": casa pelo primeiro nome, só se for uma pessoa só.
+  if (!k) {
+    const pn = function (t) { return semAcentoMin(t).split(/\s+/)[0]; };
+    const iguais = carteiras().filter(function (x) { return pn(x.nome) === pn(c.com); });
+    if (iguais.length === 1) k = iguais[0];
+  }
   return k && k.id !== (c.vaga || minhaVaga()) ? k.id : null;
 }
 /** 'tudo' no Total, 'dono' na carteira da conta, 'outro' na de quem paga o resto, ou null. */
@@ -981,12 +987,13 @@ function aplicarTema() {
   raiz.dataset.tema = novo;
   const meta = document.querySelector('meta[name="theme-color"]');
   // v56: o chão do v2 é um só (#060B19) de dia e de noite; a noite só baixa o texto.
-  if (meta) meta.setAttribute('content', '#060B19');
+  // v60: dia creme, noite azul quase preto: a barra do celular acompanha o chão
+  if (meta) meta.setAttribute('content', novo === 'claro' ? '#F2EBD2' : '#060B19');
   const t = S.config.tema || 'auto';
   const b = document.getElementById('botao-tema');
   if (b) {
     b.innerHTML = icone(t === 'auto' ? 'auto' : t === 'claro' ? 'sol' : 'lua');
-    b.setAttribute('aria-label', t === 'auto' ? 'Automático: navy de dia, quase preto à noite' : t === 'claro' ? 'Sempre o navy do dia' : 'Sempre o escuro da noite');
+    b.setAttribute('aria-label', t === 'auto' ? 'Automático: creme de dia, azul-noite à noite' : t === 'claro' ? 'Sempre o creme do dia' : 'Sempre o azul da noite');
     b.title = b.getAttribute('aria-label');
   }
   const o = document.getElementById('botao-olho');
@@ -999,7 +1006,7 @@ function trocarTema() {
   S.config.tema = ordem[(ordem.indexOf(S.config.tema || 'auto') + 1) % 3];
   guardar();
   desenhar();
-  oferecerDesfazer(S.config.tema === 'auto' ? 'Automático: navy de dia, quase preto à noite' : S.config.tema === 'claro' ? 'Sempre o navy do dia' : 'Sempre o escuro da noite', null);
+  oferecerDesfazer(S.config.tema === 'auto' ? 'Automático: creme de dia, azul-noite à noite' : S.config.tema === 'claro' ? 'Sempre o creme do dia' : 'Sempre o azul da noite', null);
 }
 
 function desenhar() {
@@ -1287,7 +1294,8 @@ function linhaHtml(o) {
   '</' + tag + '>';
   // A lixeira (04/11): botão não pode ir dentro de botão, por isso fica FORA da
   // linha tocável, num invólucro.
-  if (!o.apagar) return linha;
+  // v60: onde a linha já corrige ao tocar, a lixeira solta sai (o Apagar fica na folha).
+  if (!o.apagar || (o.toque && o.toque.acao === 'editar')) return linha;
   return '<div class="linha-com-apagar">' + linha +
     (o.toque && o.toque.acao === 'editar' ? '<button class="item-lapis" data-acao="editar" data-ref="' + esc(o.toque.ref) + '" aria-label="Corrigir">' + icone('lapis') + '</button>' : '') +
     '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + esc(o.apagar) + '" aria-label="Apagar">' + icone('lixo') + '</button></div>';
@@ -1453,6 +1461,9 @@ function comSinal(c) { return (c > 0 ? '+' : c < 0 ? '−' : '') + dinheiro(Math
 function siglaDe(nome) { return semAcentoMin(nome).replace(/[^a-z0-9]/g, '').slice(0, 2).toUpperCase() || '•'; }
 
 function seletorCarteiraV2() {
+  // v60 (19/11, ele: "se eu tivesse 5 pessoas em casa, iam ficar 5 seletores lá em cima"): o Início do
+  // celular usa o MESMO botão do topo das outras telas ("Total ▾" abre a lista). Esta fila de abas saiu.
+  return '';
   const lista = carteiras();
   if (!haContas() || lista.length < 2) return '';
   const v = contaVista();
@@ -1542,6 +1553,7 @@ function inicioV2(n, p, r, ficou, pctFicou, est, abas, pode, pulso) {
     '<nav class="abas filtros v2-periodo" aria-label="Período">' + abas + '</nav>' +
     avisoPagoPorOutro(true) +
     heroiV2(n, p, r, ficou, pctFicou, est, pode, pulso) +
+    '<p class="v3-leitura v2-leitura"><i></i><span><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</span></p>' +
     oDeSempreV2() +
     listaV2(p) +
     faixaAgenda() +
@@ -1768,9 +1780,9 @@ function listaInicio(p) {
       '<button class="item ' + (e ? 'e-entrada' : 'e-saida') + '" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' +
       '<span class="item-ico' + classeCor(familiaDoLancamento(l)) + '">' + icone(l.emprestimo || emprestimoDeOrigem(l) ? 'pessoa' : e ? 'entrou' : 'saiu') + '</span>' +
       '<span class="item-nome"><span class="item-titulo">' + nome + '</span><small>' + esc(sub) + '</small></span>' +
-      '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button>' +
-      '<button class="item-lapis" data-acao="editar" data-ref="' + l.id + '" aria-label="Corrigir ' + nome + '">' + icone('lapis') + '</button>' +
-      '<button class="item-apagar" data-acao="apagar-direto" data-ref="' + l.id + '" aria-label="Apagar ' + nome + '">' + icone('lixo') + '</button></div>';
+      '<b class="item-valor">' + (e ? '+' : '−') + dinheiro(l.centavos) + '</b></button></div>';
+      // v60: lápis e lixeira saíram da linha (um gesto só em todas as telas: tocar corrige).
+      // O "Apagar este lançamento" é o último botão da folha que abre, com Desfazer depois.
   }).join('');
   return '<section class="bloco lista-inicio">' +
     '<div class="cabeca-linha"><h2 class="titulo-cartao">Lançamentos<span class="titulo-periodo"> ' + p.curto + '</span></h2>' + pilulas + '</div>' +
@@ -2517,6 +2529,8 @@ function telaPainel() {
     : (ga.total ? A.naPassado + (A.comp ? ' (até o mesmo ponto)' : '') + ', os gostos foram <strong>' + dinheiro(ga.emocao) + '</strong>.'
       : 'Ainda não há registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + ' para comparar.') +
       (maiorEmo ? ' Agora, a maior parte foi em <strong>' + esc(maiorEmo.nome) + '</strong>.' : '');
+  // v60: "Básico ou gosto?" saiu da tela: "Para onde foi" já mostra o básico e o gosto (barra cheia e listrada),
+  // e o número dos gostos está no topo e nas Metas. Fica montado aqui para voltar fácil, se ele pedir.
   const emocao = '<section class="bloco pn-emocao"><h2 class="pn-titulo">Básico ou gosto?</h2>' +
     (g.total ? '<div class="pn-dupla"><span class="pn-nec" style="flex:' + nec + '"></span><span class="pn-emo" style="flex:' + g.emocao + '"></span></div>' +
       '<div class="pn-lados"><div><small>Básico</small><strong>' + dinheiro(nec) + '</strong><small>' + Math.round(nec * 100 / g.total) + '%</small></div>' +
@@ -2577,7 +2591,7 @@ function telaPainel() {
     '</section>';
 
   return '<div class="pn">' + topo + kpis +
-    '<div class="pn-grade"><div class="pn-col pn-esq">' + contasPainel(P) + metasPainel(P) + emocao + ocasioes + '</div>' +
+    '<div class="pn-grade"><div class="pn-col pn-esq">' + contasPainel(P) + metasPainel(P) + ocasioes + '</div>' +
     '<div class="pn-col pn-dir">' + onde + ritmoPainel(P, Ainteiro, atual) + '</div></div></div>';
 }
 
@@ -2654,7 +2668,7 @@ function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
   } else if (antes) comp = '<small class="pn-k-comp">igual a ' + esc(A.comp || A.passado) + '</small>';
   // 16/11: "no mês passado não teve" lia-se como "não entrou nada"; o que falta é registro.
   // v56: a frase longa quebrava em 2 linhas nos 4 cartões e empurrava o Painel para baixo da tela.
-  else comp = '<small class="pn-k-comp" title="sem registro ' + esc(A.noComp || A.naPassado.toLowerCase()) + '">sem registro anterior para comparar</small>';
+  // v60: a mesma frase 4 vezes era ruído; sem comparação, o número fica sozinho e a Leitura do topo diz uma vez.
   return '<div class="pn-kpi"><span class="rotulo">' + rotulo + '</span>' +
     '<strong>' + (comSinal && agora < 0 ? '−' : '') + dinheiro(Math.abs(agora)) + '</strong>' + comp + '</div>';
 }
@@ -3817,6 +3831,9 @@ function camposDivisao(c) {
       '<span>Divido esta conta com alguém</span></label>' +
     '<div id="c-divisao"' + (ligada ? '' : ' hidden') + '>' +
       '<label class="campo"><span class="rotulo">Com quem</span><input type="text" id="c-com" maxlength="40" placeholder="nome da pessoa" autocomplete="off"></label>' +
+      // v60: com conta da casa, as pessoas viram um toque (o nome casa com a carteira e a parte dela entra lá)
+      (haContas() ? '<div class="chips-com">' + carteiras().filter(function (x) { return x.id !== (c && c.vaga || minhaVaga()); })
+        .map(function (x) { return '<button type="button" class="chip-com" data-acao="por-com" data-ref="' + esc(x.nome) + '">' + esc(x.nome) + '</button>'; }).join('') + '</div>' : '') +
       '<label class="campo"><span class="rotulo">Sua parte</span><select id="c-pct">' +
         opcoes.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === pct ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') +
       '</select></label>' +
@@ -4412,6 +4429,7 @@ document.addEventListener('click', function (ev) {
       mudarVista(ref);
       fecharFolhas();
       return desenhar();
+    case 'por-com': { const i = document.getElementById('c-com'); if (i) { i.value = ref; i.dispatchEvent(new Event('input', { bubbles: true })); } return; }
     case 'editar':          return abrirFolha(S.lancamentos.find(function (l) { return l.id === ref; }));
     case 'apagar-lanc':     return apagarLancamento();
     case 'repetir':         return repetirLancamento(ref);
