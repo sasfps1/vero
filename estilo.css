@@ -2230,3 +2230,47 @@ main::-webkit-scrollbar-thumb:hover { background: rgba(var(--tinta-rgb), 0.32); 
 .pn-r-agora { stroke: var(--gelo-luz) !important; stroke-width: 2.4; filter: drop-shadow(0 0 4px rgba(158, 197, 232, 0.8)); }
 .pn-r-antes { stroke: #8E9CC2 !important; stroke-dasharray: 4 4; opacity: 0.8; }
 .pn-r-ponto { fill: #06144A !important; stroke: var(--gelo-luz) !important; stroke-width: 2; }
+/* v58 · todos os heróis de tela no cartão escuro da marca (Gastos, Pessoas, Contas), em qualquer tamanho */
+body .bloco.he {
+  background: linear-gradient(165deg, #15306F, #0E215C 60%, #0B1A50) !important;
+  border: 1px solid rgba(158, 197, 232, 0.22) !important;
+  box-shadow: 0 22px 44px rgba(0, 3, 18, 0.55), inset 0 1px 0 rgba(242, 235, 210, 0.14) !important;
+}
+body .bloco.he::before, body .bloco.he::after { display: none !important; }
+@media (min-width: 1180px) {
+  .painel.gastos .bloco.he .v3-leitura, .tela-grade.pessoas .bloco.he .v3-leitura { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(158, 197, 232, 0.14); }
+}
+@media (min-width: 1180px) {
+  body .bloco.he .v3-leitura.so-pc { display: block; text-align: left; line-height: 1.5; }
+  body .bloco.he .v3-leitura.so-pc > i { display: inline-block; vertical-align: 1px; margin-right: 8px; }
+}
+/* v59 · Pessoas sem empréstimo: casa, regras e história no lugar do vazio */
+.p-vazio { display: grid; gap: 18px; padding: 16px 18px; }
+.pv-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pv-tit { margin: 0 0 2px; font-size: 14px; font-weight: 700; color: #F2EBD2; }
+.pv-tit small { font-weight: 500; color: #A9B4CF; }
+.pv-pessoa { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(158, 197, 232, 0.10); }
+.pv-sigla { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(158, 197, 232, 0.16); color: #CFE6FA; font-size: 11.5px; font-weight: 800; }
+.pv-nome { display: flex; flex-direction: column; line-height: 1.25; }
+.pv-nome b { font-size: 14px; } .pv-nome small, .pv-num small { font-size: 11px; color: #A9B4CF; }
+.pv-num { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.pv-num b { font-size: 13.5px; }
+.pv-convite { align-self: flex-start; margin-top: 6px; }
+.pv-regra { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; padding: 7px 0; border-top: 1px solid rgba(158, 197, 232, 0.10); }
+.pv-regra b { display: block; font-size: 13.5px; color: #F2EBD2; }
+.pv-regra small { display: block; font-size: 12.5px; line-height: 1.45; color: #A9B4CF; }
+.pv-regra small b { display: inline; font-size: inherit; }
+.pv-i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(158, 197, 232, 0.45); color: #CFE6FA; font-size: 11px; font-weight: 700; }
+.pv-texto { margin: 0; font-size: 13px; line-height: 1.5; color: #A9B4CF; }
+.pv-texto b { color: #F2EBD2; }
+.pv-dica { margin: auto 0 0; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(158, 197, 232, 0.3); font-size: 12.5px; color: #A9B4CF; }
+@media (min-width: 1180px) {
+  .p-vazio { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 0.9fr); gap: 28px; padding: 18px 22px; }
+  .p-vazio .pv-col + .pv-col { padding-left: 28px; border-left: 1px solid rgba(158, 197, 232, 0.10); }
+}
+@media (min-width: 1180px) {
+  body .tela-grade.pessoas .bloco.p-vazio { display: grid !important; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.25fr) minmax(0, 0.85fr) !important; gap: 26px !important; align-items: stretch; }
+  body .tela-grade.pessoas .bloco.p-vazio .pv-col + .pv-col { padding-left: 26px; border-left: 1px solid rgba(158, 197, 232, 0.10); }
+  body .p-vazio .pv-regra { padding: 6px 0; }
+  body .p-vazio .pv-pessoa { grid-template-columns: 32px minmax(0, 1fr) auto auto; }
+}

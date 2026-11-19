@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 58;
+const VERSAO = 59;
 let soMemoria = false;
 
 const VAZIO = {
@@ -952,9 +952,10 @@ function telaGastos() {
         : 'Nada saiu neste período ainda. Cada coisa que você lançar aparece aqui.') +
       '</p>' +
       fraseComparacao(comparacao(p, corrente)).replace('<p class="frase">', '<p class="frase" data-cede="1">') +
+      (g.total && g.lista.length ? '<p class="v3-leitura so-pc"><i></i><b>Leitura do Vero:</b> o maior destino foi <b>' + esc(g.lista[0].nome) + '</b>, com <b>' +
+        Math.round(g.lista[0].centavos * 100 / g.total) + '%</b> do que saiu' + (g.lista[0].vezes ? ' em ' + g.lista[0].vezes + (g.lista[0].vezes === 1 ? ' vez' : ' vezes') : '') + '.</p>' : '') +
     '</section>' +
-    // 07/11: no computador, a rosca ao lado da faixa azul, como no Início.
-    (g.lista.length > 1 ? roscaDeGastos(g) : '') +
+    // v58 (19/11): a rosca saiu (DNA v3: "ROMPER a rosca"); "Por destino" já ordena com a medida.
     secaoDetalhe(p) +
     (linhas ? '<section class="bloco grupos" data-paginar=".lista-pag" data-chave="grupos"><h2 class="titulo-cartao so-pc">Por destino</h2><div class="lista-pag">' + linhas + '</div></section>' : '') +
     '<section class="bloco lancamentos" data-paginar="#lista-lanc" data-chave="lanc"><h2 class="titulo-cartao">Lançamentos</h2>' +
@@ -2889,6 +2890,9 @@ function telaPessoas(n) {
       '<span class="rotulo">Têm a devolver a você</span>' +
       '<div class="numero-grande">' + numeroGrande(n.aReceber) + '</div>' +
       '<p class="frase">Este dinheiro não entra no que sobrou — enquanto não voltar, não é seu para gastar.</p>' +
+      '<p class="v3-leitura so-pc"><i></i><b>Leitura do Vero:</b> ' + (n.aReceber || n.euDevo
+        ? (n.aReceber ? 'há <b>' + dinheiro(n.aReceber) + '</b> para voltar' : 'ninguém tem nada a devolver') + (n.euDevo ? ' e <b>' + dinheiro(n.euDevo) + '</b> a devolver por vocês, já descontados do livre.' : '.')
+        : 'ninguém deve a vocês e vocês não devem a ninguém.') + '</p>' +
     '</section>' +
     '<section class="bloco p-deve"><h2 class="secao"><span class="rotulo">Você deve</span>' +
       '<span class="numero-medio" style="margin:0">' + numeroMedio(n.euDevo) + '</span></h2>' +
@@ -2897,7 +2901,51 @@ function telaPessoas(n) {
         '<button class="btn" style="flex:1" data-acao="novo-emprestimo" data-ref="peguei">Peguei com alguém</button>' +
       '</div></section>' +
     (corpo ? '<section class="bloco p-todas" data-paginar=".lista-pag" data-chave="pessoas"><div class="lista-pag grade-cartoes">' + corpo + '</div></section>'
-      : '<section class="bloco p-todas"><p class="vazio">Nenhum empréstimo anotado.</p></section>') + '</div>';
+      : pessoasVazio()) + '</div>';
+}
+
+/* v59 (19/11, pedido dele: "arrume esse vazio com a máxima inteligência"). Lente: Stephen Few e
+   Edward Tufte (espaço sem dado é defeito; enche-se com dado útil, não com enfeite) + o estudo de
+   persona de 19/11 (a casa é de várias pessoas; o produto vai abrir para outras casas). Sem
+   empréstimo, a tela responde três perguntas reais: QUEM é da casa (e como cada um anda no mês),
+   COMO o Vero trata empréstimo (as regras que mexem no Sobrou, ditas sem jargão) e O QUE JÁ VOLTOU. */
+function pessoasVazio() {
+  const mes = mesDe(hoje()), de = mes + '-01', ate = hoje();
+  const lista = carteiras();
+  let casa;
+  if (haContas() && lista.length) {
+    casa = lista.map(function (c) {
+      let e = 0, s = 0;
+      S.lancamentos.forEach(function (l) {
+        if ((l.vaga || minhaVaga()) !== c.id || l.data < de || l.data > ate) return;
+        if (l.tipo === 'entrada') e += l.centavos; else s += l.centavos;
+      });
+      return '<div class="pv-pessoa"><span class="pv-sigla">' + esc(siglaDe(c.nome)) + '</span>' +
+        '<span class="pv-nome"><b>' + esc(c.nome) + '</b><small>' + (c.id === minhaVaga() ? 'você' : c.privada ? 'só a dona vê' : 'da casa') + '</small></span>' +
+        '<span class="pv-num"><small>Entrou</small><b>' + dinheiro(e) + '</b></span><span class="pv-num"><small>Saiu</small><b>' + dinheiro(s) + '</b></span></div>';
+    }).join('') + '<button class="btn contorno pv-convite" data-acao="convidar">Convidar alguém da casa</button>';
+  } else {
+    casa = '<p class="pv-texto">O Vero está guardado só neste aparelho. Com uma conta, quem mora com você lança junto, cada um do seu celular.</p>' +
+      '<a class="btn contorno pv-convite" href="#/ajustes">Criar conta</a>';
+  }
+  const regras = [
+    ['Emprestei', 'O dinheiro saiu, mas <b>não entra no que sobrou</b> até voltar. Enquanto não volta, não é seu para gastar.'],
+    ['Peguei', 'O que você deve <b>já sai do que está livre</b> no mês, para ninguém gastar o mesmo dinheiro duas vezes.'],
+    ['Lembrar', 'Abre o WhatsApp com uma mensagem neutra. <b>Quem cobra é você</b>, nunca o app.'],
+    ['Deixa pra lá', 'Para de esperar a volta, <b>sem culpa</b>. A saída fica registrada e dá para reabrir depois.']
+  ].map(function (r, i) { return '<div class="pv-regra"><span class="pv-i">' + (i + 1) + '</span><span><b>' + r[0] + '</b><small>' + r[1] + '</small></span></div>'; }).join('');
+  const fechados = S.emprestimos.filter(function (e) { return e.estado !== 'aberto' || falta(e) === 0; });
+  // "Deixa pra lá" (perdoado) não voltou: não conta como dinheiro devolvido.
+  const voltou = fechados.filter(function (e) { return e.direcao === 'emprestei' && e.estado !== 'perdoado'; }).reduce(function (a, e) { return a + (e.centavos || 0); }, 0);
+  const historia = fechados.length
+    ? '<p class="pv-texto"><b>' + fechados.length + '</b> ' + (fechados.length === 1 ? 'empréstimo fechado' : 'empréstimos fechados') + (voltou ? ', <b>' + dinheiro(voltou) + '</b> voltaram para vocês.' : '.') + '</p>'
+    : '<p class="pv-texto">Nenhum empréstimo fechado ainda. Quando alguém devolver, a história fica aqui: quanto voltou e em quantos dias.</p>';
+  return '<section class="bloco p-todas p-vazio">' +
+    '<div class="pv-col"><h2 class="pv-tit">Quem é da casa <small>· ' + nomeDoMes(mes) + '</small></h2>' + casa + '</div>' +
+    '<div class="pv-col"><h2 class="pv-tit">Como o Vero trata empréstimo</h2>' + regras + '</div>' +
+    '<div class="pv-col"><h2 class="pv-tit">O que já voltou</h2>' + historia +
+      '<p class="pv-dica">Nenhum empréstimo em aberto. Use os botões acima quando emprestar ou pegar dinheiro.</p></div>' +
+  '</section>';
 }
 
 // ── Configurações ────────────────────────────────────────────────────────────
