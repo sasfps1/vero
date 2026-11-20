@@ -872,14 +872,18 @@
   window.veroCarteira = function (id) {
     const c = id ? carteiras.find(function (x) { return x.id === id; }) : null;
     const minha = c && c.id === eu.vaga;
+    // v61: a carteira pessoal de OUTRA pessoa (dono é ela) não pode ser trancada nem apagada daqui.
+    // Antes, marcar "Só eu vejo" na carteira da Ana passava a dona para quem marcou e a Ana perdia a dela.
+    const deOutro = !!(c && c.dono && c.dono !== eu.uid);
     const usos = c ? contarUsos(c.id) : 0;
     abrirForm(c ? 'Carteira' : 'Nova carteira',
       '<p class="frase" style="margin:14px 0">' + (c ? 'O nome aparece em "De quem é" e no seletor do topo.'
         : 'Separe o dinheiro como fizer sentido para você: por pessoa (Ana), ou por uso (Casa, Moto, Poupança).') + '</p>' +
       campoConta('c-nome', 'Nome', 'text', 'maxlength="20" autocomplete="off"') +
-      (minha ? '' : campoPrivada(c ? c.privada : false)) +
+      (minha || deOutro ? '' : campoPrivada(c ? c.privada : false)) +
+      (deOutro ? '<p class="frase" style="margin:0 0 10px">Esta é a carteira de outra pessoa da casa: você pode corrigir o nome, mas só ela pode trancar ou apagar.</p>' : '') +
       '<p class="frase" id="conta-erro" role="alert"></p>' +
-      (c && !minha ? '<button type="button" class="btn fraco apagar" id="c-apagar-carteira">' +
+      (c && !minha && !deOutro ? '<button type="button" class="btn fraco apagar" id="c-apagar-carteira">' +
         (usos ? 'Não dá para apagar: tem ' + usos + (usos === 1 ? ' registro' : ' registros') : 'Apagar carteira') + '</button>' : ''),
       async function () {
         const nome = document.getElementById('c-nome').value.trim();
@@ -887,7 +891,8 @@
         if (carteiras.some(function (x) { return x.id !== (c && c.id) && x.nome.toLowerCase() === nome.toLowerCase(); })) {
           return mostrarErro(ERROS.duplicate);
         }
-        const privada = !minha && document.getElementById('c-privada').checked;
+        const marca = document.getElementById('c-privada');
+        const privada = !minha && !deOutro && !!(marca && marca.checked);
         const linha = { nome: nome, privada: privada, dono: privada || minha ? eu.uid : (c ? c.dono : null) };
         const r = c
           ? await sb.from('carteiras').update(linha).eq('casa_id', eu.casa).eq('id', c.id)

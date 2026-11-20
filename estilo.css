@@ -2384,3 +2384,20 @@ body { background-color: var(--chao); }
 .pn-comparado { background: rgba(var(--ac-rgb), 0.12); }
 /* v60: no celular o "Sobrou" do Painel também é o cartão azul (a tinta dele já é creme) */
 .pn-kpis > :nth-child(3) { background: var(--heroi-fundo) !important; border: 1px solid rgba(158, 197, 232, 0.22) !important; }
+
+/* ── v61 · MICRODETALHES (19/11, auditoria medida das 6 telas × dia/noite × PC/celular) ── */
+/* 1. dia com lançamento E feriado (ex.: 2 de novembro): a regra do feriado pintava o número da
+      mesma cor do círculo. Contraste medido 1,4 à noite e 1,9 de dia. O número volta à cor de cima do círculo. */
+.painel:not(.v3) .mes-cal .d.lancou.feriado { color: var(--surface); outline-color: currentColor; }
+:root[data-tema="claro"] .painel:not(.v3) .mes-cal .d.lancou.feriado { color: #F2EBD2; }
+/* 2. dias que ainda não chegaram: apagados de propósito, mas a 2,4–3,0 de contraste ficavam ilegíveis ao sol. */
+.mes-cal .d.futuro:not(.lancou) { color: rgba(var(--tinta-rgb), 0.62); }
+/* 3. alvo do dedo: 9 tipos de botão tinham 24 a 38 px de altura no celular (o mínimo confortável é ~44).
+      Uma área de toque invisível cresce o alvo sem mudar o desenho nem empurrar o layout. */
+@media (pointer: coarse) {
+  .cal-seta, .pn-seta, .ver-todos, .titulo-editavel, .periodo, .btn.pequeno { position: relative; }
+  .cal-seta::before, .pn-seta::before, .ver-todos::before, .titulo-editavel::before, .periodo::before, .btn.pequeno::before {
+    content: ""; position: absolute; left: -2px; right: -2px; top: 50%; height: 44px; transform: translateY(-50%);
+  }
+  .cal-seta::before, .pn-seta::before { left: -4px; right: -4px; }
+}
