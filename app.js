@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 61;
+const VERSAO = 62;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1553,7 +1553,7 @@ function inicioV2(n, p, r, ficou, pctFicou, est, abas, pode, pulso) {
     '<nav class="abas filtros v2-periodo" aria-label="Período">' + abas + '</nav>' +
     avisoPagoPorOutro(true) +
     heroiV2(n, p, r, ficou, pctFicou, est, pode, pulso) +
-    '<p class="v3-leitura v2-leitura"><i></i><span><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</span></p>' +
+    '<p class="v3-leitura v2-leitura' + (est && est.estado === 'contencao' && !vazamentoDaSemana() ? ' contencao' : '') + '"><i></i><span><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</span></p>' +
     oDeSempreV2() +
     listaV2(p) +
     faixaAgenda() +
@@ -1608,33 +1608,36 @@ function linhaDoMesV3() {
     '<path class="v3-area" d="' + d + ' L' + W + ',' + H + ' L0,' + H + ' Z"/><path class="v3-traco" d="' + d + '"/>' +
     '<circle class="v3-ponto" cx="' + ult[0].toFixed(1) + '" cy="' + ult[1].toFixed(1) + '" r="4"/></svg>';
 }
+/* v62 (20/11, pedido dele: "entrou, saiu e sobrou devem ser a informação principal"): o herói do
+   PC fica igual ao do celular. O número grande é SEMPRE o "Sobrou", com Entrou e Saiu logo abaixo;
+   o estado do dia (pode gastar, recuperação, empatar o mês) desce para a frase de orientação.
+   Mesmo lugar todo dia = o olho acha sem procurar. Vermelho só na Contenção, no selo e no ponto: o número fica neutro (v60). */
 function heroiPCv3(n, p, r, ficou, est, pode, pulso) {
-  const e = est && est.estado;
-  let rotulo, numero, sub;
-  if (pode !== null) {
-    rotulo = 'Ainda pode gastar hoje'; numero = numeroGrande(pode);
-    sub = dinheiro(n.livre) + ' livres até o dia ' + diasNoMes(hoje().slice(0, 7)) + ', divididos por ' + quantosDias(diasRestantes()) + '. As contas já estão de fora.';
-  } else if (e === 'contencao') {
-    rotulo = 'Para empatar o mês'; numero = numeroGrande(est.metaDia);
-    sub = (est.excessoDia ? 'Hoje saiu <b>' + dinheiro(est.excessoDia) + '</b> além do que entrou. ' : '') +
-      'Por dia até o dia ' + diasNoMes(hoje().slice(0, 7)) + ': o mês está ' + dinheiro(est.deficit) + ' abaixo de zero.';
+  const e = est && est.estado, ultimo = diasNoMes(hoje().slice(0, 7));
+  let sub;
+  if (e === 'contencao') {
+    sub = 'Para empatar o mês: <b>' + dinheiro(est.metaDia) + '</b> por dia até o dia ' + ultimo + '. O mês está ' + dinheiro(est.deficit) + ' abaixo de zero.';
+  } else if (e === 'recuperacao') {
+    sub = 'O dia abateu <b>' + est.abateuPct + '%</b> do déficit. Faltam <b>' + dinheiro(est.deficit) + '</b> para zerar o mês.';
+  } else if (pode !== null) {
+    sub = 'Ainda pode gastar <b>' + dinheiro(pode) + '</b> hoje. As contas já estão de fora.';
   } else {
-    rotulo = 'Sobrou ' + p.quando; numero = (ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou));
-    sub = e === 'recuperacao' ? 'O dia abateu <b>' + est.abateuPct + '%</b> do déficit. Faltam <b>' + dinheiro(est.deficit) + '</b> para zerar o mês.'
-      : r.entradas ? Math.max(0, Math.round(ficou / r.entradas * 100)) + '% do que entrou ficou.' : 'Nada entrou ' + p.curto + '.';
+    sub = r.entradas ? Math.max(0, Math.round(ficou / r.entradas * 100)) + '% do que entrou ficou.' : 'Nada entrou ' + p.curto + '.';
   }
   return '<section class="bloco v3-heroi' + (pulso ? ' pulso' : '') + (e ? ' modo-' + e : '') + '">' +
-    '<div class="v3-heroi-cabeca"><span class="v3-rot">' + rotulo + '</span>' + (e ? '<span class="v3-selo ' + e + '"><i></i>' + NOME_ESTADO[e] + '</span>' : '') + '</div>' +
-    '<div class="v3-numero">' + numero + '</div>' +
+    '<div class="v3-heroi-cabeca"><span class="v3-rot">Sobrou ' + p.quando + '</span>' + (e ? '<span class="v3-selo ' + e + '"><i></i>' + NOME_ESTADO[e] + '</span>' : '') + '</div>' +
+    '<div class="v3-numero">' + (ficou > 0 ? '+' : ficou < 0 ? '−' : '') + numeroGrande(Math.abs(ficou)) + '</div>' +
+    '<div class="v3-dois">' +
+      '<div><span>Entrou</span><b>' + (r.entradas ? '+' : '') + dinheiro(r.entradas) + '</b></div>' +
+      '<div><span>Saiu</span><b>' + (r.saidas ? '−' : '') + dinheiro(r.saidas) + '</b></div>' +
+    '</div>' +
     '<p class="v3-sub">' + sub + '</p>' +
-    linhaDoMesV3() +
-    '<div class="v3-tres"><span>Entrou <b>' + dinheiro(r.entradas) + '</b></span><span>Saiu <b>' + dinheiro(r.saidas) + '</b></span><span>Sobrou <b>' + (ficou < 0 ? '−' : '') + dinheiro(Math.abs(ficou)) + '</b></span></div>' +
   '</section>';
 }
 function inicioPCv3(n, p, r, ficou, est, abas, pode, pulso) {
   return '<div class="painel inicio v3">' +
     '<div class="v3-faixa"><nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
-      '<p class="v3-leitura"><i></i><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</p></div>' +
+      '<p class="v3-leitura' + (est && est.estado === 'contencao' && !vazamentoDaSemana() ? ' contencao' : '') + '"><i></i><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</p></div>' +
     avisoPagoPorOutro(true) +
     '<div class="v3-esq">' + heroiPCv3(n, p, r, ficou, est, pode, pulso) +
       '<section class="bloco v3-hoje">' + oDeSempreV2() + listaV2(p) + '</section>' +

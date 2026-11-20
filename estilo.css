@@ -2401,3 +2401,25 @@ body { background-color: var(--chao); }
   }
   .cal-seta::before, .pn-seta::before { left: -4px; right: -4px; }
 }
+
+/* ── v62 · 20/11 · O VERMELHO DA CONTENÇÃO E O SOBROU NA FRENTE (pedido dele) ──────────────
+   Ele: "esse rosé não tá da hora; cada cor tem o seu encaixe no mundo". O laranja-salmão era o
+   do vazamento, emprestado. A Contenção ganha um vermelho de semáforo, só no selo e no ponto
+   (o número do herói fica neutro, decisão v60). Ele vive sempre em cima do herói navy (dia e noite), por isso é um só
+   tom: #FF453A sobre #0D1D4A mede 4,8:1. O laranja continua só para o vazamento. */
+:root, :root[data-tema="escuro"], :root[data-tema="claro"] { --coral: #FF453A; --coral-rgb: 255, 69, 58; }
+.v2-selo.contencao { color: var(--coral); background: rgba(var(--coral-rgb), 0.14); }
+.v3-selo.contencao { border-color: rgba(var(--coral-rgb), 0.6); color: var(--coral); background: rgba(var(--coral-rgb), 0.12); }
+.v3-selo.contencao i { background: var(--coral); box-shadow: 0 0 8px rgba(var(--coral-rgb), 0.9); }
+.v3-leitura.contencao > i { background: var(--coral); box-shadow: 0 0 7px rgba(var(--coral-rgb), 0.85); }
+/* Entrou e Saiu: segundo nível, logo abaixo do Sobrou (antes eram letra de 12px no rodapé). */
+.v3-dois { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.v3-dois > div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 6px 10px; border-radius: 10px; background: rgba(var(--ac-rgb), 0.10); border: 1px solid rgba(var(--ac-rgb), 0.14); }
+.v3-dois span { font-size: 12px; font-weight: 600; color: #A9B4CF; }
+.v3-dois b { font-size: 16px; font-weight: 700; color: #F2EBD2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.v3-heroi .v3-sub { margin-top: 7px; }
+.v3-heroi .v3-linha { height: 26px; margin-top: 4px; }
+/* A lista de hoje no PC ficava cortada sem jeito de ver o resto (overflow escondido): agora rola
+   por dentro, com o título preso em cima. A curva do mês saiu do herói para dar lugar a ela. */
+.painel.inicio.v3 .v3-hoje .v2-lista { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(var(--ac-rgb), 0.35) transparent; }
+.painel.inicio.v3 .v3-hoje .v2-lista-cabeca { position: sticky; top: 0; z-index: 1; background: var(--cartao-fundo); }
