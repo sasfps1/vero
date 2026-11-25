@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 67;
+const VERSAO = 68;
 let soMemoria = false;
 
 const VAZIO = {
@@ -201,7 +201,22 @@ function lancamentosVistos() { return S.lancamentos.filter(daVista); }
 function contasVistas() { return S.contas.filter(function (c) { return papelNaVista(c) !== null; }); }
 /** v65 (25/11): UMA regra para "esta conta conta neste mês" — ativa e já começada. O Painel dizia
     "6 de 6 pagas" e a tela Contas "1 de 7 por pagar": cada um filtrava de um jeito. */
-function contaValeNoMes(c, mes) { return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes); }
+function contaValeNoMes(c, mes) {
+  /* v68 (25/11, aprovado por ele: "conta paga dentro do mês vale naquele mês", regime de caixa).
+     A "Internet celular" começava em dezembro mas foi paga a 11/11: Gastos somava o pagamento e
+     Painel/Contas ignoravam a conta — os "R$ 40 fantasmas". Paga no mês, conta no mês. */
+  if (c.pagos && c.pagos[mes]) return true;
+  return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes);
+}
+/** v68: no PC, uma lista que não cabe no cartão rola por dentro (como a lista de hoje, v62),
+    em vez de esconder itens atrás de "+N" ou de páginas com 3 itens. */
+function rolarPorDentro(caixa, lista) {
+  if (!caixa || !lista) return;
+  const sobra = caixa.scrollHeight - caixa.clientHeight;
+  if (sobra <= 1) return;
+  lista.style.maxHeight = Math.max(140, lista.clientHeight - sobra - 4) + 'px';
+  lista.classList.add('rola-dentro');
+}
 
 /* 10/11 noite: a conta dividida existe UMA vez, na carteira de quem a cadastrou, mas pesa
    em três sítios. Na vista do dono pesa a parte dele (`centavos`); na vista de quem paga o
@@ -1080,8 +1095,11 @@ function paginar(caixa) {
   if (!lista) return;
   const itens = [].slice.call(lista.children).filter(function (el) { return !el.matches('.soma-busca, .tempo-busca, .vazio'); });
   itens.forEach(function (el) { el.style.display = ''; });
+  lista.style.maxHeight = ''; lista.classList.remove('rola-dentro');
   const transborda = function () { return caixa.scrollHeight > caixa.clientHeight + 1; };
   if (!transborda() || itens.length < 2) return;
+  // v68 (vídeo do PC dele: "21 páginas de 3 itens"): na tela Gastos a lista rola por dentro.
+  if (rota() === 'gastos') return rolarPorDentro(caixa, lista);
   const nav = document.createElement('nav');
   nav.className = 'paginas';
   nav.setAttribute('aria-label', 'Páginas');
@@ -1193,6 +1211,8 @@ function caberPainel() {
     // 2) os últimos itens das listas, com "+N" no lugar
     const itens = [].slice.call(b.querySelectorAll('.pn-linha, .pn-meta, .pn-oc'));
     if (!transborda() || itens.length < 2) return;
+    // v68: "Para onde foi" e "Metas" mostram TODOS os itens; o que não cabe rola por dentro.
+    if (b.classList.contains('pn-onde') || b.classList.contains('pn-metas')) return rolarPorDentro(b, itens[0].parentNode);
     const mais = document.createElement(b.classList.contains('pn-onde') ? 'a' : 'span');
     mais.className = 'pn-mais';
     if (mais.tagName === 'A') mais.href = '#/gastos';
@@ -2168,7 +2188,7 @@ function calendarioDoMes() {
   const grande = !!(telaUnica && telaUnica.matches);
   const contaNoDia = {}, vazou = {};
   if (grande) {
-    contasVistas().forEach(function (c) { const dd = Math.min(c.dia, total); (contaNoDia[dd] = contaNoDia[dd] || []).push({ nome: c.nome, paga: donoPagou(c, mes) }); });
+    contasVistas().filter(function (c) { return contaValeNoMes(c, mes); }).forEach(function (c) { const dd = Math.min(c.dia, total); (contaNoDia[dd] = contaNoDia[dd] || []).push({ nome: c.nome, paga: donoPagou(c, mes) }); });
     const v = atual ? vazamentoDaSemana() : null;
     if (v) Object.keys(v.dias).forEach(function (x) { vazou[x] = true; });
   }
@@ -2182,8 +2202,9 @@ function calendarioDoMes() {
     const diz = 'Dia ' + d + (lancou[d] ? ', com lançamento' : '') + (sobTxt ? ', sobrou ' + sobTxt : '') + (fer ? ', feriado: ' + fer : '') +
       (ag.length ? ', ' + ag.map(function (a) { return a.titulo; }).join(', ') : '') + (marcado ? ', marcado para somar' : '');
     const ct = contaNoDia[d], extra = !grande ? '' :
-      (ct ? '<small class="cal-conta' + (ct[0].paga ? ' paga' : '') + '">' + esc(ct[0].nome) + (ct.length > 1 ? ' +' + (ct.length - 1) : '') + '</small>'
-        : sobTxt ? '<small class="cal-v' + (sob < 0 ? ' neg' : '') + '">' + sobTxt + '</small>' : '') +
+      // v68: a etiqueta da conta já não esconde o que sobrou no dia: os dois aparecem.
+      (ct ? '<small class="cal-conta' + (ct[0].paga ? ' paga' : '') + '">' + esc(ct[0].nome) + (ct.length > 1 ? ' +' + (ct.length - 1) : '') + '</small>' : '') +
+      (sobTxt ? '<small class="cal-v' + (sob < 0 ? ' neg' : '') + (ct ? ' com-conta' : '') + '">' + sobTxt + '</small>' : '') +
       (vazou[data] ? '<i class="cal-vz" aria-hidden="true"></i>' : '');
     celulas += '<button class="' + classe + '" data-acao="dia-abrir" data-ref="' + data + '" aria-pressed="' + marcado + '" aria-label="' + esc(diz) + '">' +
       (grande ? '<span class="cal-n">' + d + '</span>' + extra : d) + '</button>';
@@ -2571,8 +2592,24 @@ function reguaDasContas(mes) {
   }
   if (hojeNoMes) t += '<small class="rg-hoje" style="left:' + x(hojeNoMes) + '">HOJE</small>';
   let ultimo = -99, linha = 0;
-  contasVistas().slice().sort(function (a, b) { return a.dia - b.dia; }).forEach(function (c) {
-    const d = Math.min(c.dia, total), paga = faltaDaConta(c, mes) === 0;
+  // v68: várias contas no mesmo dia (4 vencem no dia 10) ficavam uma por cima da outra.
+  // Agora o dia vira uma marca só: "Energia +3", com a soma; os nomes ficam no rótulo.
+  const porDia = {};
+  contasVistas().filter(function (c) { return contaValeNoMes(c, mes); }).forEach(function (c) {
+    const d = Math.min(c.dia, total); (porDia[d] = porDia[d] || []).push(c);
+  });
+  Object.keys(porDia).map(Number).sort(function (a, b) { return a - b; }).forEach(function (d) {
+    const grupo = porDia[d];
+    if (grupo.length > 1) {
+      const pagas = grupo.every(function (c) { return faltaDaConta(c, mes) === 0; });
+      const soma = grupo.reduce(function (a, c) { return a + valorNaVista(c); }, 0);
+      linha = d - ultimo < 4 ? (linha ? 0 : 1) : 0; ultimo = d;
+      const nomes = grupo.map(function (c) { return c.nome; }).join(', ');
+      t += '<span class="rg-c grupo' + (pagas ? ' paga' : '') + (linha ? ' baixo' : '') + '" style="left:' + x(d) + '" role="note" title="' + esc(nomes) + '" aria-label="Dia ' + d + ': ' + esc(nomes) + ', ' + dinheiro(soma) + (pagas ? ', pagas' : '') + '">' +
+        '<b>' + esc(grupo[0].nome) + ' +' + (grupo.length - 1) + '</b><span>' + dinheiro(soma) + '</span></span>';
+      return;
+    }
+    const c = grupo[0], paga = faltaDaConta(c, mes) === 0;
     linha = d - ultimo < 4 ? (linha ? 0 : 1) : 0; ultimo = d;
     t += '<button class="rg-c' + (paga ? ' paga' : '') + (linha ? ' baixo' : '') + '" style="left:' + x(d) + '" data-acao="editar-conta" data-ref="' + esc(c.id) + '" aria-label="' + esc(c.nome) + ', dia ' + c.dia + (paga ? ', paga' : '') + '">' +
       '<b>' + esc(c.nome) + '</b><span>' + dinheiro(valorNaVista(c)) + '</span></button>';
@@ -2690,7 +2727,7 @@ function telaPainel() {
         }).join('') + '</div>' +
         '<p>' + partes.slice(0, 3).map(function (c) { return esc(c.toLowerCase()) + ' ' + dinheiro(o.cats[c]); }).join(' · ') + '</p></div>';
     }).join('')
-    : '<p class="pn-vazio">Nenhuma ocasião marcada. Ao lançar, escreva em <b>Ocasião</b> algo como "Festa do fim de semana" e tudo com esse nome soma aqui.</p>') +
+    : '<p class="pn-vazio pn-oc-curto">Nenhuma ocasião este mês.</p>') +   // v68: o tutorial ocupava um terço da tela
     '</section>';
 
   return '<div class="pn">' + topo + kpis +
@@ -2730,9 +2767,10 @@ function metasPainel(P) {
     : 'faltam ' + dinheiro(m.colchao - m.guardado) + ' para o primeiro colchão';
   return '<section class="bloco pn-metas"><div class="pn-cab"><h2 class="pn-titulo">Metas</h2>' +
       '<button class="btn pequeno fraco" data-acao="metas-ajustar">Ajustar</button></div>' +
+    '<div class="pn-metas-lista">' +
     linha('Meus gostos', gostos, m.gostos, g) +
     linha('Moto por dia de trabalho', porDia, m.moto, t) +
-    linha('Colchão guardado', m.guardado, m.colchao, c) +
+    linha('Colchão guardado', m.guardado, m.colchao, c) + '</div>' +
     '<button class="btn contorno pn-guardei" data-acao="metas-guardei">Guardei dinheiro no colchão</button></section>';
 }
 function ajustarMetas() {

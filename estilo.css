@@ -2480,3 +2480,22 @@ body { background-color: var(--chao); }
    duas linhas, sem reticência: o nome inteiro é a informação. */
 .destino-nome { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; min-width: 0; }
 .vence-nome { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; align-items: flex-start; min-width: 0; }
+
+/* ── v68 · 25/11 · LIMPEZA DO PC (vídeo do PC dele, auditado) ─────────────────────────────
+   Listas que não cabem rolam por dentro (como a lista de hoje, v62) em vez de "+N · ver todos"
+   ou de páginas com 3 itens. A régua junta as contas do mesmo dia numa marca só. O calendário
+   mostra a conta E o que sobrou no dia. No tema dia, as setas de comparação escurecem. */
+.rola-dentro { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(var(--ac-rgb), 0.35) transparent; }
+.pn-metas-lista { display: flex; flex-direction: column; gap: inherit; min-height: 0; }
+.pn-oc-curto { margin: 4px 0 0; font-size: 13px; }
+.v3-regua .rg-c.grupo { cursor: default; }
+.mes-cal .cal-v.com-conta { margin-top: 2px; }
+:root[data-tema="claro"] .pn-k-comp.bom { color: #12663A; }
+:root[data-tema="claro"] .pn-k-comp.atencao { color: #8A4600; }
+/* v68: dentro da lista que rola, cada linha mantém a altura do conteúdo (a grade espremia as
+   linhas a 40px e o subtítulo invadia a linha de baixo). As Metas rolam e o "Guardei" fica fixo. */
+.rola-dentro { grid-auto-rows: max-content; }
+.rola-dentro > * { flex-shrink: 0; min-height: max-content; }
+.pn-grade .pn-metas { min-height: 0; }
+.pn-grade .pn-metas .pn-metas-lista { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(var(--ac-rgb), 0.35) transparent; }
+.pn-grade .pn-metas .pn-guardei { flex: none; }
