@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 64;
+const VERSAO = 65;
 let soMemoria = false;
 
 const VAZIO = {
@@ -199,6 +199,9 @@ function daVista(x) {
 }
 function lancamentosVistos() { return S.lancamentos.filter(daVista); }
 function contasVistas() { return S.contas.filter(function (c) { return papelNaVista(c) !== null; }); }
+/** v65 (25/11): UMA regra para "esta conta conta neste mês" — ativa e já começada. O Painel dizia
+    "6 de 6 pagas" e a tela Contas "1 de 7 por pagar": cada um filtrava de um jeito. */
+function contaValeNoMes(c, mes) { return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes); }
 
 /* 10/11 noite: a conta dividida existe UMA vez, na carteira de quem a cadastrou, mas pesa
    em três sítios. Na vista do dono pesa a parte dele (`centavos`); na vista de quem paga o
@@ -302,7 +305,8 @@ function falta(e) {
 
 function contasPorPagar(mes) {
   return contasVistas().filter(function (c) {
-    return c.ativa !== false && faltaDaConta(c, mes) > 0;
+    // v65: a mesma regra do Painel e da tela Contas (contaValeNoMes): conta que só começa no mês que vem não falta neste.
+    return contaValeNoMes(c, mes) && faltaDaConta(c, mes) > 0;
   });
 }
 
@@ -1476,6 +1480,11 @@ function seletorCarteiraV2() {
 }
 
 /** A frase de baixo do herói. Nos estados de atenção, orienta (nunca culpa); no resto, o mês. */
+/** v65 (25/11): "pode gastar R$ 10 hoje" aparecia sem dizer de onde vinha (achado no vídeo dele).
+    É o limite do dia menos o que já saiu hoje; com saída no dia, a conta fica à vista. */
+function contaDoPode(n) {
+  return n && n.gastoHoje > 0 && n.limite > 0 ? ': o limite do dia é ' + dinheiro(n.limite) + ' e já saíram ' + dinheiro(n.gastoHoje) : '';
+}
 function linhaHeroiV2(n, r, est, pctFicou, pode) {
   if (est && est.estado === 'recuperacao') {
     return 'O dia abateu <b>' + est.abateuPct + '%</b> do déficit. Faltam <b>' + dinheiro(est.deficit) + '</b> para zerar o mês: segure os extras até lá.';
@@ -1485,7 +1494,7 @@ function linhaHeroiV2(n, r, est, pctFicou, pode) {
   }
   if (inicioVista !== 'hoje') return r.entradas ? '<b>' + pctFicou + '%</b> do que entrou ficou.' : '';
   let t = rotuloDoMes() + ': <b>' + comSinal(n.entradas - n.saidas) + '</b> até hoje.';
-  if (pode !== null) return t + ' Pode gastar <b>' + dinheiro(pode) + '</b> hoje.';
+  if (pode !== null) return t + ' Pode gastar <b>' + dinheiro(pode) + '</b> hoje' + contaDoPode(n) + '.';
   // A próxima conta da semana já cabe no livre de verdade (que já desconta as contas por pagar)?
   const prox = itensProximos().filter(function (it) { return it.tipo === 'conta' && it.data >= hoje(); })[0];
   if (prox && n.livre >= 0) {
@@ -1620,7 +1629,7 @@ function heroiPCv3(n, p, r, ficou, est, pode, pulso) {
   } else if (e === 'recuperacao') {
     sub = 'O dia abateu <b>' + est.abateuPct + '%</b> do déficit. Faltam <b>' + dinheiro(est.deficit) + '</b> para zerar o mês.';
   } else if (pode !== null) {
-    sub = 'Ainda pode gastar <b>' + dinheiro(pode) + '</b> hoje. As contas já estão de fora.';
+    sub = 'Ainda pode gastar <b>' + dinheiro(pode) + '</b> hoje' + contaDoPode(n) + '. As contas já estão de fora.';
   } else {
     sub = r.entradas ? Math.max(0, Math.round(ficou / r.entradas * 100)) + '% do que entrou ficou.' : 'Nada entrou ' + p.curto + '.';
   }
@@ -1709,7 +1718,7 @@ function mesDasContas() {
   if (!(telaUnica && telaUnica.matches)) return '';
   const mes = cicloDe(hoje()).mes, h = hoje();
   const lista = contasVistas().filter(function (c) {
-    return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes);
+    return contaValeNoMes(c, mes);
   }).map(function (c) { return { c: c, venc: vencimentoEm(c, mes), falta: faltaDaConta(c, mes), valor: valorNaVista(c) }; })
     .sort(function (a, b) { return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
   if (!lista.length) return '';
@@ -1820,6 +1829,9 @@ function ultimosDias() {
     em negrito, eram o primeiro sítio onde se via que "não mudou nada". */
 function secaoParaOndeTiles(p) {
   if (telaUnica && telaUnica.matches) { const roda = secaoRoda(); if (roda) return roda; }
+  // v65 (25/11): no "Hoje" a rosca repetia os 2 ou 3 gastos que a lista do dia já mostra. Fica
+  // para o mês e o outro dia, onde ainda responde o pedido dele de 04/11 ("para onde vai MAIS").
+  if (p.de === p.ate && p.de === hoje()) return '';
   const g = paraOndeEntre(p.de, p.ate);
   // Com um destino só, a rosca é um anel inteiro que não diz nada: espera haver dois.
   if (!g.total || g.lista.length < 2) return '';
@@ -2599,7 +2611,7 @@ function telaPainel() {
   const ea = resumoEntre(A.de, A.ate).entradas, sobrouA = ea - ga.total;
   const kpis = '<section class="bloco pn-kpis" aria-label="Resumo ' + esc(P.este) + '">' +
     kpiPainel('Entrou', entrou, ea, true, A) + kpiPainel('Saiu', g.total, ga.total, false, A) +
-    kpiPainel('Sobrou', sobrou, sobrouA, true, A, true) + kpiPainel('Gostos', g.emocao, ga.emocao, false, A) + '</section>';
+    kpiPainel('Sobrou', sobrou, sobrouA, true, A, true) + kpiPainel('Por gosto', g.emocao, ga.emocao, false, A) + '</section>';
 
   // 2. Necessário × emoção.
   const nec = g.total - g.emocao;
@@ -2757,7 +2769,7 @@ function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
 function contasPainel(P) {
   const mes = mesDe(P.ate);
   const lista = contasVistas().filter(function (c) {
-    return c.ativa !== false && !(/^\d{4}-\d{2}$/.test(c.desde || '') && c.desde > mes);
+    return contaValeNoMes(c, mes);
   });
   if (!lista.length) return '';
   let pagas = 0, total = 0, pago = 0;
@@ -2855,12 +2867,16 @@ function ritmoPainel(P, A, atual) {
 
 function telaContas(n) {
   const mes = n.mes, h = hoje();
-  const vistas = contasVistas();
+  const vistas = contasVistas().filter(function (c) { return contaValeNoMes(c, mesDaContaNoCiclo(c)); });
   // Com o ciclo, a ordem é a do vencimento DENTRO do ciclo: o aluguel do dia 5 de dezembro
   // vem depois da luz de 15 de novembro, não antes.
   const vencNoCiclo = function (c) { return vencimentoEm(c, mesDaContaNoCiclo(c)); };
-  const ordenadas = vistas.slice().sort(function (a, b) { return cicloLigado() ? (vencNoCiclo(a) < vencNoCiclo(b) ? -1 : vencNoCiclo(a) > vencNoCiclo(b) ? 1 : 0) : a.dia - b.dia; });
-  let linhas = '';
+  // v65 (25/11, a análise do vídeo dele): o que falta pagar vem primeiro; as pagas descem e recolhem.
+  const quitadaJa = function (c) { return faltaDaConta(c, mesDaContaNoCiclo(c)) === 0 ? 1 : 0; };
+  const ordenadas = vistas.slice().sort(function (a, b) {
+    if (quitadaJa(a) !== quitadaJa(b)) return quitadaJa(a) - quitadaJa(b);
+    return cicloLigado() ? (vencNoCiclo(a) < vencNoCiclo(b) ? -1 : vencNoCiclo(a) > vencNoCiclo(b) ? 1 : 0) : a.dia - b.dia; });
+  let linhas = '', linhasPagas = '';
   /* 04/11: cada conta com o ícone dela, o prazo dito como prazo ("em 4 dias") e o
      "Paguei" debaixo do valor, à direita. Antes o botão flutuava no meio da linha e o
      quadradinho parecia uma caixa a marcar. Paga, o ícone vira o visto. */
@@ -2874,7 +2890,7 @@ function telaContas(n) {
     const atrasada = !quitada && venc < h;
     const valor = papel === 'dono' ? (pago ? pago.centavos : c.centavos) : valorNaVista(c);
     const faltam = diasEntre(h, venc);
-    linhas += linhaHtml({
+    const html = linhaHtml({
       icone: quitada ? 'certo' : iconeDoGasto(c.nome),
       cor: familiaDe(c.nome) || 'casa',
       titulo: tituloEditavel('editar-conta', c.id, esc(c.nome)),
@@ -2882,13 +2898,14 @@ function telaContas(n) {
         : papel === 'tudo' && pago ? 'Falta a parte de ' + nomeOutro(c)
         : atrasada ? 'Venceu dia ' + c.dia
         : faltam === 0 ? 'Vence hoje' : faltam === 1 ? 'Vence amanhã' : 'Vence dia ' + c.dia + ' · em ' + faltam + ' dias',
-      extra: linhaDivisao(c, mes),
+      extra: quitada ? '' : linhaDivisao(c, mes),
       acaoDireita: papel === 'outro' ? botao('outro-pagou', c.id + '|' + mes, quitada ? 'Desfazer' : 'Paguei', quitada)
         : papel === 'tudo' && pago && !quitada && vagaDoOutro(c) ? botao('outro-pagou', c.id + '|' + mes, 'Paguei')
         : pago ? botao('despagar', refDePagar(c, mes), 'Desfazer', true) : botao('pagar', refDePagar(c, mes), 'Paguei'),
       centavos: valor,
-      classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (quitada ? 'fraca' : '')
+      classes: 'conta-linha ' + (atrasada ? 'atrasada ' : '') + (quitada ? 'fraca recolhida' : '')
     });
+    if (quitada) linhasPagas += html; else linhas += html;
   }
 
   const atrasadas = contasAtrasadas(), jaTemBotao = {};
@@ -2932,7 +2949,9 @@ function telaContas(n) {
     (linhasAtrasadas ? '<section class="bloco c-atras" data-paginar=".lista-pag" data-chave="atras"><h2 class="secao"><span class="rotulo">' + (cicloLigado() ? 'Venceram antes do salário' : 'De meses passados') + '</span></h2><div class="lista-pag">' + linhasAtrasadas + '</div></section>' : '') +
     '<section class="bloco c-todas" data-paginar=".lista-pag" data-chave="contas"><h2 class="secao"><span class="rotulo">Todas as contas</span>' +
       '<button class="btn pequeno" data-acao="nova-conta">Nova conta</button></h2>' +
-      (linhas ? '<div class="lista-pag grade-cartoes">' + linhas + '</div>' : '<p class="vazio">Nenhuma conta fixa cadastrada. Comece pelas que se repetem todo mês: aluguel, luz, água, internet.</p>') +
+      (linhas || linhasPagas ? (linhas ? '<div class="lista-pag grade-cartoes">' + linhas + '</div>' : '<p class="vazio">Tudo pago este mês.</p>') +
+        (linhasPagas ? '<h3 class="c-pagas-tit">Já pagas</h3><div class="grade-cartoes c-pagas">' + linhasPagas + '</div>' : '')
+        : '<p class="vazio">Nenhuma conta fixa cadastrada. Comece pelas que se repetem todo mês: aluguel, luz, água, internet.</p>') +
     '</section></div>';
 }
 
@@ -3463,7 +3482,7 @@ function conversaCartao() {
     '<p class="fala-vero' + (noite ? ' noite' : '') + '" data-acao="perguntar">' +
       (noite ? '<small class="fala-quando">Resumo da noite</small>' + esc(noite) : esc(fala)) + '</p>' +
     '<div class="conversa-campo">' +
-      '<input type="text" id="ia-inicio" maxlength="500" autocomplete="off" placeholder="Escreva ou fale a pergunta" aria-label="Sua pergunta ao Vero">' +
+      '<input type="text" id="ia-inicio" maxlength="500" autocomplete="off" placeholder="Pergunte ao Vero" aria-label="Sua pergunta ao Vero">' +
       (reconhecedor() ? '<button class="btn microfone" data-acao="ia-ouvir" aria-label="Falar a pergunta"><svg class="traco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>' : '') +
       '<button class="btn acento" data-acao="ia-enviar">Perguntar</button>' +
     '</div>' +

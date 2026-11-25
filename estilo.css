@@ -2467,3 +2467,10 @@ body { background-color: var(--chao); }
 #folha-lancar[data-modo="entrada"] .tipo-seg button.activo { background: var(--modo-entrada); color: var(--modo-texto); font-weight: 700; }
 #folha-lancar[data-modo="saida"] #lancar-confirmar:not(:disabled) { background: var(--modo-saida) !important; color: var(--modo-texto) !important; border-color: var(--modo-saida) !important; }
 #folha-lancar[data-modo="entrada"] #lancar-confirmar:not(:disabled) { background: var(--modo-entrada) !important; color: var(--modo-texto) !important; border-color: var(--modo-entrada) !important; }
+
+/* ── v65 · 25/11 · LIMPEZA (achados do vídeo dele) ───────────────────────────────────────
+   Contas: o que falta pagar no topo; as pagas descem para "Já pagas", recolhidas (sem a
+   linha da divisão, mais baixas e apagadas), e o Desfazer continua ali. */
+.c-pagas-tit { margin: 14px 0 6px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--t2, var(--on-surface-muted)); }
+.c-pagas .linha.recolhida { padding-top: 6px; padding-bottom: 6px; min-height: 0; opacity: .78; }
+.c-pagas .linha.recolhida .sub { font-size: 12px; }
