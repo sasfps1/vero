@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 62;
+const VERSAO = 64;
 let soMemoria = false;
 
 const VAZIO = {
@@ -2033,6 +2033,37 @@ function roscaHtml(fatias, total, aria) {
        para uma faixa logo abaixo do número principal. */
 let calMes = null;
 
+/* v63 (25/11, pedido dele olhando o PC): "apertar control, selecionar os dias que eu quero
+   somar"; no celular, "uma opção". PC: Ctrl+clique (ou ⌘). Celular: o botão "Somar dias"
+   (visível, porque gesto escondido ninguém descobre) ou segurar o dedo num dia.
+   A soma é a dos números que cada dia mostra (resumoEntre de um dia: a conta fixa fica de
+   fora, como no "Sobrou hoje"). Assim, somar com o olho os números do calendário dá a faixa. */
+let selDias = [], selModo = false;
+function alternarSelDia(data) {
+  const i = selDias.indexOf(data);
+  if (i >= 0) selDias.splice(i, 1); else selDias.push(data);
+  selDias.sort();
+  if (!selDias.length) selModo = false;
+}
+function somaDosDias(dias) {
+  let entradas = 0, saidas = 0;
+  dias.forEach(function (d) { const r = resumoEntre(d, d); entradas += r.entradas; saidas += r.saidas; });
+  return { entradas: entradas, saidas: saidas, resultado: entradas - saidas };
+}
+function faixaSomaDias() {
+  if (!selDias.length) return '';
+  const s = somaDosDias(selDias), n = selDias.length;
+  const quais = n <= 3 ? selDias.map(dataCurta).join(', ') : dataCurta(selDias[0]) + ' a ' + dataCurta(selDias[n - 1]);
+  return '<div class="cal-soma" role="status" aria-live="polite">' +
+    '<div class="cal-soma-topo"><b>' + n + (n === 1 ? ' dia' : ' dias') + '</b><span>' + esc(quais) + '</span>' +
+    '<button type="button" class="cal-soma-limpar" data-acao="cal-limpar">Limpar</button></div>' +
+    '<div class="cal-soma-nums">' +
+      '<div><span>Entrou</span><b>+' + dinheiro(s.entradas) + '</b></div>' +
+      '<div><span>Saiu</span><b>−' + dinheiro(s.saidas) + '</b></div>' +
+      '<div class="cal-soma-sobrou"><span>Sobrou</span><b>' + (s.resultado > 0 ? '+' : s.resultado < 0 ? '−' : '') + dinheiro(Math.abs(s.resultado)) + '</b></div>' +
+    '</div></div>';
+}
+
 function pascoa(ano) {
   // Algoritmo anónimo gregoriano (Meeus/Jones/Butcher).
   const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4;
@@ -2111,8 +2142,10 @@ function calendarioDoMes() {
   let celulas = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (s) { return '<span class="sem" aria-hidden="true">' + s + '</span>'; }).join('');
   for (let i = 0; i < vazio; i++) celulas += '<span></span>';
   // v58: no computador cada dia mostra o que saiu, a conta que vence e o ponto do vazamento.
+  // v63 (25/11, escolha dele): o número do dia passa a ser o que SOBROU (entrou − saiu), com
+  // sinal e sem vermelho, pela mesma conta do "Sobrou hoje" (resumoEntre de um dia só).
   const grande = !!(telaUnica && telaUnica.matches);
-  const saiuNoDia = grande ? gastoPorDia(mes) : [], contaNoDia = {}, vazou = {};
+  const contaNoDia = {}, vazou = {};
   if (grande) {
     contasVistas().forEach(function (c) { const dd = Math.min(c.dia, total); (contaNoDia[dd] = contaNoDia[dd] || []).push({ nome: c.nome, paga: donoPagou(c, mes) }); });
     const v = atual ? vazamentoDaSemana() : null;
@@ -2120,19 +2153,23 @@ function calendarioDoMes() {
   }
   for (let d = 1; d <= total; d++) {
     const data = mes + '-' + p2(d), fer = feriadoEm(data), ag = agendaDoDia(data);
+    const marcado = selDias.indexOf(data) >= 0;
     const classe = 'd' + (lancou[d] ? ' lancou' : '') + (data > h ? ' futuro' : '') + (data === h ? ' hoje' : '') +
-      (fer ? ' feriado' : '') + (ag.length ? ' tem-agenda' : '');
-    const diz = 'Dia ' + d + (lancou[d] ? ', com lançamento' : '') + (fer ? ', feriado: ' + fer : '') +
-      (ag.length ? ', ' + ag.map(function (a) { return a.titulo; }).join(', ') : '');
+      (fer ? ' feriado' : '') + (ag.length ? ' tem-agenda' : '') + (marcado ? ' sel' : '');
+    const sob = lancou[d] && data <= h ? resumoEntre(data, data).resultado : null;
+    const sobTxt = sob === null ? '' : (sob > 0 ? '+' : sob < 0 ? '−' : '') + dinheiro(Math.abs(sob));
+    const diz = 'Dia ' + d + (lancou[d] ? ', com lançamento' : '') + (sobTxt ? ', sobrou ' + sobTxt : '') + (fer ? ', feriado: ' + fer : '') +
+      (ag.length ? ', ' + ag.map(function (a) { return a.titulo; }).join(', ') : '') + (marcado ? ', marcado para somar' : '');
     const ct = contaNoDia[d], extra = !grande ? '' :
       (ct ? '<small class="cal-conta' + (ct[0].paga ? ' paga' : '') + '">' + esc(ct[0].nome) + (ct.length > 1 ? ' +' + (ct.length - 1) : '') + '</small>'
-        : saiuNoDia[d - 1] && data <= h ? '<small class="cal-v">' + dinheiro(saiuNoDia[d - 1]) + '</small>' : '') +
+        : sobTxt ? '<small class="cal-v' + (sob < 0 ? ' neg' : '') + '">' + sobTxt + '</small>' : '') +
       (vazou[data] ? '<i class="cal-vz" aria-hidden="true"></i>' : '');
-    celulas += '<button class="' + classe + '" data-acao="dia-abrir" data-ref="' + data + '" aria-label="' + esc(diz) + '">' +
+    celulas += '<button class="' + classe + '" data-acao="dia-abrir" data-ref="' + data + '" aria-pressed="' + marcado + '" aria-label="' + esc(diz) + '">' +
       (grande ? '<span class="cal-n">' + d + '</span>' + extra : d) + '</button>';
   }
   const prox = atual ? lembretesProximos() : [];
-  const frase = prox.length ? '<b>' + prox[0].quando + ':</b> ' + esc(prox[0].texto) + (prox.length > 1 ? ' <span class="mais">+' + (prox.length - 1) + '</span>' : '')
+  const frase = selModo && !selDias.length ? (grande ? 'Clique nos dias que quer somar. Ctrl+clique também marca.' : 'Toque nos dias que quer somar.')
+    : prox.length ? '<b>' + prox[0].quando + ':</b> ' + esc(prox[0].texto) + (prox.length > 1 ? ' <span class="mais">+' + (prox.length - 1) + '</span>' : '')
     : !atual ? 'Toque num dia para marcar um compromisso.'
     : !acesos ? 'Toque num dia para marcar um compromisso.'
     : acesos === ate ? 'Todos os dias até hoje têm lançamento.'
@@ -2141,10 +2178,13 @@ function calendarioDoMes() {
   return '<section class="bloco mes-cal"><div class="cal-cabeca"><h2 class="titulo-cartao">' + titulo + '</h2>' +
       '<span class="cal-setas"><button class="cal-seta" data-acao="cal-mes" data-ref="-1" aria-label="Mês anterior">‹</button>' +
       (calMes && calMes !== base ? '<button class="cal-volta" data-acao="cal-mes" data-ref="0">Hoje</button>' : '') +
-      '<button class="cal-seta" data-acao="cal-mes" data-ref="1" aria-label="Próximo mês">›</button></span></div>' +
+      '<button class="cal-seta" data-acao="cal-mes" data-ref="1" aria-label="Próximo mês">›</button>' +
+      '<button type="button" class="cal-somar' + (selModo ? ' activo' : '') + '" data-acao="cal-somar" aria-pressed="' + selModo + '"' +
+        (grande ? ' title="Ctrl+clique num dia também marca"' : '') + '>' + (selModo ? 'Pronto' : 'Somar dias') + '</button></span></div>' +
     '<p class="frase" data-cede="1">' + frase + '</p>' +
-    '<div class="cal" role="group" aria-label="Dias de ' + nome + '">' + celulas + '</div>' +
-    (atual ? proximaSemana() : '') + '</section>';
+    '<div class="cal' + (selModo ? ' a-somar' : '') + '" role="group" aria-label="Dias de ' + nome + '">' + celulas + '</div>' +
+    faixaSomaDias() +
+    (atual && !selDias.length ? proximaSemana() : '') + '</section>';
 }
 
 /* 16/11, pedido dele: "no calendário, no PC, tá um espação embaixo... esses espaços devem
@@ -2385,6 +2425,25 @@ function itensProximos() {
    Quatro blocos: quanto saiu (o herói), necessário × emoção, para onde foi, ocasiões.
    Tudo deduz-se dos lançamentos que já existem: o painel não guarda nada seu. */
 let pnPeriodo = 'semana', pnDesloca = 0;
+/** v63: a data de onde o Painel começa a somar no "Desde…". Fica no aparelho; nunca no futuro. */
+function desdePainel() {
+  const h = hoje(), d = S.config.pnDesde;
+  return /^\d{4}-\d{2}-\d{2}$/.test(d || '') && d <= h ? d : h.slice(0, 7) + '-01';
+}
+/** v63: o dia da última entrada até hoje ("o cara pagou na quarta": somar dali). */
+function ultimaEntrada() {
+  const h = hoje();
+  let u = null;
+  lancamentosVistos().forEach(function (l) { if (l.tipo === 'entrada' && l.data <= h && (!u || l.data > u)) u = l.data; });
+  return u;
+}
+/** v63: "1 a 25 de novembro" — a janela que o número está somando, escrita por extenso. */
+function janelaEscrita(de, ate) {
+  const h = hoje(), fim = ate > h ? h : ate;
+  if (de === fim) return 'só ' + dataCurta(de);
+  return mesDe(de) === mesDe(fim) ? diaDe(de) + ' a ' + diaDe(fim) + ' de ' + MESES[Number(fim.slice(5, 7)) - 1]
+    : dataCurta(de) + ' a ' + dataCurta(fim);
+}
 function somaDias(data, k) { const x = dataDe(data); return iso(new Date(x.getFullYear(), x.getMonth(), x.getDate() + k)); }
 function periodoPainel(tipo, desloca) {
   const h = hoje();
@@ -2400,6 +2459,16 @@ function periodoPainel(tipo, desloca) {
     let c = cicloDe(h);
     for (let i = 0; i < -desloca; i++) c = cicloDe(somaDias(c.de, -1));
     return { de: c.de, ate: c.ate, nome: c.nome, este: 'desde o salário', esse: 'no ciclo', passado: 'o ciclo passado', naPassado: 'No ciclo passado' };
+  }
+  if (tipo === 'livre') {
+    /* v63 (25/11, pedido dele): "esses 940 entraram desde que dia?" e "o cara falou que ia me
+       pagar no sábado, eu recebendo na quarta". A renda por diária não respeita o mês: ele
+       escolhe de onde começar a somar, até hoje. A setinha anda janelas do MESMO tamanho. */
+    const desde = desdePainel(), tam = Math.round((dataDe(h) - dataDe(desde)) / 86400000) + 1;
+    const de = somaDias(desde, tam * desloca), ate = somaDias(h, tam * desloca);
+    const nome = desloca === 0 ? (de === h ? 'Só hoje' : 'De ' + dataCurta(de) + ' até hoje') : 'De ' + dataCurta(de) + ' a ' + dataCurta(ate);
+    return { de: de, ate: ate, nome: nome, este: 'desde ' + dataCurta(de), esse: 'no período', passado: 'o período anterior',
+      naPassado: 'No período anterior, do mesmo tamanho' };
   }
   const m = mesSomado(mesDe(h), desloca);
   return { de: m + '-01', ate: m + '-' + p2(diasNoMes(m)), nome: MESES[Number(m.slice(5, 7)) - 1] + ' de ' + m.slice(0, 4),
@@ -2495,7 +2564,7 @@ function telaPainel() {
   /* v49: o período em curso compara-se com o anterior ATÉ O MESMO PONTO. Metade de novembro
      contra outubro inteiro dizia "entrou 47% a menos" a meio do mês: falso alarme. */
   let A = Ainteiro;
-  if (atual) {
+  if (atual && pnPeriodo !== 'livre') {   // v63: no "Desde…" a janela anterior já tem o mesmo tamanho
     const k = Math.round((dataDe(hoje()) - dataDe(P.de)) / 86400000), ateA = somaDias(Ainteiro.de, k);
     if (ateA < Ainteiro.ate) A = Object.assign({}, Ainteiro, { ate: ateA,
       comp: pnPeriodo === 'semana' ? 'o mesmo dia da semana passada' : pnPeriodo === 'mes' ? 'o mês passado até o dia ' + diaDe(ateA) : 'o ciclo passado no mesmo ponto',
@@ -2504,7 +2573,7 @@ function telaPainel() {
   const g = gastosDoPeriodo(P.de, P.ate), ga = gastosDoPeriodo(A.de, A.ate);
   const entrou = resumoEntre(P.de, P.ate).entradas, sobrou = entrou - g.total;
 
-  const pilulas = [['semana', 'Semana'], ['mes', 'Mês']].concat(cicloLigado() ? [['ciclo', 'Ciclo do salário']] : [])
+  const pilulas = [['semana', 'Semana'], ['mes', 'Mês']].concat(cicloLigado() ? [['ciclo', 'Ciclo do salário']] : []).concat([['livre', 'Desde o dia']])
     .map(function (o) {
       const on = o[0] === pnPeriodo;
       return '<button type="button" class="' + (on ? 'activo' : '') + '" aria-pressed="' + on + '" data-acao="pn-periodo" data-ref="' + o[0] + '">' + o[1] + '</button>';
@@ -2513,6 +2582,14 @@ function telaPainel() {
     '<div class="pn-datas"><button class="pn-seta" data-acao="pn-volta" aria-label="Período anterior">' + icone('voltar') + '</button>' +
     '<span>' + esc(P.nome) + '</span>' +
     '<button class="pn-seta" data-acao="pn-avanca" aria-label="Período seguinte"' + (atual ? ' disabled' : '') + '>' + icone('avancar') + '</button></div>' +
+    // v63: no "Desde…", o seletor de data do próprio aparelho (sem teclado) e o atalho do dia em que o dinheiro caiu.
+    (pnPeriodo === 'livre' ? (function () {
+      const u = ultimaEntrada();
+      return '<div class="pn-desde"><label>Começar a somar em <input type="date" id="pn-desde" value="' + desdePainel() + '" max="' + hoje() + '"></label>' +
+        (u ? '<button type="button" class="pn-ultima" data-acao="pn-ultima" data-ref="' + u + '">Desde a última entrada <small>' + esc(dataCurta(u)) + '</small></button>' : '') + '</div>';
+    })() : '') +
+    // v63: "esses 940 entraram desde que dia?" — a janela dos quatro números, escrita UMA vez (v60: repetir 4× era ruído).
+    '<p class="pn-janela">Somando <b>' + esc(janelaEscrita(P.de, P.ate)) + '</b></p>' +
     // v58: a Leitura do Vero também no Painel (uma frase, calma, que muda com o período)
     '<p class="v3-leitura so-pc"><i></i><b>Leitura do Vero:</b> ' + leituraPainel(g, ga, atual) + '</p></div>';
 
@@ -3491,6 +3568,10 @@ function pintarValor() {
     b.classList.toggle('activo', ativo);
     b.setAttribute('aria-pressed', ativo);
   });
+  /* v64 (25/11, pedido dele: "o botão de saiu e entrou deve estar na cor estrategicamente pensada,
+     o verde e o vermelho"). A cor é o MODO da folha: só o seletor e o botão de lançar. Nunca o
+     saldo, o histórico ou o total (Olafsson & Pagel: saldo negativo afasta; a cor aqui diz a direção). */
+  document.getElementById('folha-lancar').dataset.modo = tipoFolha;
   const ok = document.getElementById('lancar-confirmar');
   ok.dataset.lancar = tipoFolha;
   ok.disabled = c === 0;
@@ -4346,6 +4427,19 @@ document.getElementById('teclado').addEventListener('click', function (ev) {
   }
   document.addEventListener('pointerdown', function (ev) {
     fecharLupa();
+    // v63: segurar o dedo num dia do calendário liga o "Somar dias" e marca esse dia.
+    const dia = ev.target.closest && ev.target.closest('.mes-cal .cal [data-acao="dia-abrir"]');
+    if (dia && ev.pointerType !== 'mouse') {
+      x0 = ev.clientX; y0 = ev.clientY; segurou = false;
+      const ref = dia.dataset.ref;
+      relogio = setTimeout(function () {
+        relogio = null; segurou = true; selModo = true;
+        if (selDias.indexOf(ref) < 0) alternarSelDia(ref);
+        try { if (navigator.vibrate) navigator.vibrate(10); } catch (e3) {}
+        desenhar();
+      }, 450);
+      return;
+    }
     const b = ev.target.closest && ev.target.closest('.item[data-ref]');
     if (!b || ev.pointerType === 'mouse') return;
     alvo = b; x0 = ev.clientX; y0 = ev.clientY; segurou = false;
@@ -4359,7 +4453,7 @@ document.getElementById('teclado').addEventListener('click', function (ev) {
   });
   // quem segurou só queria ler: o toque que acaba a seguir não abre a folha de corrigir
   document.addEventListener('click', function (ev) {
-    if (segurou && ev.target.closest && ev.target.closest('.item')) { ev.preventDefault(); ev.stopPropagation(); }
+    if (segurou && ev.target.closest && ev.target.closest('.item, .mes-cal .d')) { ev.preventDefault(); ev.stopPropagation(); }
     segurou = false;
   }, true);
   window.addEventListener('scroll', fecharLupa, { passive: true, capture: true });
@@ -4376,6 +4470,7 @@ document.addEventListener('click', function (ev) {
     case 'pn-periodo':      pnPeriodo = ref; pnDesloca = 0; return desenhar();
     case 'pn-volta':        pnDesloca--; return desenhar();
     case 'pn-avanca':       pnDesloca = Math.min(0, pnDesloca + 1); return desenhar();
+    case 'pn-ultima':       S.config.pnDesde = ref; pnPeriodo = 'livre'; pnDesloca = 0; guardar(); return desenhar();
     case 'nova-conta':      return novaConta();
     case 'novo-emprestimo': return novoEmprestimo(ref);
     case 'pagar':           return pagarConta(ref);
@@ -4461,7 +4556,12 @@ document.addEventListener('click', function (ev) {
     case 'inicio-filtro':
       inicioFiltro = ref;
       return desenhar();
-    case 'dia-abrir':       return abrirDia(ref);
+    case 'dia-abrir':
+      // v63: Ctrl+clique (⌘ no Mac) ou o modo "Somar dias" marcam o dia em vez de o abrir.
+      if (ev.ctrlKey || ev.metaKey || selModo) { ev.preventDefault(); alternarSelDia(ref); return desenhar(); }
+      return abrirDia(ref);
+    case 'cal-somar':       selModo = !selModo; return desenhar();
+    case 'cal-limpar':      selDias = []; selModo = false; return desenhar();
     case 'cal-mes':         return mudarMesCal(ref);
     case 'apagar-lembrete': return apagarLembrete(ref);
     case 'dia-ver':
@@ -4517,6 +4617,13 @@ document.addEventListener('input', function (ev) {
   }
 });
 document.addEventListener('change', function (ev) {
+  // v63: o "Desde…" do Painel. Data vazia ou no futuro não muda nada.
+  if (ev.target.id === 'pn-desde') {
+    const v = ev.target.value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '') || v > hoje()) return;
+    S.config.pnDesde = v; pnDesloca = 0; guardar();
+    return desenhar();
+  }
   if (ev.target.id === 'inicio-dia') {
     if (!ev.target.value) return;
     inicioDia = ev.target.value;

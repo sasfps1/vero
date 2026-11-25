@@ -2423,3 +2423,47 @@ body { background-color: var(--chao); }
    por dentro, com o título preso em cima. A curva do mês saiu do herói para dar lugar a ela. */
 .painel.inicio.v3 .v3-hoje .v2-lista { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(var(--ac-rgb), 0.35) transparent; }
 .painel.inicio.v3 .v3-hoje .v2-lista-cabeca { position: sticky; top: 0; z-index: 1; background: var(--cartao-fundo); }
+
+/* ── v63 · 25/11 · SOMAR OS DIAS QUE EU ESCOLHER ─────────────────────────────────────────
+   Pedido dele: Ctrl+clique (PC) ou "Somar dias"/segurar o dedo (celular) marca dias e soma.
+   Marca: nenhuma cor nova. Dia marcado = contorno do acento + fundo do acento (forma, não cor).
+   O sobrou do dia vai com sinal; o negativo NÃO fica vermelho (o vermelho é só da Contenção). */
+.cal-somar { border: 1px solid rgba(var(--ac-rgb), 0.35); background: transparent; color: var(--acento); font: inherit; font-size: 13px; font-weight: 700;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; min-height: 32px; margin-left: 6px; white-space: nowrap; }
+.cal-somar.activo { background: var(--acento); color: var(--cartao-fundo); border-color: var(--acento); }
+.mes-cal .cal button.d.sel, body .painel.inicio.v3 .v3-dir .mes-cal .cal button.d.sel {
+  outline: 2px solid var(--acento) !important; outline-offset: -2px; background: rgba(var(--ac-rgb), 0.22) !important; color: var(--t1) !important; }
+.mes-cal .cal.a-somar button.d { cursor: copy; }
+.cal-v.neg { font-weight: 700; }
+.cal-soma { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(var(--ac-rgb), 0.10); border: 1px solid rgba(var(--ac-rgb), 0.22); }
+.cal-soma-topo { display: flex; align-items: baseline; gap: 8px; }
+.cal-soma-topo b { font-size: 14px; color: var(--t1); }
+.cal-soma-topo span { flex: 1; min-width: 0; font-size: 12.5px; color: var(--t2); overflow-wrap: anywhere; }
+.cal-soma-limpar { border: 0; background: none; color: var(--acento); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 4px 2px; }
+.cal-soma-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.cal-soma-nums > div { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: 10px; background: rgba(var(--t1-rgb), 0.04); }
+.cal-soma-nums span { font-size: 11.5px; font-weight: 600; color: var(--t2); }
+.cal-soma-nums b { font-size: 15px; font-weight: 700; color: var(--t1); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cal-soma-nums .cal-soma-sobrou { outline: 1px solid rgba(var(--ac-rgb), 0.45); outline-offset: -1px; }
+
+/* Painel: "Desde…" e a janela escrita por cima dos quatro números. */
+.pn-desde { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; font-size: 14px; color: var(--t2); }
+.pn-desde label { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.pn-desde input[type="date"] { font: inherit; font-size: 14.5px; color: var(--t1); background: rgba(var(--t1-rgb), 0.05); border: 1px solid rgba(var(--ac-rgb), 0.3);
+  border-radius: 10px; padding: 6px 10px; min-height: 38px; color-scheme: light dark; }
+.pn-ultima { border: 1px solid rgba(var(--ac-rgb), 0.35); background: transparent; color: var(--acento); font: inherit; font-size: 13.5px; font-weight: 700;
+  padding: 7px 12px; border-radius: 999px; cursor: pointer; min-height: 38px; }
+.pn-ultima small { font-weight: 600; color: var(--t2); margin-left: 4px; }
+.pn-janela { margin: 8px 0 0; font-size: 13.5px; color: var(--t2); }
+.pn-janela b { color: var(--t1); font-weight: 700; }
+
+/* ── v64 · 25/11 · VERDE QUANDO ENTRA, VERMELHO QUANDO SAI (só na folha de lançar) ──────────
+   Pedido dele. A cor marca o MODO: o seletor ativo e o botão de lançar. O vermelho é o MESMO
+   da Contenção (#FF453A): o app continua com um vermelho só. Texto navy nos dois: contraste
+   medido ~5,5:1 no vermelho e ~8:1 no verde (branco no vermelho dava 3,4:1, abaixo do mínimo).
+   As setas ↗ ↙ ficam: quem não distingue a cor reconhece pela forma. */
+:root { --modo-saida: #FF453A; --modo-entrada: #22C55E; --modo-texto: #05113B; }
+#folha-lancar[data-modo="saida"] .tipo-seg button.activo { background: var(--modo-saida); color: var(--modo-texto); font-weight: 700; }
+#folha-lancar[data-modo="entrada"] .tipo-seg button.activo { background: var(--modo-entrada); color: var(--modo-texto); font-weight: 700; }
+#folha-lancar[data-modo="saida"] #lancar-confirmar:not(:disabled) { background: var(--modo-saida) !important; color: var(--modo-texto) !important; border-color: var(--modo-saida) !important; }
+#folha-lancar[data-modo="entrada"] #lancar-confirmar:not(:disabled) { background: var(--modo-entrada) !important; color: var(--modo-texto) !important; border-color: var(--modo-entrada) !important; }
