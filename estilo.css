@@ -2539,3 +2539,24 @@ body { background-color: var(--chao); }
   .tela-grade.casa > .casa-topo, .tela-grade.casa > .casa-gaveta { grid-column: 1 / -1; }
 }
 .casa-gaveta { border-radius: 22px; border: 1px solid rgba(var(--ac-rgb), 0.12); }
+
+
+/* ── v70 · 25/11 · METAL ESCOVADO (escolha dele, "B"; estudo em _propostas/2026-11-25-premium-*) ──
+   Só no tema escuro. Borda de 1px em gradiente (creme .34 em cima → .16), filete interno, sombras
+   em camadas da mesma luz, grão .05 e listras finas de metal; números com relevo de 1px, nunca mais.
+   Atalhos em pílula (ele: "não gosto de cantos"). No iPhone o squircle cai para o raio normal. */
+:root:not([data-tema="claro"]) .bloco, :root:not([data-tema="claro"]) .v2-atalho { position: relative; }
+:root:not([data-tema="claro"]) .bloco:not(.he), :root:not([data-tema="claro"]) .v2-atalho { border-color: transparent !important; box-shadow: 0 1px 0 rgba(242,235,210,.12) inset, 0 -1px 0 rgba(0,0,0,.3) inset, inset 0 0 0 2px rgba(242,235,210,.05), 0 4px 8px rgba(2,6,23,.35), 0 20px 40px rgba(2,6,23,.45) !important; }
+:root:not([data-tema="claro"]) .bloco:not(.he):not(.v2-heroi):not(.v3-heroi), :root:not([data-tema="claro"]) .v2-atalho { background: repeating-linear-gradient(180deg, rgba(242,235,210,.02) 0 1px, transparent 1px 3px), linear-gradient(180deg, #13203F, #0A1430) !important; }
+:root:not([data-tema="claro"]) .bloco { border-radius: 24px; }
+@supports (corner-shape: squircle) { :root:not([data-tema="claro"]) .bloco { corner-shape: squircle; border-radius: 34px; } }
+:root:not([data-tema="claro"]) .v2-atalho { border-radius: 999px !important; padding-left: 20px !important; }
+:root:not([data-tema="claro"]) .bloco:not(.he)::after, :root:not([data-tema="claro"]) .v2-atalho::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(242,235,210,.34), rgba(242,235,210,.16) 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+:root:not([data-tema="claro"]) .bloco:not(.he)::before, :root:not([data-tema="claro"]) .v2-atalho::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); opacity: .16; mix-blend-mode: overlay; }
+:root:not([data-tema="claro"]) .v2-numero, :root:not([data-tema="claro"]) .v2-numero *, :root:not([data-tema="claro"]) .v3-numero, :root:not([data-tema="claro"]) .v3-numero *, :root:not([data-tema="claro"]) .numero-grande, :root:not([data-tema="claro"]) .numero-grande * { text-shadow: 0 1px 0 rgba(255,255,255,.10), 0 -1px 0 rgba(0,0,0,.45); }
+@media (min-width: 1180px) and (min-height: 600px) {
+  /* no PC os atalhos ficam lado a lado numa coluna estreita: pílula espremia o texto e empurrava a lista */
+  :root:not([data-tema="claro"]) .v2-atalho { border-radius: 18px !important; padding-left: revert !important; }
+}
