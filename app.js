@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 65;
+const VERSAO = 66;
 let soMemoria = false;
 
 const VAZIO = {
@@ -1686,8 +1686,12 @@ function atalhosHtml() {
 function repetirLancamento(ref) {
   const o = S.lancamentos.find(function (x) { return x.id === ref; });
   if (!o) return;
-  const l = { id: id(), tipo: o.tipo, centavos: o.centavos, data: hoje(), nota: o.nota, categoria: o.categoria || '',
+  // v66: a cópia leva a categoria (ou a que a descrição pede, se o original não tinha) e o
+  // básico/gosto; antes ficava sem os dois e caía nas categorias picadas.
+  const cat = o.categoria || (o.tipo === 'saida' ? categoriaParaNota(o.nota) : categoriaAprendida(o.nota)) || '';
+  const l = { id: id(), tipo: o.tipo, centavos: o.centavos, data: hoje(), nota: o.nota, categoria: cat,
     conta: null, emprestimo: null, em: Date.now(), vaga: o.vaga };
+  if (o.tipo === 'saida' && (o.natureza === 'emocao' || o.natureza === 'necessario')) l.natureza = o.natureza;
   S.lancamentos.push(l);
   guardar();
   desenhar();
@@ -3282,18 +3286,34 @@ let naturezaFolha = 'necessario', naturezaEscolhida = false;
 /** "gastei 50 de gasolina ontem" -> { centavos: 5000, nota: 'Gasolina', data: ontem }.
     Não tem IA e não custa nada: lançar precisa funcionar sem sinal.
     ⚠️ Sem lookbehind na expressão: um iPhone antigo recusaria o ficheiro inteiro. */
-function lerFrase(texto) {
-  let t = String(texto || '').replace(/\s+/g, ' ').trim(), data = hoje();
-  if (/\banteontem\b/i.test(t)) { data = dataMais(-2); t = t.replace(/\banteontem\b/gi, ' '); }
-  else if (/\bontem\b/i.test(t)) { data = dataMais(-1); t = t.replace(/\bontem\b/gi, ' '); }
-  else t = t.replace(/\bhoje\b/gi, ' ');
+function lerFrase(texto, listaCarteiras) {
+  let t = String(texto || '').replace(/\s+/g, ' ').trim(), data = hoje(), temData = false;
+  if (/\banteontem\b/i.test(t)) { data = dataMais(-2); temData = true; t = t.replace(/\banteontem\b/gi, ' '); }
+  else if (/\bontem\b/i.test(t)) { data = dataMais(-1); temData = true; t = t.replace(/\bontem\b/gi, ' '); }
+  else if (/\bhoje\b/i.test(t)) { temData = true; t = t.replace(/\bhoje\b/gi, ' '); }
+
+  /* v66 (25/11): "recebi 90 da corrida" já é uma ENTRADA. O verbo é lido aqui, antes de a
+     descrição o apagar. Sem lookbehind: um iPhone antigo recusaria o arquivo inteiro. */
+  const tipo = /(^|[^a-z\u00e0-\u00fa])(entrou|recebi|ganhei)([^a-z\u00e0-\u00fa]|$)/i.test(t) ? 'entrada' : '';
+
+  /* v66: o nome de uma carteira da casa ("gasolina 50 da Ana") escolhe de quem é e sai da
+     descrição. Nome inteiro, sem ligar para maiúsculas: "Ana" não casa dentro de "banana". */
+  let vaga = '';
+  const lista = listaCarteiras || carteiras();
+  for (const c of lista) {
+    const nome = String((c && c.nome) || '').trim();
+    if (!nome) continue;
+    const re = new RegExp('(^|[^a-z0-9\u00e0-\u00fa])' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[^a-z0-9\u00e0-\u00fa]|$)', 'i');
+    const m = re.exec(t);
+    if (m) { vaga = c.id; t = t.slice(0, m.index) + m[1] + ' ' + t.slice(m.index + m[0].length); break; }
+  }
 
   const marcaDia = /\b(?:no )?dia (\d{1,2})\b/i.exec(t);
   if (marcaDia) {
     const d = Number(marcaDia[1]), agora = hoje();
     const mes = d <= diaDe(agora) ? mesDe(agora) : mesSomado(mesDe(agora), -1);
     if (d >= 1 && d <= diasNoMes(mes)) {
-      data = mes + '-' + p2(d);
+      data = mes + '-' + p2(d); temData = true;
       t = t.replace(marcaDia[0], ' ');
     }
   }
@@ -3320,15 +3340,31 @@ function lerFrase(texto) {
   const solta = /^(de|do|da|dos|das|com|em|no|na|por|pra|para|o|a|os|as|um|uma)\s+/i;
   while (solta.test(nota)) nota = nota.replace(solta, '');
   nota = nota.replace(/\s+(de|do|da|com|em|no|na|por|pra|para)$/i, '').slice(0, 120);
-  return { centavos: centavos, nota: nota ? nota[0].toUpperCase() + nota.slice(1) : '', data: data };
+  return { centavos: centavos, nota: nota ? nota[0].toUpperCase() + nota.slice(1) : '', data: data, temData: temData, tipo: tipo, vaga: vaga };
 }
+
+/** v66 (25/11, medido: 63% do que ele lança entre 0h e 4h é do dia que passou): de
+    madrugada o lançamento novo já abre em "Ontem". Fora desse horário, hoje. */
+function dataPadraoNova(hora) {
+  const h = typeof hora === 'number' ? hora : new Date().getHours();
+  return h >= 0 && h < 5 ? dataMais(-1) : hoje();
+}
+let tipoPelaFrase = false, donoAntesDaFrase = '';
 
 function preencherDaFrase(texto) {
   const f = lerFrase(texto);
   if (f.centavos) { digitos = String(f.centavos); valorDaFrase = true; }
   else if (valorDaFrase) { digitos = ''; valorDaFrase = false; }
   document.getElementById('lancar-nota').value = f.nota;
-  document.getElementById('lancar-data').value = f.data;
+  // v66: sem data dita na frase, fica a data padrão (de madrugada, ontem), não "hoje".
+  document.getElementById('lancar-data').value = f.temData ? f.data : dataPadraoNova();
+  // v66: "recebi/entrou/ganhei" liga o Entrou; se o verbo sair da frase, volta a Saiu.
+  if (f.tipo === 'entrada') { if (tipoFolha !== 'entrada') { tipoFolha = 'entrada'; tipoPelaFrase = true; } }
+  else if (tipoPelaFrase) { tipoFolha = 'saida'; tipoPelaFrase = false; }
+  // v66: o nome de uma carteira escolhe o dono; se o nome sair da frase, volta o de antes.
+  const donoSel = document.getElementById('lancar-dono');
+  if (f.vaga && haContas() && donoSel) { if (!donoAntesDaFrase) donoAntesDaFrase = donoSel.value || '-'; donoSel.value = f.vaga; }
+  else if (donoAntesDaFrase && donoSel) { if (donoAntesDaFrase !== '-') donoSel.value = donoAntesDaFrase; donoAntesDaFrase = ''; }
   if (!categoriaEscolhida) document.getElementById('lancar-categoria').value = categoriaParaNota(f.nota);
   if (!naturezaEscolhida) naturezaFolha = naturezaParaNota(f.nota, document.getElementById('lancar-categoria').value);
   pintarValor();
@@ -3553,7 +3589,8 @@ function abrirFolha(l) {
   const data = document.getElementById('lancar-data');
   document.getElementById('lancar-apagar').hidden = !l;
   // Esquecer de lançar é normal: o gasto de ontem entra com a data de ontem.
-  data.value = l ? l.data : hoje();
+  data.value = l ? l.data : dataPadraoNova();
+  tipoPelaFrase = false; donoAntesDaFrase = '';
   data.max = hoje();
   data.min = '';
   if (l && l.conta) {
@@ -3571,6 +3608,10 @@ function abrirFolha(l) {
   pintarAtalhos(!l);
   pintarValor();
   document.getElementById('folha-lancar').hidden = false;
+  /* v66 (25/11): lançamento novo abre JÁ ouvindo: um toque no "+" e fala. Corre dentro do
+     toque dele (o navegador só libera o microfone assim). Sem voz no aparelho, ou bloqueada
+     (iPhone), fica calado e a folha funciona como antes. */
+  if (!l) { try { ouvir(); } catch (e) { /* segue sem voz */ } }
 }
 function abrirLancar() { abrirFolha(null); }
 
