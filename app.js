@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 68;
+const VERSAO = 69;
 let soMemoria = false;
 
 const VAZIO = {
@@ -746,14 +746,20 @@ function dataDe(s) { const a = s.split('-').map(Number); return new Date(a[0], a
 function mesSomado(mes, d) {
   return iso(new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 1 + d, 1)).slice(0, 7);
 }
+/** v69 (25/11, decisão dele: "não quero criar algo para mim, quero criar algo para todos"):
+    UMA semana para o app inteiro, de domingo a sábado — o padrão do Brasil (CLDR pt-BR: firstDay
+    domingo; calendários de parede e Google Agenda). Explícita, sem depender do Intl do aparelho
+    (iPhone antigo e PC com outro idioma dariam semanas diferentes). Painel, Gastos e o calendário
+    do Início (D S T Q Q S S) usam esta. Antes, Gastos começava na segunda. */
+function semanaDe(ref) {
+  const d = dataDe(ref), de = iso(new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay()));
+  return { de: de, ate: somaDias(de, 6) };
+}
 function intervalo(tipo, ref) {
   if (tipo === 'dia') return { de: ref, ate: ref, nome: rotuloDoDia(ref) };
   if (tipo === 'semana') {
-    // A semana começa na segunda: é assim que a semana de trabalho se lê.
-    const d = dataDe(ref), recua = (d.getDay() + 6) % 7;
-    const de = iso(new Date(d.getFullYear(), d.getMonth(), d.getDate() - recua));
-    const ate = iso(new Date(d.getFullYear(), d.getMonth(), d.getDate() - recua + 6));
-    return { de: de, ate: ate, nome: porExtensoData(de) + ' a ' + porExtensoData(ate) };
+    const w = semanaDe(ref);
+    return { de: w.de, ate: w.ate, nome: porExtensoData(w.de) + ' a ' + porExtensoData(w.ate) };
   }
   if (tipo === 'ano') return { de: ref.slice(0, 4) + '-01-01', ate: ref.slice(0, 4) + '-12-31', nome: ref.slice(0, 4) };
   if (cicloLigado()) return cicloDe(ref);
@@ -1044,7 +1050,7 @@ function desenhar() {
   });
   // v56 (Início v2): "Boa tarde, SAS" e, por baixo, "terça, 17 de novembro".
   const quem = haContas() ? nomeDaVaga(minhaVaga()) : '';
-  document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() + (quem ? ', ' + quem : '') : r === 'ajustes' ? 'Configurações' : r[0].toUpperCase() + r.slice(1);
+  document.getElementById('topo-titulo').textContent = r === 'inicio' ? saudacao() + (quem ? ', ' + quem : '') : r === 'ajustes' ? 'Configurações' : r === 'pessoas' ? 'Casa' : r[0].toUpperCase() + r.slice(1);
   document.getElementById('topo-mes').textContent = r === 'inicio' ? dataDoTopo() : 'Dia ' + diaDe(hoje()) + ' de ' + MESES[Number(n.mes.slice(5, 7)) - 1];
   document.body.classList.toggle('rota-inicio', r === 'inicio');
   // Configurações não mudam de uma conta para a outra: lá o botão só confundiria.
@@ -2491,7 +2497,7 @@ function periodoPainel(tipo, desloca) {
   const h = hoje();
   if (tipo === 'semana') {
     // Domingo a sábado, como o calendário do Início (D S T Q Q S S).
-    const de = somaDias(h, -dataDe(h).getDay() + 7 * desloca), ate = somaDias(de, 6);
+    const w = semanaDe(somaDias(h, 7 * desloca)), de = w.de, ate = w.ate;   // v69: a mesma semana da tela Gastos
     const nome = mesDe(de) === mesDe(ate)
       ? diaDe(de) + ' a ' + diaDe(ate) + ' de ' + MESES[Number(ate.slice(5, 7)) - 1]
       : dataCurta(de) + ' a ' + dataCurta(ate);
@@ -3067,6 +3073,87 @@ function telaPessoas(n) {
     corpo += '<div class="pessoa-cartao"><h2 class="secao"><span class="nome-pessoa">' + esc(nome) + '</span></h2>' + linhas + '</div>';
   }
 
+  return telaCasa(n, corpo);
+}
+
+/* ── A ABA CASA (v69, 25/11; peça do estrategista dele, auditada) ─────────────────────────
+   Pessoas virou Casa. A ordem é a do que a casa precisa saber: (a) como a CASA anda no mês,
+   (b) o acerto das contas divididas, (c) quem é da casa, (d) empréstimos numa gaveta. O tutorial
+   "Como o Vero trata empréstimo" saiu. Nenhum total é somado aqui: tudo vem do resumoEntre,
+   do valorNaVista/faltaDaConta e das marcas de pagamento, como o resto do app. */
+function naVista(v, fn) {
+  const antes = verConta;
+  verConta = v;
+  try { return fn(); } finally { verConta = antes; }
+}
+/** O acerto do casal no mês: quanto cada um devia das contas divididas e quanto pagou. */
+function acertoDoCasal(mes) {
+  const pessoas = {}, ordem = [];
+  const p = function (k, nome) { if (!pessoas[k]) { pessoas[k] = { nome: nome, parte: 0, pagou: 0 }; ordem.push(k); } return pessoas[k]; };
+  let n = 0, total = 0;
+  S.contas.forEach(function (c) {
+    if (!eDividida(c) || !contaValeNoMes(c, mes)) return;
+    n++; total += c.total;
+    const kd = c.vaga || minhaVaga(), ko = vagaDoOutro(c) || 'nome:' + semAcentoMin(nomeOutro(c));
+    const d = p(kd, nomeDaVaga(kd) || 'Você'), o = p(ko, vagaDoOutro(c) ? (nomeDaVaga(ko) || nomeOutro(c)) : nomeOutro(c));
+    d.parte += c.centavos; o.parte += c.total - c.centavos;
+    if (c.pagos && c.pagos[mes]) d.pagou += c.pagos[mes].centavos;
+    if (outroJaPagou(c, mes)) o.pagou += c.total - c.centavos;
+  });
+  const lista = ordem.map(function (k) { return pessoas[k]; });
+  // Quem pagou além da sua parte tem a receber; a diferença é o acerto.
+  const credor = lista.find(function (x) { return x.pagou > x.parte; });
+  const devedor = credor ? lista.find(function (x) { return x !== credor; }) : null;
+  const acerto = credor && devedor ? Math.min(credor.pagou - credor.parte, Math.max(0, devedor.parte - devedor.pagou)) : 0;
+  const falta = lista.reduce(function (a, x) { return a + Math.max(0, x.parte - x.pagou); }, 0);
+  return { contas: n, total: total, pessoas: lista, acerto: acerto, credor: credor && acerto ? credor.nome : '', devedor: devedor && acerto ? devedor.nome : '', falta: falta };
+}
+function telaCasa(n, corpo) {
+  const mes = mesDe(hoje()), de = mes + '-01', h = hoje();
+  // (a) a casa no mês: a vista Total, lida do resumoEntre
+  const r = naVista('todos', function () { return resumoEntre(de, h); }), sob = r.entradas - r.saidas;
+  const topo = '<section class="bloco he casa-topo">' +
+    '<span class="rotulo">A casa em ' + nomeDoMes(mes) + '</span>' +
+    '<div class="numero-grande">' + (sob < 0 ? '−' : sob > 0 ? '+' : '') + numeroGrande(Math.abs(sob)) + '</div>' +
+    '<div class="v3-dois"><div><span>Entrou</span><b>+' + dinheiro(r.entradas) + '</b></div><div><span>Saiu</span><b>−' + dinheiro(r.saidas) + '</b></div></div>' +
+    '<p class="frase">O que sobrou na casa, somando todo mundo, do dia 1 até hoje.</p></section>';
+  // (b) o acerto das contas divididas
+  const a = acertoDoCasal(mes);
+  const acerto = '<section class="bloco casa-acerto"><h2 class="titulo-cartao">Contas divididas <small>· ' + nomeDoMes(mes) + '</small></h2>' +
+    (a.contas ? a.pessoas.map(function (x) {
+        return '<div class="ca-pessoa"><span class="pv-sigla">' + esc(siglaDe(x.nome)) + '</span><span class="ca-nome"><b>' + esc(x.nome) + '</b><small>parte ' + dinheiro(x.parte) + '</small></span>' +
+          '<span class="pv-num"><small>Pagou</small><b>' + dinheiro(x.pagou) + '</b></span></div>';
+      }).join('') +
+      '<p class="ca-acerto">' + (a.acerto ? '<b>' + esc(a.devedor) + '</b> acerta <b>' + dinheiro(a.acerto) + '</b> com <b>' + esc(a.credor) + '</b>.'
+        : a.falta ? 'Ninguém deve ao outro. Ainda falta pagar <b>' + dinheiro(a.falta) + '</b> das contas divididas.' : 'Contas divididas em dia. Ninguém deve ao outro.') + '</p>'
+      : '<p class="frase">Nenhuma conta dividida este mês. Ao cadastrar uma conta, marque "dividir" para ela aparecer aqui.</p>') + '</section>';
+  // (c) quem é da casa: cada carteira, com o resumoEntre da vista dela
+  const lista = carteiras();
+  const quem = '<section class="bloco casa-quem"><h2 class="titulo-cartao">Quem é da casa</h2>' +
+    (haContas() && lista.length ? lista.map(function (c) {
+        const rc = naVista(c.id, function () { return resumoEntre(de, h); });
+        return '<div class="pv-pessoa"><span class="pv-sigla">' + esc(siglaDe(c.nome)) + '</span>' +
+          '<span class="pv-nome"><b>' + esc(c.nome) + '</b><small>' + (c.id === minhaVaga() ? 'você' : c.privada ? 'só a dona vê' : 'da casa') + '</small></span>' +
+          '<span class="pv-num"><small>Entrou</small><b>' + dinheiro(rc.entradas) + '</b></span><span class="pv-num"><small>Saiu</small><b>' + dinheiro(rc.saidas) + '</b></span></div>';
+      }).join('') + '<button class="btn pequeno fraco pv-convite" data-acao="convidar">Convidar alguém da casa</button>'
+      : '<p class="frase">O Vero está só neste aparelho. Com uma conta, quem mora com você lança junto, cada um do seu celular.</p><a class="btn pequeno fraco pv-convite" href="#/ajustes">Criar conta</a>') + '</section>';
+  // (d) empréstimos: uma gaveta; fechada quando está tudo zerado, com o total na linha quando não
+  const aberto = n.aReceber > 0 || n.euDevo > 0;
+  const fechados = S.emprestimos.filter(function (e) { return e.estado !== 'aberto' || falta(e) === 0; });
+  const voltou = fechados.filter(function (e) { return e.direcao === 'emprestei' && e.estado !== 'perdoado'; }).reduce(function (x, e) { return x + (e.centavos || 0); }, 0);
+  const gaveta = '<details class="bloco casa-gaveta"' + (aberto ? ' open' : '') + '><summary><span>Empréstimos</span><small>' +
+      (aberto ? (n.aReceber ? 'a receber ' + dinheiro(n.aReceber) : '') + (n.aReceber && n.euDevo ? ' · ' : '') + (n.euDevo ? 'você deve ' + dinheiro(n.euDevo) : '') : 'nada em aberto') + '</small></summary>' +
+    '<div class="cg-corpo">' +
+      '<div class="cg-nums"><div><span>Têm a devolver a você</span><b>' + dinheiro(n.aReceber) + '</b></div><div><span>Você deve</span><b>' + dinheiro(n.euDevo) + '</b></div></div>' +
+      '<p class="frase">O que emprestou não entra no que sobrou até voltar; o que você deve já sai do que está livre.</p>' +
+      '<div class="cg-botoes"><button class="btn" data-acao="novo-emprestimo" data-ref="emprestei">Emprestei a alguém</button>' +
+        '<button class="btn" data-acao="novo-emprestimo" data-ref="peguei">Peguei com alguém</button></div>' +
+      (corpo ? '<div class="grade-cartoes cg-pessoas">' + corpo + '</div>' : '') +
+      (fechados.length ? '<p class="frase">' + fechados.length + ' ' + (fechados.length === 1 ? 'empréstimo fechado' : 'empréstimos fechados') + (voltou ? ', ' + dinheiro(voltou) + ' voltaram.' : '.') + '</p>' : '') +
+    '</div></details>';
+  return '<div class="tela-grade casa">' + topo + acerto + quem + gaveta + '</div>';
+}
+function telaPessoasAntiga(n, corpo) {   // v68 e antes; guardada para voltar fácil, não é chamada
   return '<div class="tela-grade pessoas"><section class="bloco he">' +
       '<span class="rotulo">Têm a devolver a você</span>' +
       '<div class="numero-grande">' + numeroGrande(n.aReceber) + '</div>' +

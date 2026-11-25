@@ -2499,3 +2499,43 @@ body { background-color: var(--chao); }
 .pn-grade .pn-metas { min-height: 0; }
 .pn-grade .pn-metas .pn-metas-lista { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(var(--ac-rgb), 0.35) transparent; }
 .pn-grade .pn-metas .pn-guardei { flex: none; }
+
+/* ── v69 · 25/11 · A ABA CASA ───────────────────────────────────────────────────────────────
+   Topo (a casa no mês, azul como os outros heróis) · acerto das contas divididas · quem é da
+   casa · empréstimos numa gaveta. No PC: topo inteiro, acerto e quem lado a lado, gaveta embaixo. */
+.tela-grade.casa { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }
+.casa-topo .v3-dois { max-width: 420px; }
+.casa-acerto, .casa-quem { display: flex; flex-direction: column; gap: 10px; }
+.casa-acerto .titulo-cartao small, .casa-quem .titulo-cartao small { font-weight: 500; color: var(--t2, var(--on-surface-muted)); }
+.ca-pessoa { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(var(--ac-rgb), 0.12); }
+.ca-nome { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ca-nome small { font-size: 12.5px; color: var(--t2, var(--on-surface-muted)); }
+.ca-acerto { margin: 4px 0 0; font-size: 14.5px; }
+.casa-quem .pv-convite { align-self: flex-start; }
+.casa-gaveta { padding: 0; }
+.casa-gaveta > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; font-weight: 700; }
+.casa-gaveta > summary::-webkit-details-marker { display: none; }
+.casa-gaveta > summary::after { content: '▾'; color: var(--acento); margin-left: 6px; }
+.casa-gaveta[open] > summary::after { content: '▴'; }
+.casa-gaveta > summary small { flex: 1; text-align: right; font-weight: 600; color: var(--t2, var(--on-surface-muted)); }
+.cg-corpo { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+.cg-nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cg-nums > div { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: rgba(var(--ac-rgb), 0.08); }
+.cg-nums span { font-size: 12px; color: var(--t2, var(--on-surface-muted)); }
+.cg-nums b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.cg-botoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.cg-botoes .btn { flex: 1 1 160px; }
+@media (min-width: 1180px) and (min-height: 600px) {
+  .tela-grade.casa { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; overflow-y: auto; }
+  .tela-grade.casa > .casa-topo, .tela-grade.casa > .casa-gaveta { grid-column: 1 / -1; }
+}
+@media (min-width: 1180px) and (min-height: 600px) {
+  /* a grade genérica das telas do PC dava área "he" ao herói e o empurrava para a 2.ª linha */
+  .tela-grade.casa { grid-template-areas: none; }
+  .tela-grade.casa > .casa-topo { grid-row: 1; grid-area: auto; }
+  .tela-grade.casa > .casa-acerto { grid-row: 2; grid-column: 1; grid-area: auto; }
+  .tela-grade.casa > .casa-quem { grid-row: 2; grid-column: 2; grid-area: auto; }
+  .tela-grade.casa > .casa-gaveta { grid-row: 3; grid-area: auto; }
+  .tela-grade.casa > .casa-topo, .tela-grade.casa > .casa-gaveta { grid-column: 1 / -1; }
+}
+.casa-gaveta { border-radius: 22px; border: 1px solid rgba(var(--ac-rgb), 0.12); }
