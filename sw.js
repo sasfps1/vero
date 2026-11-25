@@ -3,7 +3,7 @@
    versao nova chega sem ficar presa numa cache velha, e um aparelho sem sinal
    abre com a ultima que viu. */
 
-const CACHE = 'vero-v66';
+const CACHE = 'vero-v67';
 const BASE = ['./', './index.html', './estilo.css', './app.js', './sync.js', './rede.js', './manifest.webmanifest', './icone.svg', './icone-192.png', './icone-512.png'];
 const BIBLIOTECA = 'https://cdn.jsdelivr.net/npm/@supabase/';
 

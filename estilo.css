@@ -2474,3 +2474,9 @@ body { background-color: var(--chao); }
 .c-pagas-tit { margin: 14px 0 6px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--t2, var(--on-surface-muted)); }
 .c-pagas .linha.recolhida { padding-top: 6px; padding-bottom: 6px; min-height: 0; opacity: .78; }
 .c-pagas .linha.recolhida .sub { font-size: 12px; }
+
+/* ── v67 · 25/11 · NOMES LONGOS SEM CORTE ────────────────────────────────────────────────
+   "Moradia - metade Gilberto…" era cortado com reticências numa linha só. Agora quebra em até
+   duas linhas, sem reticência: o nome inteiro é a informação. */
+.destino-nome { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; min-width: 0; }
+.vence-nome { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; align-items: flex-start; min-width: 0; }

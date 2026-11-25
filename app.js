@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 66;
+const VERSAO = 67;
 let soMemoria = false;
 
 const VAZIO = {
@@ -466,7 +466,9 @@ function gastoPorDiaEntre(de, ate) {
   const dias = [];
   for (let d = de; d <= ate; d = diaSeguinte(d)) dias.push({ data: d, v: 0 });
   const pos = {}; dias.forEach(function (x, i) { pos[x.data] = i; });
+  const umDia = de === ate;   // v67: num dia só, a mesma exclusão do resumoEntre
   for (const l of lancamentosVistos()) {
+    if (umDia && l.conta) continue;
     if (l.tipo === 'saida' && pos[l.data] !== undefined) dias[pos[l.data]].v += l.centavos;
   }
   return dias;
@@ -521,6 +523,8 @@ const CAT_ENTRADA = ['Salário', 'Serviços', 'Freelance', 'Vendas', 'Reembolso'
 const PISTAS = [
   [/mercado|feira|compras?\b|padaria|a[cç]ougue/, 'Mercado'],
   [/lanche|comida|almo[cç]o|jantar|pizza|caf[eé]|restaurante/, 'Alimentação'],
+  // v67 (25/11): o que se compra na rua, num balcão; antes caía sem categoria e picava a lista.
+  [/pa[cç]oca|bolacha|chocolate|\bdoces?\b|sorvete|a[cç]a[ií]|refri/, 'Alimentação'],
   [/gasolina|combust|posto|[aá]lcool|uber|[oô]nibus|moto\b|oficina|pneu|mec[aâ]nico/, 'Transporte'],
   [/farm[aá]cia|rem[eé]dio|m[eé]dico|dentista|consulta/, 'Saúde'],
   [/aluguel|condom[ií]nio|\bluz\b|energia|[aá]gua|internet|wi-?fi|\bg[aá]s\b/, 'Moradia'],
@@ -560,7 +564,7 @@ function categoriaParaNota(nota) { return categoriaAprendida(nota) || categoriaS
    l.natureza: 'necessario' | 'emocao' (sem marca = deduzido pela pista, nunca gravado).
    l.ocasiao: texto livre curto ("Festa do fim de semana"); atravessa categorias.
    A natureza aprende como a categoria (v45): o que ele já marcou para a mesma descrição. */
-const PISTA_EMOCAO = /chocolate|doce|bombom|sorvete|refri|cerveja|bebida|vinho|festa|balada|\bbar\b|a[cç]a[ií]|cinema|presente|aposta|\bbet\b/;
+const PISTA_EMOCAO = /pa[cç]oca|bolacha|chocolate|doce|bombom|sorvete|refri|cerveja|bebida|vinho|festa|balada|\bbar\b|a[cç]a[ií]|cinema|presente|aposta|\bbet\b/;
 function naturezaDe(l) {
   if (l.natureza === 'emocao' || l.natureza === 'necessario') return l.natureza;
   if (l.tipo !== 'saida' || l.conta || l.emprestimo) return 'necessario';
@@ -622,7 +626,8 @@ function paraOndeEntre(de, ate) {
   for (const l of lancamentosVistos()) {
     if (l.tipo !== 'saida' || l.data < de || l.data > ate) continue;
     total += l.centavos;
-    const nome = categoriaDe(l) || String(l.nota || '').trim() || 'Sem nome';
+    // v67: sem categoria vai para "Sem categoria", como no Painel; a descrição nunca vira categoria.
+    const nome = categoriaDe(l) || 'Sem categoria';
     const chave = nome.toLowerCase();
     const g = porNome[chave] || (porNome[chave] = { nome: nome, centavos: 0, vezes: 0 });
     g.centavos += l.centavos;
@@ -2503,8 +2508,10 @@ function custoDeTrabalhoPainel(g) {
 function gastosDoPeriodo(de, ate) {
   const cats = {};
   let total = 0, emocao = 0, semMarca = 0;
+  const umDia = de === ate;   // v67: a mesma regra do resumoEntre — num dia só, a conta fixa fica fora
   for (const l of lancamentosVistos()) {
     if (l.tipo !== 'saida' || l.data < de || l.data > ate) continue;
+    if (umDia && l.conta) continue;
     const nome = categoriaDe(l) || 'Sem categoria', k = nome.toLowerCase();
     const g = cats[k] || (cats[k] = { nome: nome, centavos: 0, emocao: 0, notas: {} });
     g.centavos += l.centavos; total += l.centavos;
@@ -2526,7 +2533,7 @@ function ocasioesEntre(de, ate) {
     x.centavos += l.centavos;
     if (l.data < x.de) x.de = l.data;
     if (l.data > x.ate) x.ate = l.data;
-    const c = categoriaDe(l) || String(l.nota || '').trim() || 'Outros';
+    const c = categoriaDe(l) || 'Sem categoria';   // v67: a descrição nunca vira categoria
     x.cats[c] = (x.cats[c] || 0) + l.centavos;
     if (naturezaDe(l) === 'emocao') x.emo[c] = (x.emo[c] || 0) + l.centavos;
   }
@@ -2771,24 +2778,43 @@ function kpiPainel(rotulo, agora, antes, bomSubir, A, comSinal) {
 
 /** As contas do mês do período num anel: quantas já foram pagas. */
 function contasPainel(P) {
-  const mes = mesDe(P.ate);
-  const lista = contasVistas().filter(function (c) {
-    return contaValeNoMes(c, mes);
-  });
-  if (!lista.length) return '';
-  let pagas = 0, total = 0, pago = 0;
-  lista.forEach(function (c) {
-    const v = valorNaVista(c), f = faltaDaConta(c, mes);
-    total += v; pago += v - f; if (f === 0) pagas++;
-  });
+  const h = hoje();
+  let mes = mesDe(P.ate), lista, pagas = 0, total = 0, pago = 0, falta = 0, deAntes = 0, titulo;
+  if (P.de <= h && h <= P.ate) {
+    /* v67 (25/11, um número, uma fonte): o período que tem hoje mostra o MESMO que a tela Contas
+       e o calc(): as contas do ciclo de hoje (contasDoCiclo) e as atrasadas (contasAtrasadas).
+       Antes o Painel contava pelo mês do fim do período: numa semana que virava o mês, ou com o
+       "Começo do mês" ligado, os dois diziam números diferentes. */
+    lista = contasVistas().filter(function (c) { return contaValeNoMes(c, mesDaContaNoCiclo(c)); });
+    const pend = contasDoCiclo(), atras = contasAtrasadas();
+    if (!lista.length && !atras.length) return '';
+    lista.forEach(function (c) { total += valorNaVista(c); });
+    const faltaCiclo = pend.reduce(function (a, x) { return a + x.centavos; }, 0);
+    pago = Math.max(0, total - faltaCiclo);
+    pagas = Math.max(0, lista.length - pend.length);
+    deAntes = atras.length;
+    falta = faltaCiclo + atras.reduce(function (a, x) { return a + x.centavos; }, 0);
+    mes = mesDe(h);
+    titulo = cicloLigado() ? 'Contas do ciclo' : 'Contas de ' + MESES[Number(mes.slice(5, 7)) - 1];
+  } else {
+    // Período passado: o retrato daquele mês, como era.
+    lista = contasVistas().filter(function (c) { return contaValeNoMes(c, mes); });
+    if (!lista.length) return '';
+    lista.forEach(function (c) {
+      const v = valorNaVista(c), f = faltaDaConta(c, mes);
+      total += v; pago += v - f; if (f === 0) pagas++;
+    });
+    falta = total - pago;
+    titulo = 'Contas de ' + MESES[Number(mes.slice(5, 7)) - 1];
+  }
   const pct = total ? Math.round(pago * 100 / total) : 0, r = 34, vol = 2 * Math.PI * r;
-  return '<section class="bloco pn-contas"><h2 class="pn-titulo">Contas de ' + MESES[Number(mes.slice(5, 7)) - 1] + '</h2>' +
+  return '<section class="bloco pn-contas"><h2 class="pn-titulo">' + titulo + '</h2>' +
     '<div class="pn-contas-corpo"><svg class="pn-anel" viewBox="0 0 84 84" role="img" aria-label="' + pct + '% das contas pagas">' +
       '<circle cx="42" cy="42" r="' + r + '" class="pn-anel-fundo"></circle>' +
       '<circle cx="42" cy="42" r="' + r + '" class="pn-anel-cheio" stroke-dasharray="' + (vol * pct / 100).toFixed(1) + ' ' + vol.toFixed(1) + '" transform="rotate(-90 42 42)"></circle>' +
       '<text x="42" y="47" text-anchor="middle">' + pct + '%</text></svg>' +
     '<div><strong>' + pagas + ' de ' + lista.length + ' pagas</strong><small>' + dinheiro(pago) + ' de ' + dinheiro(total) + '</small>' +
-      '<small>Falta ' + dinheiro(total - pago) + '</small></div></div>' +
+      '<small>Falta ' + dinheiro(falta) + (deAntes ? ' (com ' + deAntes + (deAntes === 1 ? ' de antes)' : ' de antes)') : '') + '</small></div></div>' +
     '<a class="ver-todos" href="#/contas">Ver as contas</a></section>';
 }
 
@@ -2812,8 +2838,8 @@ function roscaPainel(linhas, total) {
 function acumuladoEntre(de, ate, parar) {
   const dias = [];
   for (let d = de; d <= ate; d = diaSeguinte(d)) dias.push(d);
-  const por = {};
-  lancamentosVistos().forEach(function (l) { if (l.tipo === 'saida' && l.data >= de && l.data <= ate) por[l.data] = (por[l.data] || 0) + l.centavos; });
+  const por = {}, umDia = de === ate;   // v67: o ritmo de um dia só bate com o "Sobrou hoje"
+  lancamentosVistos().forEach(function (l) { if (l.tipo === 'saida' && l.data >= de && l.data <= ate && !(umDia && l.conta)) por[l.data] = (por[l.data] || 0) + l.centavos; });
   let soma = 0;
   return dias.map(function (d) { soma += por[d] || 0; return { data: d, v: soma, futuro: !!(parar && d > parar) }; });
 }
