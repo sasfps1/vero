@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 72;
+const VERSAO = 73;
 let soMemoria = false;
 
 const VAZIO = {
@@ -2301,7 +2301,8 @@ function abrirDia(data) {
     html += '<div class="dia-lista">' + ag.map(function (a) {
       const rep = a.repete === 'ano' ? 'todo ano' : a.repete === 'mes' ? 'todo mês' : '';
       return '<div class="dia-item"><span class="ponto-agenda" aria-hidden="true"></span><span class="dia-item-txt"><b>' + esc(a.titulo) + '</b>' +
-        '<small>' + [a.hora ? 'às ' + a.hora : 'sem hora', rep].filter(Boolean).join(' · ') + '</small></span>' +
+        '<small>' + [a.hora ? 'às ' + a.hora : 'sem hora', rep,
+          a.aviso ? 'aviso ' + (a.aviso === 1440 ? '1 dia' : a.aviso === 60 ? '1 hora' : a.aviso + ' min') + ' antes' : ''].filter(Boolean).join(' · ') + '</small></span>' +
         '<button class="btn pequeno fraco" data-acao="apagar-lembrete" data-ref="' + esc(a.id + '|' + data) + '">Apagar</button></div>';
     }).join('') + '</div>';
   }
@@ -2316,14 +2317,19 @@ function abrirDia(data) {
     '<label class="campo"><span class="rotulo">Hora (se tiver)</span><input type="time" id="ag-hora"></label>' +
     '<label class="campo"><span class="rotulo">Repetir</span><select id="ag-repete">' +
       '<option value="">Só neste dia</option><option value="mes">Todo mês, dia ' + diaDe(data) + '</option>' +
-      '<option value="ano">Todo ano, ' + diaDe(data) + ' de ' + MESES[Number(data.slice(5, 7)) - 1] + '</option></select></label>';
+      '<option value="ano">Todo ano, ' + diaDe(data) + ' de ' + MESES[Number(data.slice(5, 7)) - 1] + '</option></select></label>' +
+    '<label class="campo"><span class="rotulo">Avisar antes</span><select id="ag-aviso">' +
+      AVISOS_OPCOES.map(function (o) { return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('') +
+    '</select></label>' +
+    (window.veroConta && window.veroConta().entrou ? '' : '<p class="frase">Para receber o aviso, entre na sua conta (Configurações).</p>');
   abrirForm(tituloDoDia(data), html, function () {
     const titulo = document.getElementById('ag-titulo').value.trim().slice(0, 60);
     if (!titulo) { fecharFolhas(); return; }
     const hora = document.getElementById('ag-hora').value;
     const antes = JSON.stringify(S);
     S.agenda.push({ id: id(), data: data, hora: /^\d{2}:\d{2}$/.test(hora) ? hora : '', titulo: titulo,
-      repete: document.getElementById('ag-repete').value, vaga: donoPadrao() });
+      repete: document.getElementById('ag-repete').value, vaga: donoPadrao(),
+      aviso: Number(document.getElementById('ag-aviso').value) || null });
     guardar(); fecharFolhas(); desenhar();
     oferecerDesfazer('Marcado: ' + titulo + ' em ' + porExtensoData(data), reporDe(antes));
   }, 'Marcar');
@@ -3362,7 +3368,7 @@ function ajustesAparelho() {
 
 function telaAjustes(n) {
   const c = window.veroConta ? window.veroConta() : { disponivel: false };
-  return ajustesConta(c) + ajustesCasa(c) + ajustesCiclo() + ajustesLimite(n) + ajustesCategorias() + ajustesDados() +
+  return ajustesConta(c) + ajustesCasa(c) + ajustesCiclo() + ajustesAvisos() + ajustesLimite(n) + ajustesCategorias() + ajustesDados() +
     (c.ligado && c.conversa ? blocoAjuste('Conversa com a IA', linhaAjuste('Mensagens guardadas neste aparelho', String(c.conversa), botao('apagar-conversa', '', 'Apagar'))) : '') +
     ajustesAparelho() +
     '<section class="bloco"><div class="sobre-vero">Vero</div><p class="frase">Feito pela SAS. O app calcula e os números são seus.</p></section>';
@@ -4767,6 +4773,8 @@ document.addEventListener('click', function (ev) {
     case 'inicio-filtro':
       inicioFiltro = ref;
       return desenhar();
+    case 'avisos-ativar':    return ativarAvisos();
+    case 'avisos-desativar': return desativarAvisos();
     case 'dia-abrir':
       // v63: Ctrl+clique (⌘ no Mac) ou o modo "Somar dias" marcam o dia em vez de o abrir.
       if (ev.ctrlKey || ev.metaKey || selModo) { ev.preventDefault(); alternarSelDia(ref); return desenhar(); }
@@ -4914,3 +4922,120 @@ if (typeof window !== 'undefined' && window.requestAnimationFrame) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(function () { /* abre igual sem isto */ });
 }
+
+/* ── v73 (25/11) · Avisos no celular (Web Push) ─────────────────────────────────────────
+   Chave PÚBLICA VAPID (não é segredo). A privada fica no servidor (privado.config_push). */
+const VAPID_PUBLICA = 'BIWzHv041wvrHpjaz4oekVJawMEXOLDT_S_138wpj2zQkrKhOglfXIT2gBtTKqQLVGnio5BM2Mvcp63KFIg1AgQ';
+const AVISOS_OPCOES = [['', 'Nenhum'], ['15', '15 minutos'], ['60', '1 hora'], ['1440', '1 dia']];
+
+function b64urlParaBytes(s) {
+  const pad = '='.repeat((4 - (s.length % 4)) % 4);
+  const bin = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(bin, function (c) { return c.charCodeAt(0); });
+}
+
+/** No iPhone o push só existe com o app na tela inicial (iOS 16.4+). */
+function avisosSuporte() {
+  const instalado = (navigator.standalone === true) ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return { ok: false, motivo: instalado ? 'Este aparelho não aceita avisos (precisa do iOS 16.4 ou mais novo).' : 'Abra o Vero pelo ícone na tela inicial para ativar os avisos.' };
+  }
+  if (!instalado) return { ok: false, motivo: 'Abra o Vero pelo ícone na tela inicial para ativar os avisos.' };
+  return { ok: true };
+}
+
+var avisosAtivos = null; // null = ainda não sei; true/false depois de olhar
+function lerAvisosAtivos() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+    const v = !!sub && Notification.permission === 'granted';
+    if (v !== avisosAtivos) { avisosAtivos = v; if (location.hash === '#/ajustes') desenhar(); }
+  }).catch(function () { /* sem push: o bloco explica */ });
+}
+
+/** Bloco da tela Configurações (entra em telaAjustes, depois de ajustesCiclo). */
+function ajustesAvisos() {
+  const su = avisosSuporte();
+  if (avisosAtivos === null) lerAvisosAtivos();
+  let linha;
+  if (!su.ok) linha = linhaAjuste('Avisos no celular', su.motivo, '');
+  else if (Notification.permission === 'denied') {
+    linha = linhaAjuste('Avisos bloqueados', 'Ajustes do iPhone, Notificações, Vero: permita e volte aqui.', '');
+  } else if (avisosAtivos) {
+    linha = linhaAjuste('Avisos ligados', 'Compromissos, contas que vencem amanhã e o dia em branco.', botao('avisos-desativar', '', 'Desligar', true));
+  } else {
+    linha = linhaAjuste('Avisos no celular', 'Compromissos, contas que vencem amanhã e o dia em branco, mesmo com o app fechado.', botao('avisos-ativar', '', 'Ativar avisos'));
+  }
+  return blocoAjuste('Avisos', linha);
+}
+
+/** Chamado pelo clique (case 'avisos-ativar'). requestPermission é a PRIMEIRA coisa dentro do toque. */
+function ativarAvisos() {
+  const su = avisosSuporte();
+  if (!su.ok) { avisarCurto(su.motivo); return; }
+  if (!window.veroSync || !window.veroSync.cliente || !window.veroSync.cliente() || !window.veroConta || !window.veroConta().entrou) {
+    avisarCurto('Entre na sua conta para ligar os avisos.'); return;
+  }
+  Notification.requestPermission().then(function (perm) {
+    if (perm !== 'granted') { avisarCurto('Sem permissão, não dá para avisar.'); desenhar(); return; }
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (atual) {
+        return atual || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlParaBytes(VAPID_PUBLICA) });
+      });
+    }).then(gravarInscricao).then(function () {
+      avisosAtivos = true; avisarCurto('Avisos ligados.'); desenhar();
+    });
+  }).catch(function (e) {
+    console.error('avisos', e); avisarCurto('Não consegui ligar os avisos agora.');
+  });
+}
+
+function gravarInscricao(sub) {
+  const sync = window.veroSync, sb = sync && sync.cliente && sync.cliente(), casa = sync && sync.casa && sync.casa();
+  if (!sb || !casa) throw new Error('sem conta ligada');
+  const j = sub.toJSON();
+  return sb.auth.getUser().then(function (r) {
+    if (!r.data || !r.data.user) throw new Error('sem usuario');
+    return sb.from('push_inscricoes').upsert({
+      casa_id: casa, user_id: r.data.user.id, endpoint: j.endpoint,
+      p256dh: j.keys.p256dh, auth: j.keys.auth, agente: String(navigator.userAgent).slice(0, 120)
+    }, { onConflict: 'endpoint' });
+  }).then(function (r) { if (r.error) throw r.error; });
+}
+
+function desativarAvisos() {
+  navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+    if (!sub) return;
+    const sb = window.veroSync && window.veroSync.cliente && window.veroSync.cliente();
+    const fim = function () { return sub.unsubscribe(); };
+    return sb ? sb.from('push_inscricoes').delete().eq('endpoint', sub.endpoint).then(fim, fim) : fim();
+  }).then(function () { avisosAtivos = false; desenhar(); });
+}
+/* Aviso curto: oferecerDesfazer(texto, null) mostra só o texto, sem "Desfazer". */
+function avisarCurto(t) { oferecerDesfazer(t, null); }
+
+/* ── Abrir o dia certo (ou o "+") quando se toca na notificação ───────────────────────── */
+(function () {
+  function abrirDoAviso(dia, acao) {
+    if (location.hash !== '#/inicio') location.hash = '#/inicio';
+    setTimeout(function () {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dia || '')) abrirDia(dia);
+      else if (acao === 'mais') abrirLancar();
+    }, 150);
+  }
+  // App fechado: o sw abriu './?dia=...' ou './?acao=mais'. Lê sem URLSearchParams (o teste roda sem ele).
+  const busca = (typeof location !== 'undefined' && location.search) || '';
+  const pega = function (nome) { const m = new RegExp('[?&]' + nome + '=([^&]*)').exec(busca); return m ? decodeURIComponent(m[1]) : null; };
+  const dia = pega('dia'), acao = pega('acao');
+  if (dia || acao) {
+    if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', location.pathname + location.hash);
+    abrirDoAviso(dia, acao);
+  }
+  // App aberto: o sw manda uma mensagem.
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (ev) {
+      if (ev.data && ev.data.tipo === 'abrir-dia') abrirDoAviso(ev.data.dia, ev.data.acao);
+    });
+  }
+})();

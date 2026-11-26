@@ -3,7 +3,7 @@
    versao nova chega sem ficar presa numa cache velha, e um aparelho sem sinal
    abre com a ultima que viu. */
 
-const CACHE = 'vero-v72';
+const CACHE = 'vero-v73';
 const BASE = ['./', './index.html', './estilo.css', './app.js', './sync.js', './rede.js', './manifest.webmanifest', './icone.svg', './icone-192.png', './icone-512.png'];
 const BIBLIOTECA = 'https://cdn.jsdelivr.net/npm/@supabase/';
 
@@ -40,4 +40,33 @@ self.addEventListener('fetch', function (ev) {
       });
     })
   );
+});
+
+/* ── Avisos no celular (v73). No iOS todo 'push' PRECISA mostrar uma notificação, senão o iOS
+   revoga a inscrição. Por isso o showNotification fica sempre dentro do waitUntil. ── */
+self.addEventListener('push', function (ev) {
+  let d = {};
+  try { d = ev.data ? ev.data.json() : {}; } catch (e) { d = { titulo: 'Vero', corpo: ev.data ? ev.data.text() : '' }; }
+  ev.waitUntil(self.registration.showNotification(d.titulo || 'Vero', {
+    body: d.corpo || '',
+    icon: './icone-192.png',
+    badge: './icone-192.png',
+    tag: d.tag || 'vero',
+    data: { url: d.url || './' }
+  }));
+});
+
+self.addEventListener('notificationclick', function (ev) {
+  ev.notification.close();
+  const alvo = new URL((ev.notification.data && ev.notification.data.url) || './', self.registration.scope);
+  const dia = alvo.searchParams.get('dia');
+  const acao = alvo.searchParams.get('acao');
+  ev.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (lista) {
+    // App já aberto: manda o dia ou a ação por mensagem (app-push: 'message').
+    for (const c of lista) {
+      if ('focus' in c) { if (dia || acao) c.postMessage({ tipo: 'abrir-dia', dia: dia, acao: acao }); return c.focus(); }
+    }
+    // App fechado: abre com ?dia= ou ?acao=, que o app lê ao iniciar.
+    return self.clients.openWindow(alvo.href);
+  }));
 });

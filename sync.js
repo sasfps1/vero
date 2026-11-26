@@ -22,7 +22,7 @@
     fixas: ['id', 'nome', 'valor', 'conta', 'dia', 'ativa', 'desde', 'total', 'dividida_com', 'outro_pagou'],
     emprestimos: ['id', 'direcao', 'pessoa', 'valor', 'data', 'prometido', 'conta', 'nota', 'estado'],
     categorias: ['tipo', 'nome'],
-    agenda: ['id', 'data', 'hora', 'titulo', 'repete', 'conta']
+    agenda: ['id', 'data', 'hora', 'titulo', 'repete', 'conta', 'aviso_min']
   };
   /* 10/11: a divisão da conta fixa e a agenda vieram depois (005_divisao_e_agenda.sql). Banco
      sem elas não pode derrubar a leitura inteira nem apagar do aparelho o que só vive lá:
@@ -97,7 +97,7 @@
       d.categorias['saida|' + n] = canon('categorias', { tipo: 'saida', nome: String(n).slice(0, 28) });
     }
     for (const a of s.agenda || []) {
-      d.agenda[a.id] = canon('agenda', { id: a.id, data: a.data, hora: a.hora || null, titulo: String(a.titulo).slice(0, 60), repete: a.repete || '', conta: a.vaga || vaga });
+      d.agenda[a.id] = canon('agenda', { id: a.id, data: a.data, hora: a.hora || null, titulo: String(a.titulo).slice(0, 60), repete: a.repete || '', conta: a.vaga || vaga, aviso_min: a.aviso || null });
     }
     return d;
   }
@@ -142,7 +142,7 @@
     });
     const categorias = Object.values(d.categorias).map(function (r) { return r.nome; });
     const agenda = bancoTemAgenda
-      ? Object.values(d.agenda || {}).map(function (r) { return { id: r.id, data: r.data, hora: r.hora || '', titulo: r.titulo, repete: r.repete || '', vaga: r.conta }; })
+      ? Object.values(d.agenda || {}).map(function (r) { return { id: r.id, data: r.data, hora: r.hora || '', titulo: r.titulo, repete: r.repete || '', vaga: r.conta, aviso: r.aviso_min || null }; })
       : (S.agenda || []);
     return estrutura({ v: 1, lancamentos: lancamentos, contas: contas, emprestimos: emprestimos, categorias: categorias, agenda: agenda, config: config });
   }
@@ -1149,5 +1149,6 @@
     }
   }
 
-  window.veroSync = { pronto: iniciar(), puxar: puxar, drenar: drenar, fila: function () { return fila; }, recusados: function () { return recusados; }, decidir: function (junta) { if (decidirLocal) decidirLocal(junta); } };
+  window.veroSync = { pronto: iniciar(), puxar: puxar, drenar: drenar, fila: function () { return fila; }, recusados: function () { return recusados; }, decidir: function (junta) { if (decidirLocal) decidirLocal(junta); },
+    cliente: function () { return sb; }, casa: function () { return eu && eu.casa; } };
 })();
