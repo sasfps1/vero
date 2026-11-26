@@ -2576,3 +2576,65 @@ body { background-color: var(--chao); }
   /* no PC os atalhos ficam lado a lado numa coluna estreita: pílula espremia o texto e empurrava a lista */
   :root:not([data-tema="claro"]) .v2-atalho { border-radius: 18px !important; padding-left: revert !important; }
 }
+
+/* ── v72 · 25/11 · OBSIDIANA EM TUDO ──
+   A Obsidiana (v71) pegou cartões, calendário, chips e atalhos. Este bloco leva o mesmo vidro
+   fosco, a mesma linha de luz de 1px e o mesmo grão ao resto: folhas de lançar e de formulário,
+   teclado, campos, botões, barra de baixo, quadros do Painel, trilhos e anel, ícones de
+   categoria, linhas de lista, aviso e desfazer. Listras saíram: o gosto agora é pontilhado.
+   Só no tema escuro; o claro não muda. Posição, ordem, texto e números intactos. */
+:root:not([data-tema="claro"]) {
+  --ob-pedra: linear-gradient(180deg, #101C3A 0%, #0A1228 100%);
+  --ob-luz: inset 0 1px 0 rgba(242,235,210,.13), inset 0 0 0 1px rgba(158,197,232,.07);
+  --ob-vidro: inset 0 0 0 1px rgba(242,235,210,.13), inset 0 1px 0 rgba(242,235,210,.08);
+}
+/* folhas: fundo de pedra chapada, cabeça e rodapé com filete de luz */
+:root:not([data-tema="claro"]) .folha { background: linear-gradient(180deg, #0A1228 0%, #060B1B 100%); }
+:root:not([data-tema="claro"]) .folha .cabeca { border-bottom: 0; background: linear-gradient(180deg, rgba(242,235,210,.045), transparent); box-shadow: inset 0 -1px 0 rgba(242,235,210,.07); }
+:root:not([data-tema="claro"]) .rodape-folha { border-top: 0; background: linear-gradient(180deg, rgba(10,18,40,0), #070D1E 40%); box-shadow: inset 0 1px 0 rgba(242,235,210,.09); }
+:root:not([data-tema="claro"]) .fechar-x { background: rgba(242,235,210,.035); box-shadow: var(--ob-vidro); }
+:root:not([data-tema="claro"]) .tipo-seg { background: rgba(2,6,23,.55); box-shadow: inset 0 1px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(242,235,210,.09); }
+/* teclado: cada tecla é uma pedra pequena */
+:root:not([data-tema="claro"]) .teclado button { background: var(--ob-pedra); border-radius: 20px; color: #F2EBD2; box-shadow: var(--ob-luz), 0 1px 2px rgba(2,6,23,.5), 0 6px 12px -6px rgba(2,6,23,.6); }
+:root:not([data-tema="claro"]) .teclado button:active { background: linear-gradient(180deg, #0A1228, #0F1A36); box-shadow: inset 0 2px 5px rgba(0,0,0,.5), inset 0 0 0 1px rgba(158,197,232,.10); }
+/* campos: vidro afundado, sem borda */
+:root:not([data-tema="claro"]) input[type="text"], :root:not([data-tema="claro"]) input[type="number"], :root:not([data-tema="claro"]) input[type="date"], :root:not([data-tema="claro"]) input[type="time"], :root:not([data-tema="claro"]) input[type="search"], :root:not([data-tema="claro"]) input[type="email"], :root:not([data-tema="claro"]) input[type="password"], :root:not([data-tema="claro"]) select, :root:not([data-tema="claro"]) textarea {
+  background: rgba(2,6,23,.45) !important; border-color: transparent !important; border-radius: 16px; box-shadow: inset 0 1px 3px rgba(0,0,0,.40), inset 0 0 0 1px rgba(242,235,210,.12); }
+:root:not([data-tema="claro"]) input:focus, :root:not([data-tema="claro"]) select:focus, :root:not([data-tema="claro"]) textarea:focus { box-shadow: inset 0 1px 3px rgba(0,0,0,.40), inset 0 0 0 1px rgba(158,197,232,.65), 0 0 0 3px rgba(158,197,232,.14); outline: 0; }
+/* botões de contorno: mesmo vidro com filete; creme cheio, vermelho e verde ficam como estão */
+:root:not([data-tema="claro"]) .btn:not(.primario):not(.acento):not(.sair):not(.perigo):not(.entrada):not(.saida) { border-color: transparent; background: rgba(242,235,210,.035); color: #F2EBD2; box-shadow: var(--ob-vidro); }
+:root:not([data-tema="claro"]) .btn.fraco { color: #B9C1D6; }
+:root:not([data-tema="claro"]) .btn.primario { box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 1px 2px rgba(2,6,23,.5), 0 8px 16px -6px rgba(2,6,23,.6); }
+:root:not([data-tema="claro"]) .btn:disabled { opacity: 1; background: rgba(242,235,210,.05) !important; border-color: transparent !important; color: #A3ADC6 !important; box-shadow: var(--ob-vidro) !important; }
+/* barra de baixo: laje de pedra com a linha de luz no topo; o botão de lançar ganha o mesmo recorte */
+:root:not([data-tema="claro"]) nav.barra { background: linear-gradient(180deg, #0F1A36 0%, #080E21 100%); box-shadow: inset 0 1px 0 rgba(242,235,210,.16), 0 -10px 26px -8px rgba(2,6,23,.7); }
+:root:not([data-tema="claro"]) .lancar-centro { border-color: #0B1329; box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(242,235,210,.20), 0 8px 18px -4px rgba(2,6,23,.7); }
+@media (min-width: 1180px) and (min-height: 600px) {
+  :root:not([data-tema="claro"]) nav.barra { background: transparent; box-shadow: none; }
+  :root:not([data-tema="claro"]) nav.barra a.activo { background: rgba(242,235,210,.07); box-shadow: inset 0 0 0 1px rgba(242,235,210,.30), inset 0 1px 0 rgba(242,235,210,.14); }
+}
+/* quadros do Painel: vidro; o Sobrou segue azul */
+:root:not([data-tema="claro"]) .pn-kpi { border-radius: 20px; background: rgba(242,235,210,.035); box-shadow: var(--ob-vidro); }
+:root:not([data-tema="claro"]) .pn-kpis > :nth-child(3) { box-shadow: inset 0 1px 0 rgba(242,235,210,.16), inset 0 0 0 1px rgba(158,197,232,.28); border: 0 !important; }
+/* trilhos: canal escavado, enchimento aceso por cima */
+:root:not([data-tema="claro"]) .pn-trilho, :root:not([data-tema="claro"]) .pn-meta-barra, :root:not([data-tema="claro"]) .barra-fina, :root:not([data-tema="claro"]) .barra-cobre { background: rgba(2,6,23,.6); box-shadow: inset 0 1px 2px rgba(0,0,0,.55), inset 0 -1px 0 rgba(242,235,210,.06); }
+:root:not([data-tema="claro"]) .pn-meta-barra i, :root:not([data-tema="claro"]) .barra-cobre i, :root:not([data-tema="claro"]) .barra-fina i, :root:not([data-tema="claro"]) .pn-b-nec { box-shadow: inset 0 1px 0 rgba(255,255,255,.32); }
+/* gosto sem listras: a cor da categoria com pontinhos de grão */
+:root:not([data-tema="claro"]) .pn-b-emo, :root:not([data-tema="claro"]) .pn-p-emo, :root:not([data-tema="claro"]) .pn-emo { background: radial-gradient(circle, rgba(8,14,33,.42) 1.1px, transparent 1.5px) 0 0 / 6px 6px, var(--c, var(--signal)); box-shadow: inset 0 1px 0 rgba(255,255,255,.30); }
+:root:not([data-tema="claro"]) .pn-legenda .l-nec { background: #F2EBD2; box-shadow: none; }
+:root:not([data-tema="claro"]) .pn-legenda .l-emo { background: radial-gradient(circle, rgba(8,14,33,.50) 1.1px, transparent 1.5px) 0 0 / 5px 5px, #F2EBD2; box-shadow: none; }
+:root:not([data-tema="claro"]) .pn-meta-barra.passou i { background: radial-gradient(circle, rgba(8,14,33,.42) 1.1px, transparent 1.5px) 0 0 / 6px 6px, var(--signal); }
+:root:not([data-tema="claro"]) .ficha-op.nat-emocao.activo { background-image: none; }
+/* anel de contas: trilho escavado, arco de gelo com brilho */
+:root:not([data-tema="claro"]) .pn-anel-fundo { stroke: rgba(2,6,23,.65); }
+:root:not([data-tema="claro"]) .pn-anel-cheio { filter: drop-shadow(0 0 5px rgba(158,197,232,.35)); }
+/* ícones de categoria: pedra colorida com a mesma linha de luz */
+:root:not([data-tema="claro"]) .item-ico, :root:not([data-tema="claro"]) .linha .ico, :root:not([data-tema="claro"]) .destino .ico { box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 0 0 1px rgba(255,255,255,.07), 0 2px 5px rgba(2,6,23,.45); }
+/* linhas de lista */
+:root:not([data-tema="claro"]) .item, :root:not([data-tema="claro"]) .linha { border-color: rgba(242,235,210,.07); }
+:root:not([data-tema="claro"]) .item:hover { background: rgba(242,235,210,.04); border-radius: 18px; }
+:root:not([data-tema="claro"]) .destino-c { box-shadow: var(--ob-vidro); }
+/* aviso, desfazer e abas */
+:root:not([data-tema="claro"]) .aviso:not(.sem-caixa) { border-color: transparent; border-radius: 18px; background: rgba(242,235,210,.035); box-shadow: var(--ob-vidro); }
+:root:not([data-tema="claro"]) .desfazer { border-color: transparent; border-radius: 22px; background: var(--ob-pedra); box-shadow: var(--ob-luz), 0 14px 30px -8px rgba(2,6,23,.75); }
+:root:not([data-tema="claro"]) .abas { border-bottom-color: rgba(242,235,210,.08); }
