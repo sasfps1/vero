@@ -23,7 +23,7 @@
 
 const CHAVE = 'casa.v1';
 // Sobe junto com CACHE em sw.js; a prova confere os dois.
-const VERSAO = 73;
+const VERSAO = 74;
 let soMemoria = false;
 
 const VAZIO = {
@@ -450,6 +450,12 @@ function resumoDoMes(mes) {
   return resumoEntre(mes + '-01', mes + '-' + p2(diasNoMes(mes)));
 }
 
+/* v74 · RESERVA PARA O COLCHÃO (25/11). Porcentagem inteira (0, 5, 10, 15 ou 20) guardada em
+   S.config.reserva. Padrão 0: nada muda até ele ligar. Sai do livre, nunca das contas: as contas
+   fixas já têm a gaveta delas (contasFalta). */
+function reservaPct() { return Math.min(20, Math.max(0, Math.round(Number(S.config.reserva) || 0))); }
+function reservaSobre(entradas) { return Math.floor(entradas * reservaPct() / 100); }
+
 function calc() {
   const mes = mesDe(hoje()), ciclo = cicloDe(hoje());
   const { entradas, saidas } = resumoEntre(ciclo.de, ciclo.ate);
@@ -457,7 +463,8 @@ function calc() {
   const contasFalta = contasDoCiclo().reduce(function (a, x) { return a + x.centavos; }, 0) +
     contasAtrasadas().reduce(function (a, x) { return a + x.centavos; }, 0);
   const euDevo = euDevoAte(ciclo.ate);
-  const livre = entradas - saidas - contasFalta - euDevo;
+  const reserva = reservaSobre(entradas);
+  const livre = entradas - saidas - contasFalta - euDevo - reserva;
   return {
     mes: mes,
     ciclo: ciclo,
@@ -465,6 +472,7 @@ function calc() {
     saidas: saidas,
     contasFalta: contasFalta,
     euDevo: euDevo,
+    reserva: reserva,
     // O cartão do Início mostra entrou − saiu − falta pagar = sobrou. Sem a dívida
     // aqui a conta não fechava na tela, e o número mudava sem mostrar porquê.
     faltaPagar: contasFalta + euDevo,
@@ -1409,6 +1417,45 @@ function linhaEstadoDoDia(e) {
     'para empatar o mês: <b>' + dinheiro(e.metaDia) + '</b> por dia até o dia ' + ultimo + '</span></p>';
 }
 
+/* v74 · FECHAR O DIA EM UM TOQUE (25/11). Pesquisa: BJ Fogg (Tiny Habits: um gesto pequeno,
+   logo depois de algo que já acontece) e Thaler (contabilidade mental: o dia é uma caixinha
+   que se fecha). Das 19h às 23h59 o cartão vale para hoje; de 0h a 4h59, para ontem. Tom calmo. */
+function diaParaFechar(hora) {
+  const h = typeof hora === 'number' ? hora : new Date().getHours();
+  if (h >= 19 && h <= 23) return hoje();
+  if (h >= 0 && h < 5) return dataMais(-1);
+  return null;
+}
+function cartaoSeuDia(hora) {
+  const d = diaParaFechar(hora);
+  if (!d || (S.config.diasFechados && S.config.diasFechados[d])) return '';
+  const r = resumoEntre(d, d), ficou = r.resultado;
+  return '<section class="bloco seu-dia" aria-label="Seu dia">' +
+    '<div class="seu-dia-cab"><span class="rotulo">Seu dia</span><b>' + (d === hoje() ? 'de hoje' : 'de ontem') + '</b></div>' +
+    '<div class="seu-dia-trio">' +
+      '<div><span>Entrou</span><b>' + dinheiro(r.entradas) + '</b></div>' +
+      '<div><span>Saiu</span><b>' + dinheiro(r.saidas) + '</b></div>' +
+      '<div><span>Sobrou</span><b>' + comSinal(ficou) + '</b></div>' +
+    '</div>' +
+    '<p class="seu-dia-sub">Se estiver certo, feche. Se faltou algo, é só lançar.</p>' +
+    '<div class="seu-dia-botoes">' +
+      '<button class="btn primario" data-acao="dia-certo" data-ref="' + d + '">Está certo</button>' +
+      '<button class="btn contorno" data-acao="dia-faltou" data-ref="' + d + '">Faltou algo</button>' +
+    '</div></section>';
+}
+/** Só o aparelho: S.config não sai para o banco. */
+function fecharDia(d) {
+  if (!S.config.diasFechados) S.config.diasFechados = {};
+  S.config.diasFechados[d] = true;
+  guardar();
+  oferecerDesfazer('Dia fechado.', null);
+  return desenhar();
+}
+/** A linha da reserva no herói: só aparece com a reserva ligada (acima de zero). */
+function linhaReserva(n) {
+  return n.reserva > 0 ? '<p class="reserva-linha">Separado para o colchão: <b>' + dinheiro(n.reserva) + '</b></p>' : '';
+}
+
 function telaInicio(n) {
   const p = periodoInicio(), r = resumoEntre(p.de, p.ate);
   const ficou = r.entradas - r.saidas;
@@ -1593,7 +1640,9 @@ function inicioV2(n, p, r, ficou, pctFicou, est, abas, pode, pulso) {
     '<nav class="abas filtros v2-periodo" aria-label="Período">' + abas + '</nav>' +
     avisoPagoPorOutro(true) +
     heroiV2(n, p, r, ficou, pctFicou, est, pode, pulso) +
+    linhaReserva(n) +
     '<p class="v3-leitura v2-leitura' + (est && est.estado === 'contencao' && !vazamentoDaSemana() ? ' contencao' : '') + '"><i></i><span><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</span></p>' +
+    cartaoSeuDia() +
     oDeSempreV2() +
     listaV2(p) +
     faixaAgenda() +
@@ -1679,10 +1728,10 @@ function inicioPCv3(n, p, r, ficou, est, abas, pode, pulso) {
     '<div class="v3-faixa"><nav class="abas filtros" aria-label="Período">' + abas + '</nav>' +
       '<p class="v3-leitura' + (est && est.estado === 'contencao' && !vazamentoDaSemana() ? ' contencao' : '') + '"><i></i><b>Leitura do Vero:</b> ' + leituraDoVero(n, est) + '</p></div>' +
     avisoPagoPorOutro(true) +
-    '<div class="v3-esq">' + heroiPCv3(n, p, r, ficou, est, pode, pulso) +
+    '<div class="v3-esq">' + '<div class="v3-esq-topo">' + heroiPCv3(n, p, r, ficou, est, pode, pulso) + linhaReserva(n) + '</div>' +
       '<section class="bloco v3-hoje">' + oDeSempreV2() + listaV2(p) + '</section>' +
       cartaoContas(n) + '</div>' +
-    '<div class="v3-dir">' + calendarioDoMes() + conversaCartao() + '</div>' +
+    '<div class="v3-dir">' + '<div class="v3-cal-pilha">' + cartaoSeuDia() + calendarioDoMes() + '</div>' + conversaCartao() + '</div>' +
   '</div>';
 }
 
@@ -2775,6 +2824,7 @@ function metasPainel(P) {
     : 'passou ' + dinheiro(gostos - m.gostos) + ' do teto: o mês que vem recomeça';
   const t = !dias ? 'nenhum dia com entrada ' + P.esse : porDia <= m.moto ? 'média de ' + quantosDias(dias) + ' trabalhados, dentro do teto'
     : 'média de ' + quantosDias(dias) + ' trabalhados, ' + dinheiro(porDia - m.moto) + ' acima do teto por dia';
+  const reservaMes = reservaSobre(resumoDoMes(mes).entradas);
   const c = m.guardado >= m.colchao ? 'meta cumprida: o próximo degrau é deixar o dinheiro render'
     : 'faltam ' + dinheiro(m.colchao - m.guardado) + ' para o primeiro colchão';
   return '<section class="bloco pn-metas"><div class="pn-cab"><h2 class="pn-titulo">Metas</h2>' +
@@ -2782,7 +2832,7 @@ function metasPainel(P) {
     '<div class="pn-metas-lista">' +
     linha('Meus gostos', gostos, m.gostos, g) +
     linha('Moto por dia de trabalho', porDia, m.moto, t) +
-    linha('Colchão guardado', m.guardado, m.colchao, c) + '</div>' +
+    linha('Colchão guardado', m.guardado, m.colchao, c + (reservaMes ? ' · separado no mês: ' + dinheiro(reservaMes) : '')) + '</div>' +
     '<button class="btn contorno pn-guardei" data-acao="metas-guardei">Guardei dinheiro no colchão</button></section>';
 }
 function ajustarMetas() {
@@ -3294,6 +3344,24 @@ function ajustesLimite(n) {
     '<p class="frase" style="margin-top:10px">Com esta folga, o limite de hoje é ' + dinheiro(n.limite) + '.</p>');
 }
 
+/* v74 · RESERVA PARA O COLCHÃO: a gaveta automática. 0% é o padrão e não muda nada. */
+function ajustesColchao(n) {
+  const botoes = [0, 5, 10, 15, 20].map(function (p) {
+    const ativo = reservaPct() === p;
+    return '<button class="periodo' + (ativo ? ' activo' : '') + '" data-acao="reserva" data-ref="' + p + '" aria-pressed="' + ativo + '">' + p + '%</button>';
+  }).join('');
+  return blocoAjuste('Separar para o colchão',
+    '<p class="frase">O livre é entradas − saídas − contas − o que devo − reserva, e a reserva é a % das entradas do ciclo (para baixo); as contas já têm gaveta própria e não descontam de novo.</p>' +
+    '<div class="periodos cinco">' + botoes + '</div>' +
+    '<p class="frase" style="margin-top:10px">Separado neste ciclo: ' + dinheiro(n.reserva) + '.</p>');
+}
+/** A reserva muda o livre: o limite congelado do dia foi feito com a conta antiga. */
+function definirReserva(p) {
+  S.config.reserva = Math.min(20, Math.max(0, Math.round(Number(p) || 0)));
+  Object.keys(S.config).forEach(function (k) { if (k === 'limite' || k.indexOf('limite_') === 0) S.config[k] = null; });
+  guardar();
+}
+
 function ajustesCiclo() {
   const lig = cicloLigado(), ci = cicloDe(hoje()), prox = mesSeguinte(ci.mes);
   const salario = function (mes) {
@@ -3368,7 +3436,7 @@ function ajustesAparelho() {
 
 function telaAjustes(n) {
   const c = window.veroConta ? window.veroConta() : { disponivel: false };
-  return ajustesConta(c) + ajustesCasa(c) + ajustesCiclo() + ajustesAvisos() + ajustesLimite(n) + ajustesCategorias() + ajustesDados() +
+  return ajustesConta(c) + ajustesCasa(c) + ajustesCiclo() + ajustesAvisos() + ajustesLimite(n) + ajustesColchao(n) + ajustesCategorias() + ajustesDados() +
     (c.ligado && c.conversa ? blocoAjuste('Conversa com a IA', linhaAjuste('Mensagens guardadas neste aparelho', String(c.conversa), botao('apagar-conversa', '', 'Apagar'))) : '') +
     ajustesAparelho() +
     '<section class="bloco"><div class="sobre-vero">Vero</div><p class="frase">Feito pela SAS. O app calcula e os números são seus.</p></section>';
@@ -3514,7 +3582,7 @@ function preencherDaFrase(texto) {
   else if (valorDaFrase) { digitos = ''; valorDaFrase = false; }
   document.getElementById('lancar-nota').value = f.nota;
   // v66: sem data dita na frase, fica a data padrão (de madrugada, ontem), não "hoje".
-  document.getElementById('lancar-data').value = f.temData ? f.data : dataPadraoNova();
+  document.getElementById('lancar-data').value = f.temData ? f.data : (dataDaFolha || dataPadraoNova());
   // v66: "recebi/entrou/ganhei" liga o Entrou; se o verbo sair da frase, volta a Saiu.
   if (f.tipo === 'entrada') { if (tipoFolha !== 'entrada') { tipoFolha = 'entrada'; tipoPelaFrase = true; } }
   else if (tipoPelaFrase) { tipoFolha = 'saida'; tipoPelaFrase = false; }
@@ -3770,7 +3838,10 @@ function abrirFolha(l) {
      (iPhone), fica calado e a folha funciona como antes. */
   if (!l) { try { ouvir(); } catch (e) { /* segue sem voz */ } }
 }
-function abrirLancar() { abrirFolha(null); }
+// v74: o "Faltou algo" do cartão Seu dia fixa o dia da folha, também para a voz.
+let dataDaFolha = null;
+function abrirLancar() { dataDaFolha = null; abrirFolha(null); }
+function lancarNoDia(d) { abrirLancar(); dataDaFolha = d; document.getElementById('lancar-data').value = d; }
 
 /** Pinta a folha inteira a partir do estado: o tipo, o valor, o botão e as fichas. */
 function pintarValor() {
@@ -4724,6 +4795,11 @@ document.addEventListener('click', function (ev) {
     case 'apagar-conversa': return window.veroLimparConversa();
     case 'copiar-codigo':   return copiarCodigo(window.veroConta().codigo);
     case 'enviar-codigo':   return enviarCodigo(window.veroConta().codigo);
+    case 'reserva':
+      definirReserva(ref);
+      return desenhar();
+    case 'dia-certo':       return fecharDia(ref);
+    case 'dia-faltou':      return lancarNoDia(ref);
     case 'folga':
       definirFolga(ref);
       return desenhar();

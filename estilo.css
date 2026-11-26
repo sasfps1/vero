@@ -2638,3 +2638,31 @@ body { background-color: var(--chao); }
 :root:not([data-tema="claro"]) .aviso:not(.sem-caixa) { border-color: transparent; border-radius: 18px; background: rgba(242,235,210,.035); box-shadow: var(--ob-vidro); }
 :root:not([data-tema="claro"]) .desfazer { border-color: transparent; border-radius: 22px; background: var(--ob-pedra); box-shadow: var(--ob-luz), 0 14px 30px -8px rgba(2,6,23,.75); }
 :root:not([data-tema="claro"]) .abas { border-bottom-color: rgba(242,235,210,.08); }
+
+/* v74 (25/11): "Seu dia" (fechar o dia em um toque) e a reserva para o colchão. */
+.seu-dia { display: flex; flex-direction: column; gap: 12px; margin: 10px 0; }
+.seu-dia-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.seu-dia-cab b { font-size: 13px; font-weight: 500; color: var(--on-surface-muted); }
+.seu-dia-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.seu-dia-trio div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.seu-dia-trio span { font-size: 12px; color: var(--on-surface-muted); }
+.seu-dia-trio b { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seu-dia-sub { margin: 0; font-size: 13px; color: var(--on-surface-muted); }
+.seu-dia-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seu-dia-botoes .btn { min-height: 44px; padding: 0 12px; }
+.reserva-linha { margin: 6px 4px 0; font-size: 13px; color: var(--on-surface-muted); }
+.reserva-linha b { color: var(--on-surface); font-weight: 600; }
+.v3-esq-topo { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* v74 (PC): o cartao Seu dia fica enxuto na coluna esquerda, sem a frase de apoio, para a lista de hoje caber */
+.v3-esq-topo .seu-dia { gap: 8px; padding: 12px 14px; margin: 0; }
+.v3-esq-topo .seu-dia-sub { display: none; }
+.v3-esq-topo .seu-dia-trio b { font-size: 15px; }
+.v3-esq-topo .seu-dia-botoes .btn { min-height: 38px; }
+.v3-cal-pilha { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+.v3-cal-pilha > .mes-cal { flex: 1 1 auto; min-height: 0; }
+.v3-cal-pilha > .seu-dia { flex: none; }
+.v3-dir .seu-dia-sub { display: none; }
+/* v74 (PC): o Seu dia vira uma faixa de uma linha acima do calendario, para o calendario manter a altura */
+.v3-cal-pilha .seu-dia { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1.2fr); gap: 8px 16px; align-items: center; padding: 10px 14px; }
+.v3-cal-pilha .seu-dia-cab { flex-direction: column; align-items: flex-start; gap: 0; }
+.v3-cal-pilha .seu-dia-botoes .btn { min-height: 36px; }
